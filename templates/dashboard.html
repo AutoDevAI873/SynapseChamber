@@ -1,0 +1,834 @@
+{% extends 'layout.html' %}
+
+{% block title %}Analytics Dashboard - Synapse Chamber{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dashboard-card {
+    transition: all 0.3s ease;
+    height: 100%;
+  }
+  
+  .dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  }
+  
+  .metric-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+  }
+  
+  .metric-label {
+    font-size: 0.9rem;
+    color: var(--bs-secondary);
+  }
+  
+  .performance-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 8px;
+  }
+  
+  .indicator-good {
+    background-color: var(--bs-success);
+  }
+  
+  .indicator-warning {
+    background-color: var(--bs-warning);
+  }
+  
+  .indicator-danger {
+    background-color: var(--bs-danger);
+  }
+  
+  .chart-container {
+    position: relative;
+    height: 350px;
+    width: 100%;
+  }
+  
+  .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    border-radius: 0.5rem;
+  }
+  
+  .dashboard-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+  }
+
+  .tab-content {
+    padding: 1.5rem 0;
+  }
+  
+  .progress-label {
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .insight-item {
+    padding: 0.75rem;
+    border-left: 3px solid var(--bs-primary);
+    margin-bottom: 0.75rem;
+    background-color: rgba(13, 110, 253, 0.05);
+    border-radius: 0 0.25rem 0.25rem 0;
+  }
+  
+  .insight-item.warning {
+    border-left-color: var(--bs-warning);
+    background-color: rgba(255, 193, 7, 0.05);
+  }
+  
+  .insight-item.danger {
+    border-left-color: var(--bs-danger);
+    background-color: rgba(220, 53, 69, 0.05);
+  }
+  
+  .insight-item.success {
+    border-left-color: var(--bs-success);
+    background-color: rgba(25, 135, 84, 0.05);
+  }
+  
+  .heatmap-cell {
+    transition: all 0.2s ease;
+  }
+  
+  .heatmap-cell:hover {
+    transform: scale(1.1);
+    z-index: 2;
+  }
+  
+  #assistantChatbox {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    z-index: 1000;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+  }
+  
+  .chatbox-header {
+    padding: 0.75rem 1rem;
+    background-color: var(--bs-dark);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+  }
+  
+  .chatbox-body {
+    height: 350px;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: var(--bs-dark);
+  }
+  
+  .chatbox-footer {
+    padding: 0.75rem 1rem;
+    background-color: var(--bs-dark);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .chat-message {
+    margin-bottom: 1rem;
+    max-width: 80%;
+  }
+  
+  .user-message {
+    margin-left: auto;
+    background-color: var(--bs-primary);
+    color: white;
+    border-radius: 1rem 1rem 0 1rem;
+    padding: 0.75rem 1rem;
+  }
+  
+  .assistant-message {
+    margin-right: auto;
+    background-color: var(--bs-secondary);
+    color: white;
+    border-radius: 1rem 1rem 1rem 0;
+    padding: 0.75rem 1rem;
+  }
+  
+  .suggestion-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  
+  .suggestion-chip {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--bs-light);
+    border: none;
+    border-radius: 1rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .suggestion-chip:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .chatbox-minimized {
+    height: 50px;
+    overflow: hidden;
+  }
+  
+  .achievement-popup {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background-color: var(--bs-dark);
+    border-left: 4px solid var(--bs-success);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    max-width: 320px;
+    animation: slide-in 0.5s ease-out;
+  }
+  
+  @keyframes slide-in {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row dashboard-header align-items-center mb-4">
+    <div class="col-md-6">
+      <h1 class="mb-2">Analytics Dashboard</h1>
+      <p class="lead">Visualize training performance, AI platform metrics, and system health</p>
+    </div>
+    <div class="col-md-6 text-md-end">
+      <div class="btn-group" role="group">
+        <button type="button" class="btn btn-outline-secondary" id="refreshButton">
+          <i class="fas fa-sync-alt"></i> Refresh Data
+        </button>
+        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+          <i class="fas fa-download"></i> Export
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#" id="exportTrainingData">Training Sessions</a></li>
+          <li><a class="dropdown-item" href="#" id="exportPlatformData">Platform Metrics</a></li>
+          <li><a class="dropdown-item" href="#" id="exportSystemData">System Performance</a></li>
+        </ul>
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+          <i class="fas fa-cog"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Health Card -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0">
+        <div class="card-body">
+          <h5 class="card-title mb-3">System Health</h5>
+          <div class="row align-items-center">
+            <div class="col-md-3 text-center mb-3 mb-md-0">
+              <div class="d-inline-block position-relative" id="healthGauge">
+                <!-- Health gauge will be inserted here by JS -->
+              </div>
+            </div>
+            <div class="col-md-9">
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <div class="progress-label d-flex justify-content-between">
+                    <span>Memory Usage</span>
+                    <span id="memoryUsageValue">45%</span>
+                  </div>
+                  <div class="progress bg-dark">
+                    <div id="memoryUsageBar" class="progress-bar bg-success" role="progressbar" style="width: 45%" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="progress-label d-flex justify-content-between">
+                    <span>API Latency</span>
+                    <span id="apiLatencyValue">120ms</span>
+                  </div>
+                  <div class="progress bg-dark">
+                    <div id="apiLatencyBar" class="progress-bar bg-warning" role="progressbar" style="width: 60%" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="progress-label d-flex justify-content-between">
+                    <span>Error Rate</span>
+                    <span id="errorRateValue">1.2%</span>
+                  </div>
+                  <div class="progress bg-dark">
+                    <div id="errorRateBar" class="progress-bar bg-success" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="row mt-1">
+                <div class="col-12">
+                  <div class="alert alert-success alert-dismissible fade show py-2" role="alert" id="systemAlert">
+                    <small><i class="fas fa-info-circle"></i> <span id="systemAlertMsg">System is operating normally. All components are responsive and healthy.</span></small>
+                    <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Metrics Cards -->
+  <div class="row mb-4">
+    <div class="col-md-3 mb-3 mb-md-0">
+      <div class="card border-0 dashboard-card bg-dark">
+        <div class="card-body text-center">
+          <div class="d-flex align-items-center justify-content-center mb-2">
+            <i class="fas fa-tasks fa-2x text-primary me-2"></i>
+            <h6 class="card-title mb-0">Total Sessions</h6>
+          </div>
+          <h2 class="metric-value" id="totalSessionsValue">32</h2>
+          <p class="metric-label mb-0">Training sessions conducted</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3 mb-md-0">
+      <div class="card border-0 dashboard-card bg-dark">
+        <div class="card-body text-center">
+          <div class="d-flex align-items-center justify-content-center mb-2">
+            <i class="fas fa-check-circle fa-2x text-success me-2"></i>
+            <h6 class="card-title mb-0">Success Rate</h6>
+          </div>
+          <h2 class="metric-value" id="successRateValue">87%</h2>
+          <p class="metric-label mb-0">Sessions completed successfully</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3 mb-md-0">
+      <div class="card border-0 dashboard-card bg-dark">
+        <div class="card-body text-center">
+          <div class="d-flex align-items-center justify-content-center mb-2">
+            <i class="fas fa-clock fa-2x text-info me-2"></i>
+            <h6 class="card-title mb-0">Avg Duration</h6>
+          </div>
+          <h2 class="metric-value" id="avgDurationValue">3.2m</h2>
+          <p class="metric-label mb-0">Average session time</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 mb-3 mb-md-0">
+      <div class="card border-0 dashboard-card bg-dark">
+        <div class="card-body text-center">
+          <div class="d-flex align-items-center justify-content-center mb-2">
+            <i class="fas fa-brain fa-2x text-warning me-2"></i>
+            <h6 class="card-title mb-0">AI Platforms</h6>
+          </div>
+          <h2 class="metric-value" id="platformsUsedValue">5</h2>
+          <p class="metric-label mb-0">Active platforms contributing</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Navigation Tabs -->
+  <ul class="nav nav-tabs mb-3" id="dashboardTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="training-tab" data-bs-toggle="tab" data-bs-target="#training" type="button" role="tab">
+        <i class="fas fa-chart-line"></i> Training Performance
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="platforms-tab" data-bs-toggle="tab" data-bs-target="#platforms" type="button" role="tab">
+        <i class="fas fa-robot"></i> AI Platforms
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="user-tab" data-bs-toggle="tab" data-bs-target="#user" type="button" role="tab">
+        <i class="fas fa-user"></i> User Activity
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="insights-tab" data-bs-toggle="tab" data-bs-target="#insights" type="button" role="tab">
+        <i class="fas fa-lightbulb"></i> Insights
+      </button>
+    </li>
+  </ul>
+
+  <!-- Tab Content -->
+  <div class="tab-content" id="dashboardTabContent">
+    <!-- Training Performance Tab -->
+    <div class="tab-pane fade show active" id="training" role="tabpanel">
+      <div class="row mb-4">
+        <!-- Session Timeline Chart -->
+        <div class="col-md-8 mb-4">
+          <div class="card border-0">
+            <div class="card-body">
+              <h5 class="card-title">Training Session Timeline</h5>
+              <p class="card-text small text-muted">Visualizing completion status over time</p>
+              <div class="chart-container">
+                <canvas id="sessionTimelineChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Topics Distribution Chart -->
+        <div class="col-md-4 mb-4">
+          <div class="card border-0">
+            <div class="card-body">
+              <h5 class="card-title">Topics Distribution</h5>
+              <p class="card-text small text-muted">Training focus areas</p>
+              <div class="chart-container">
+                <canvas id="topicsDistributionChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row">
+        <!-- Recent Sessions Table -->
+        <div class="col-md-8 mb-4">
+          <div class="card border-0">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0">Recent Training Sessions</h5>
+                <a href="/logs" class="btn btn-sm btn-outline-info">View All</a>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Topic</th>
+                      <th>Date</th>
+                      <th>Duration</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentSessionsTable">
+                    <!-- Will be populated by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Success Rate by Topic -->
+        <div class="col-md-4 mb-4">
+          <div class="card border-0">
+            <div class="card-body">
+              <h5 class="card-title">Success Rate by Topic</h5>
+              <p class="card-text small text-muted">Which topics perform best</p>
+              <div class="chart-container">
+                <canvas id="topicSuccessChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- AI Platforms Tab -->
+    <div class="tab-pane fade" id="platforms" role="tabpanel">
+      <div class="row mb-4">
+        <!-- Platform Comparison Chart -->
+        <div class="col-md-8 mb-4">
+          <div class="card border-0">
+            <div class="card-body">
+              <h5 class="card-title">Platform Performance Comparison</h5>
+              <div class="btn-group btn-group-sm mb-3" role="group">
+                <button type="button" class="btn btn-outline-primary active" data-metric="success_rate">Success Rate</button>
+                <button type="button" class="btn btn-outline-primary" data-metric="response_time">Response Time</button>
+                <button type="button" class="btn btn-outline-primary" data-metric="quality">Quality Score</button>
+              </div>
+              <div class="chart-container">
+                <canvas id="platformComparisonChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Platform Usage Chart -->
+        <div class="col-md-4 mb-4">
+          <div class="card border-0">
+            <div class="card-body">
+              <h5 class="card-title">Platform Usage</h5>
+              <p class="card-text small text-muted">Sessions by platform</p>
+              <div class="chart-container">
+                <canvas id="platformUsageChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row">
+        <!-- Platform Cards -->
+        <div class="col-12 mb-4">
+          <div class="row" id="platformCards">
+            <!-- Will be populated by JS with platform-specific cards -->
+          </div>
+        </div>
+        
+        <!-- Platform Performance by Topic -->
+        <div class="col-12">
+          <div class="card border-0">
+            <div class="card-body">
+              <h5 class="card-title">Platform Performance by Topic</h5>
+              <p class="card-text small text-muted">Success rates across different training areas</p>
+              <div class="chart-container">
+                <canvas id="platformTopicChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- User Activity Tab -->
+    <div class="tab-pane fade" id="user" role="tabpanel">
+      <div class="row mb-4">
+        <!-- Activity Heatmap -->
+        <div class="col-md-8 mb-4">
+          <div class="card border-0">
+            <div class="card-body">
+              <h5 class="card-title">Activity Heatmap</h5>
+              <p class="card-text small text-muted">When you're most active in training</p>
+              <div class="chart-container">
+                <div id="activityHeatmap"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Feature Usage -->
+        <div class="col-md-4 mb-4">
+          <div class="card border-0">
+            <div class="card-body">
+              <h5 class="card-title">Feature Usage</h5>
+              <p class="card-text small text-muted">Most used features</p>
+              <div class="chart-container">
+                <canvas id="featureUsageChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row">
+        <!-- Active Days Streak -->
+        <div class="col-md-4 mb-4">
+          <div class="card border-0 dashboard-card bg-dark">
+            <div class="card-body">
+              <h5 class="card-title">Activity Streak</h5>
+              <div class="d-flex align-items-center mt-3">
+                <div class="flex-shrink-0">
+                  <div class="streak-icon">
+                    <i class="fas fa-fire fa-3x text-warning"></i>
+                  </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                  <div class="d-flex align-items-baseline">
+                    <span class="metric-value" id="currentStreakValue">5</span>
+                    <span class="ms-2">day streak</span>
+                  </div>
+                  <div class="progress mt-2 bg-dark">
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: 50%" id="streakProgressBar"></div>
+                  </div>
+                  <p class="small text-muted mt-1">5 more days to reach your longest streak</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Active Days -->
+        <div class="col-md-4 mb-4">
+          <div class="card border-0 dashboard-card bg-dark">
+            <div class="card-body">
+              <h5 class="card-title">Active Days</h5>
+              <div class="row mt-3 text-center">
+                <div class="col-6">
+                  <div class="metric-value" id="daysActiveWeekValue">4</div>
+                  <div class="metric-label">Last 7 Days</div>
+                </div>
+                <div class="col-6">
+                  <div class="metric-value" id="daysActiveMonthValue">16</div>
+                  <div class="metric-label">Last 30 Days</div>
+                </div>
+              </div>
+              <div class="text-center mt-3">
+                <span class="badge bg-success px-3 py-2">
+                  <i class="fas fa-calendar-check"></i> Active Today
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Progress Cards -->
+        <div class="col-md-4 mb-4">
+          <div class="card border-0 dashboard-card bg-dark">
+            <div class="card-body">
+              <h5 class="card-title">Learning Progress</h5>
+              <div class="mt-3">
+                <div class="progress-label d-flex justify-content-between">
+                  <span>Topics Explored</span>
+                  <span id="topicsExploredValue">3/5</span>
+                </div>
+                <div class="progress mb-3 bg-dark">
+                  <div class="progress-bar bg-info" role="progressbar" style="width: 60%" id="topicsProgressBar"></div>
+                </div>
+                
+                <div class="progress-label d-flex justify-content-between">
+                  <span>Platforms Used</span>
+                  <span id="platformsExploredValue">4/5</span>
+                </div>
+                <div class="progress mb-3 bg-dark">
+                  <div class="progress-bar bg-info" role="progressbar" style="width: 80%" id="platformsProgressBar"></div>
+                </div>
+                
+                <div class="progress-label d-flex justify-content-between">
+                  <span>Achievements</span>
+                  <span id="achievementsValue">7/20</span>
+                </div>
+                <div class="progress bg-dark">
+                  <div class="progress-bar bg-info" role="progressbar" style="width: 35%" id="achievementsProgressBar"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Insights Tab -->
+    <div class="tab-pane fade" id="insights" role="tabpanel">
+      <div class="row mb-4">
+        <!-- Insights Cards -->
+        <div class="col-md-8 mb-4">
+          <div class="card border-0">
+            <div class="card-body">
+              <h5 class="card-title">Performance Insights</h5>
+              <div id="performanceInsights">
+                <!-- Will be populated by JS with insights -->
+                <div class="insight-item">
+                  <h6><i class="fas fa-check-circle text-success"></i> Strong Training Success Rate</h6>
+                  <p class="mb-0">Your success rate of 87% is above average. Keep up the good work!</p>
+                </div>
+                <div class="insight-item warning">
+                  <h6><i class="fas fa-exclamation-triangle text-warning"></i> Platform Diversity</h6>
+                  <p class="mb-0">You've been using the same 2 platforms for most sessions. Try including more for diverse training perspectives.</p>
+                </div>
+                <div class="insight-item success">
+                  <h6><i class="fas fa-thumbs-up text-info"></i> Topic Exploration</h6>
+                  <p class="mb-0">You've explored 3 out of 5 available training topics. Good progress!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Performance Score Card -->
+        <div class="col-md-4 mb-4">
+          <div class="card border-0 dashboard-card">
+            <div class="card-body text-center">
+              <h5 class="card-title">Performance Score</h5>
+              <div class="mt-3">
+                <div class="performance-gauge-container">
+                  <canvas id="performanceGauge"></canvas>
+                  <div class="position-absolute top-50 start-50 translate-middle mt-3">
+                    <span class="metric-value" id="performanceScoreValue">76</span>
+                  </div>
+                </div>
+              </div>
+              <p class="metric-label mt-3" id="performanceLabel">Good performance</p>
+              <p class="small text-muted">Based on success rate, platform diversity and topic coverage</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row">
+        <!-- Recommendations Card -->
+        <div class="col-12 mb-4">
+          <div class="card border-0">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0">Personalized Recommendations</h5>
+                <button class="btn btn-sm btn-outline-primary" id="refreshRecommendations">
+                  <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+              </div>
+              <div class="row" id="recommendationsContainer">
+                <!-- Will be populated by JS with recommendation cards -->
+                <div class="col-md-4 mb-3">
+                  <div class="card border-0 bg-dark h-100">
+                    <div class="card-body">
+                      <span class="badge bg-info mb-2">New Topic</span>
+                      <h6 class="card-title">Explore Error Handling</h6>
+                      <p class="card-text small">You haven't trained AutoDev on error handling yet. This could enhance its self-recovery capabilities.</p>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                      <button class="btn btn-sm btn-outline-info">Start Training</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="card border-0 bg-dark h-100">
+                    <div class="card-body">
+                      <span class="badge bg-warning mb-2">Platform Diversity</span>
+                      <h6 class="card-title">Include Claude in Sessions</h6>
+                      <p class="card-text small">Claude offers unique reasoning capabilities that could complement your existing training approach.</p>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                      <button class="btn btn-sm btn-outline-info">Learn More</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <div class="card border-0 bg-dark h-100">
+                    <div class="card-body">
+                      <span class="badge bg-success mb-2">Optimization</span>
+                      <h6 class="card-title">Longer Training Sessions</h6>
+                      <p class="card-text small">Your training sessions are shorter than optimal. Consider adding more detailed prompts.</p>
+                    </div>
+                    <div class="card-footer bg-transparent border-0">
+                      <button class="btn btn-sm btn-outline-info">View Guide</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Assistant Chatbox -->
+  <div id="assistantChatbox" class="chatbox-minimized">
+    <div class="chatbox-header d-flex justify-content-between align-items-center" id="chatboxHeader">
+      <div>
+        <i class="fas fa-robot text-info"></i>
+        <span class="ms-2">Synapse Assistant</span>
+      </div>
+      <div>
+        <button class="btn btn-sm text-light" id="minimizeChatBtn">
+          <i class="fas fa-chevron-up" id="chatToggleIcon"></i>
+        </button>
+      </div>
+    </div>
+    <div class="chatbox-body" id="chatMessages">
+      <!-- Will be populated by JS with chat messages -->
+      <div class="chat-message assistant-message">
+        <div>Welcome to the Analytics Dashboard! I can help you understand your training performance data.</div>
+        <div class="suggestion-chips">
+          <button class="suggestion-chip">Explain success rate</button>
+          <button class="suggestion-chip">Platform comparison</button>
+          <button class="suggestion-chip">How to improve</button>
+        </div>
+      </div>
+    </div>
+    <div class="chatbox-footer">
+      <div class="input-group">
+        <input type="text" class="form-control bg-dark text-light border-0" placeholder="Ask me about your data..." id="chatInput">
+        <button class="btn btn-info" id="sendChatBtn">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content bg-dark">
+        <div class="modal-header">
+          <h5 class="modal-title">Dashboard Settings</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Data Refresh Interval</label>
+            <select class="form-select bg-dark text-light" id="refreshInterval">
+              <option value="0">Manual Refresh Only</option>
+              <option value="30">Every 30 seconds</option>
+              <option value="60" selected>Every 1 minute</option>
+              <option value="300">Every 5 minutes</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Chart Animation</label>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="chartAnimation" checked>
+              <label class="form-check-label" for="chartAnimation">Enable animations</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Show AI Assistant</label>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="showAssistant" checked>
+              <label class="form-check-label" for="showAssistant">Display assistant chatbox</label>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Dashboard Theme</label>
+            <select class="form-select bg-dark text-light" id="dashboardTheme">
+              <option value="dark" selected>Dark</option>
+              <option value="system">System Default</option>
+            </select>
+            <small class="form-text text-muted">System default will follow your system's dark/light mode settings</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveSettingsBtn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<!-- ApexCharts.js for Heatmaps -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.35.5/dist/apexcharts.min.js"></script>
+
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+  // Initialize dashboard when the DOM is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeDashboard();
+  });
+</script>
+{% endblock %}
