@@ -5,91 +5,198 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Synapse Chamber{% endblock %}</title>
     
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.ico') }}" type="image/x-icon">
     
-    <!-- Custom CSS -->
-    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+    <!-- Bootstrap CSS from Replit CDN -->
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
     
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dock.css') }}">
     
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
+    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
-                Synapse <span class="navbar-brand-highlight">Chamber</span>
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-brain text-primary me-2"></i>
+                Synapse Chamber
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{{ url_for('index') }}">
-                            <i class="fas fa-home"></i> Home
-                        </a>
+                        <a class="nav-link" href="/"><i class="fas fa-home"></i> Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/ai_interaction' %}active{% endif %}" href="{{ url_for('ai_interaction') }}">
-                            <i class="fas fa-robot"></i> AI Interaction
-                        </a>
+                        <a class="nav-link" href="/ai_interaction"><i class="fas fa-comments"></i> AI Interaction</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/logs' %}active{% endif %}" href="{{ url_for('logs') }}">
-                            <i class="fas fa-history"></i> Logs
-                        </a>
+                        <a class="nav-link" href="/training"><i class="fas fa-graduation-cap"></i> Training</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/training' %}active{% endif %}" href="{{ url_for('training') }}">
-                            <i class="fas fa-graduation-cap"></i> Training
-                        </a>
+                        <a class="nav-link" href="/dashboard"><i class="fas fa-chart-line"></i> Analytics</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/settings' %}active{% endif %}" href="{{ url_for('settings') }}">
-                            <i class="fas fa-cog"></i> Settings
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="toolsDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-tools"></i> Tools
                         </a>
+                        <ul class="dropdown-menu dropdown-menu-dark">
+                            <li><a class="dropdown-item" href="/logs"><i class="fas fa-list"></i> Logs</a></li>
+                            <li><a class="dropdown-item" href="/memory"><i class="fas fa-database"></i> Memory</a></li>
+                            <li><a class="dropdown-item" href="/platforms"><i class="fas fa-project-diagram"></i> AI Platforms</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog"></i> Settings</a></li>
+                        </ul>
                     </li>
                 </ul>
-                <div class="navbar-text">
-                    <span class="badge bg-info">
-                        <i class="fas fa-brain"></i> AutoDev Trainer
-                    </span>
+                <div class="d-flex align-items-center">
+                    <button id="toggleDockBtn" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-columns"></i> Dock
+                    </button>
+                    <button id="runButton" class="btn btn-success me-2">
+                        <i class="fas fa-play"></i> Run
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark">
+                            <li><a class="dropdown-item" href="/profile"><i class="fas fa-user"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href="/achievements"><i class="fas fa-trophy"></i> Achievements</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog"></i> Settings</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
     </nav>
-
+    
+    <!-- Dock Component -->
+    {% include 'dock.html' %}
+    
     <!-- Main Content -->
-    <div class="container main-content">
-        <!-- Alert Container -->
-        <div id="alert-container" class="mb-4"></div>
-        
+    <main class="main-content">
         {% block content %}{% endblock %}
-    </div>
-
-    <!-- Footer -->
-    <footer class="footer bg-dark text-light">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <p class="mb-0">&copy; 2023-2025 Synapse Chamber</p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <p class="mb-0">Training the next generation of AI agents</p>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    </main>
+    
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dock.js') }}"></script>
+    
+    <!-- Run Button Functionality -->
+    <script>
+        document.getElementById('runButton').addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
+            
+            fetch('/api/run_application', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showNotification('success', 'Application restarted successfully');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    showNotification('error', data.message || 'Failed to restart application');
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-play"></i> Run';
+                }
+            })
+            .catch(error => {
+                console.error('Error running application:', error);
+                showNotification('error', 'Failed to restart application');
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-play"></i> Run';
+            });
+        });
+        
+        // Connect the toggle dock button
+        document.getElementById('toggleDockBtn').addEventListener('click', function() {
+            const dockContainer = document.getElementById('dockContainer');
+            const dockToggleBtn = document.getElementById('dockToggleBtn');
+            const mainContainer = document.querySelector('body');
+            
+            if (dockContainer.classList.contains('dock-collapsed')) {
+                dockContainer.classList.remove('dock-collapsed');
+                dockToggleBtn.style.display = 'none';
+                mainContainer.classList.add('dock-active');
+                mainContainer.classList.remove('dock-collapsed');
+                localStorage.setItem('dockCollapsed', 'false');
+            } else {
+                dockContainer.classList.add('dock-collapsed');
+                dockToggleBtn.style.display = 'block';
+                mainContainer.classList.add('dock-collapsed');
+                mainContainer.classList.remove('dock-active');
+                localStorage.setItem('dockCollapsed', 'true');
+            }
+        });
+        
+        // Simple notification function
+        function showNotification(type, message) {
+            // Check if notification container exists
+            let container = document.getElementById('notificationContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'notificationContainer';
+                container.style.position = 'fixed';
+                container.style.top = '20px';
+                container.style.right = '20px';
+                container.style.zIndex = '9999';
+                document.body.appendChild(container);
+            }
+            
+            // Create notification
+            const notification = document.createElement('div');
+            notification.className = 'toast show';
+            notification.role = 'alert';
+            
+            // Style based on type
+            let bgClass = 'bg-primary';
+            if (type === 'success') bgClass = 'bg-success';
+            if (type === 'error') bgClass = 'bg-danger';
+            if (type === 'warning') bgClass = 'bg-warning text-dark';
+            if (type === 'info') bgClass = 'bg-info text-dark';
+            
+            notification.innerHTML = `
+                <div class="toast-header ${bgClass} text-white">
+                    <strong class="me-auto">Synapse Chamber</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body bg-dark text-white">
+                    ${message}
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Initialize Bootstrap toast
+            const toast = new bootstrap.Toast(notification, {
+                autohide: true,
+                delay: 5000
+            });
+            
+            // Remove from DOM when hidden
+            notification.addEventListener('hidden.bs.toast', function() {
+                container.removeChild(notification);
+            });
+        }
+    </script>
     
     {% block extra_js %}{% endblock %}
 </body>

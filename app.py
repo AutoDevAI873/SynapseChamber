@@ -503,3 +503,366 @@ def sync_memory():
     except Exception as e:
         logger.error(f"Error synchronizing memory: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+# File System API routes
+@app.route('/api/files/list')
+def list_files():
+    """List files in the project"""
+    try:
+        base_path = os.path.abspath('.')
+        path = request.args.get('path', base_path)
+        
+        # Security check
+        requested_path = os.path.abspath(path)
+        if not requested_path.startswith(base_path):
+            return jsonify({"status": "error", "message": "Access denied"}), 403
+        
+        # Generate file tree structure
+        files = []
+        
+        for root, dirs, filenames in os.walk(requested_path):
+            # Skip hidden folders and files
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            
+            # Create relative path from the base path
+            rel_path = os.path.relpath(root, base_path)
+            if rel_path == '.':
+                rel_path = ''
+            
+            # Current directory as a node
+            current_dir = {
+                'name': os.path.basename(root) or '/',
+                'path': rel_path or '/',
+                'type': 'dir',
+                'children': []
+            }
+            
+            # Add files
+            for filename in sorted([f for f in filenames if not f.startswith('.')]):
+                file_path = os.path.join(rel_path, filename)
+                current_dir['children'].append({
+                    'name': filename,
+                    'path': file_path,
+                    'type': 'file'
+                })
+            
+            # Add to files list if this is the requested directory
+            if root == requested_path:
+                files = current_dir['children']
+                
+                # Add directories as separate entries
+                for dirname in sorted(dirs):
+                    dir_path = os.path.join(rel_path, dirname)
+                    # Get subdirectories and files
+                    sub_entries = []
+                    sub_path = os.path.join(requested_path, dirname)
+                    
+                    if os.path.isdir(sub_path):
+                        for sub_entry in sorted(os.listdir(sub_path)):
+                            if not sub_entry.startswith('.'):
+                                entry_path = os.path.join(dir_path, sub_entry)
+                                entry_type = 'dir' if os.path.isdir(os.path.join(sub_path, sub_entry)) else 'file'
+                                sub_entries.append({
+                                    'name': sub_entry,
+                                    'path': entry_path,
+                                    'type': entry_type
+                                })
+                    
+                    files.append({
+                        'name': dirname,
+                        'path': dir_path,
+                        'type': 'dir',
+                        'children': sub_entries
+                    })
+        
+        return jsonify({"status": "success", "files": files})
+    except Exception as e:
+        logger.error(f"Error listing files: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/files/open')
+def open_file():
+    """Open a file and return its content"""
+    try:
+        base_path = os.path.abspath('.')
+        path = request.args.get('path')
+        
+        if not path:
+            return jsonify({"status": "error", "message": "Path parameter is required"}), 400
+        
+        # Security check
+        requested_path = os.path.abspath(os.path.join(base_path, path))
+        if not requested_path.startswith(base_path):
+            return jsonify({"status": "error", "message": "Access denied"}), 403
+        
+        if not os.path.exists(requested_path):
+            return jsonify({"status": "error", "message": "File not found"}), 404
+        
+        if not os.path.isfile(requested_path):
+            return jsonify({"status": "error", "message": "Path is not a file"}), 400
+        
+        # Determine language for syntax highlighting
+        extension = os.path.splitext(path)[1].lower()
+        language_map = {
+            '.py': 'python',
+            '.js': 'javascript',
+            '.html': 'html',
+            '.css': 'css',
+            '.json': 'json',
+            '.md': 'markdown',
+            '.txt': 'plaintext'
+        }
+        language = language_map.get(extension, 'plaintext')
+        
+        # Read file content
+        with open(requested_path, 'r') as f:
+            content = f.read()
+        
+        return jsonify({
+            "status": "success", 
+            "content": content,
+            "language": language,
+            "path": path
+        })
+    except UnicodeDecodeError:
+        # Handle binary files
+        return jsonify({
+            "status": "error", 
+            "message": "Cannot open binary file"
+        }), 400
+    except Exception as e:
+        logger.error(f"Error opening file: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/files/create', methods=['POST'])
+def create_file():
+    """Create a new file"""
+    try:
+        data = request.json
+        path = data.get('path')
+        content = data.get('content', '')
+        
+        if not path:
+            return jsonify({"status": "error", "message": "Path parameter is required"}), 400
+        
+        base_path = os.path.abspath('.')
+        
+        # Security check
+        requested_path = os.path.abspath(os.path.join(base_path, path))
+        if not requested_path.startswith(base_path):
+            return jsonify({"status": "error", "message": "Access denied"}), 403
+        
+        # Create directories if needed
+        directory = os.path.dirname(requested_path)
+        if directory and not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)
+        
+        # Check if file already exists
+        if os.path.exists(requested_path):
+            return jsonify({"status": "error", "message": "File already exists"}), 400
+        
+        # Create file
+        with open(requested_path, 'w') as f:
+            f.write(content)
+        
+        return jsonify({"status": "success", "path": path})
+    except Exception as e:
+        logger.error(f"Error creating file: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/files/create_folder', methods=['POST'])
+def create_folder():
+    """Create a new folder"""
+    try:
+        data = request.json
+        path = data.get('path')
+        
+        if not path:
+            return jsonify({"status": "error", "message": "Path parameter is required"}), 400
+        
+        base_path = os.path.abspath('.')
+        
+        # Security check
+        requested_path = os.path.abspath(os.path.join(base_path, path))
+        if not requested_path.startswith(base_path):
+            return jsonify({"status": "error", "message": "Access denied"}), 403
+        
+        # Check if folder already exists
+        if os.path.exists(requested_path):
+            return jsonify({"status": "error", "message": "Folder already exists"}), 400
+        
+        # Create folder
+        os.makedirs(requested_path, exist_ok=True)
+        
+        return jsonify({"status": "success", "path": path})
+    except Exception as e:
+        logger.error(f"Error creating folder: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/files/search')
+def search_files():
+    """Search for files by name or content"""
+    try:
+        query = request.args.get('query')
+        
+        if not query:
+            return jsonify({"status": "error", "message": "Query parameter is required"}), 400
+        
+        base_path = os.path.abspath('.')
+        
+        # Search results
+        results = []
+        
+        # Walk through directories
+        for root, dirs, files in os.walk(base_path):
+            # Skip hidden folders
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            
+            # Check filenames
+            for filename in files:
+                if query.lower() in filename.lower():
+                    rel_path = os.path.relpath(os.path.join(root, filename), base_path)
+                    results.append({
+                        'name': filename,
+                        'path': rel_path,
+                        'type': 'file'
+                    })
+        
+        return jsonify({"status": "success", "files": results})
+    except Exception as e:
+        logger.error(f"Error searching files: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/run_application', methods=['POST'])
+def run_application():
+    """Restart the application"""
+    try:
+        # This would trigger a workflow restart in a real environment
+        # For now, just return success
+        return jsonify({"status": "success", "message": "Application restarted"})
+    except Exception as e:
+        logger.error(f"Error restarting application: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# Initialize Agent system
+from agent_system import AgentSystem
+agent_system = AgentSystem(ai_controller, memory_system, training_manager)
+
+# Agent API routes
+@app.route('/api/agent/status')
+def get_agent_status():
+    """Get current agent status"""
+    try:
+        status = agent_system.get_status()
+        return jsonify({"status": "success", "agent_status": status})
+    except Exception as e:
+        logger.error(f"Error getting agent status: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/agent/projects')
+def get_agent_projects():
+    """Get list of agent projects"""
+    try:
+        limit = request.args.get('limit', 10, type=int)
+        projects = agent_system.get_projects(limit=limit)
+        return jsonify({"status": "success", "projects": projects})
+    except Exception as e:
+        logger.error(f"Error getting agent projects: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/agent/project_details/<project_id>')
+def get_agent_project_details(project_id):
+    """Get detailed information about an agent project"""
+    try:
+        details = agent_system.get_project_details(project_id)
+        return jsonify(details)
+    except Exception as e:
+        logger.error(f"Error getting project details: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/agent/create_project', methods=['POST'])
+def create_agent_project():
+    """Create a new agent project"""
+    try:
+        data = request.json
+        description = data.get('description')
+        preferences = data.get('preferences', {})
+        
+        if not description:
+            return jsonify({"status": "error", "message": "Description is required"}), 400
+        
+        result = agent_system.create_new_project(description, preferences)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error creating agent project: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/agent/continue', methods=['POST'])
+def continue_agent_project():
+    """Continue working on an existing agent project"""
+    try:
+        data = request.json
+        project_id = data.get('project_id')
+        
+        if not project_id:
+            return jsonify({"status": "error", "message": "Project ID is required"}), 400
+        
+        # Start agent if not already running
+        if not agent_system.is_running:
+            agent_system.start()
+        
+        # Schedule task to continue project
+        agent_system._schedule_task({
+            'type': 'continue_project',
+            'project_id': project_id,
+            'priority': 1
+        })
+        
+        return jsonify({"status": "success", "message": "Project continuation scheduled"})
+    except Exception as e:
+        logger.error(f"Error continuing agent project: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/agent/pause', methods=['POST'])
+def pause_agent():
+    """Pause agent"""
+    try:
+        result = agent_system.stop()
+        
+        if result:
+            return jsonify({"status": "success", "message": "Agent paused successfully"})
+        else:
+            return jsonify({"status": "error", "message": "Failed to pause agent"}), 400
+    except Exception as e:
+        logger.error(f"Error pausing agent: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/agent/feedback_requests')
+def get_agent_feedback_requests():
+    """Get agent feedback requests"""
+    try:
+        status = request.args.get('status')
+        requests = agent_system.get_feedback_requests(status=status)
+        return jsonify({"status": "success", "requests": requests})
+    except Exception as e:
+        logger.error(f"Error getting agent feedback requests: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/agent/provide_feedback/<feedback_id>', methods=['POST'])
+def provide_agent_feedback(feedback_id):
+    """Provide feedback to agent"""
+    try:
+        data = request.json
+        
+        if not data:
+            return jsonify({"status": "error", "message": "No feedback data provided"}), 400
+        
+        result = agent_system.provide_feedback(feedback_id, data)
+        
+        if result:
+            return jsonify({"status": "success", "message": "Feedback provided successfully"})
+        else:
+            return jsonify({"status": "error", "message": "Failed to provide feedback"}), 400
+    except Exception as e:
+        logger.error(f"Error providing agent feedback: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
