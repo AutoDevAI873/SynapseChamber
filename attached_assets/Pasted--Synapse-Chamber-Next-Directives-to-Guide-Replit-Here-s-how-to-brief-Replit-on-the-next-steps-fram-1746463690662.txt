@@ -1,0 +1,73 @@
+ Synapse Chamber: Next Directives to Guide Replit
+Here’s how to brief Replit on the next steps, framed like you're assigning tasks to your internal Replit Agent ⬇️
+
+🧭 Synapse Chamber → Replit Action Plan (Phase II: Training Engine)
+🧩 Objective:
+Make Synapse Chamber train AutoDev the same way Replit Agent auto-debugs and tests your projects — autonomously, visibly, and with checkpointed feedback.
+
+🪛 Next Feature to Build:
+“Add a Training Engine that allows Synapse Chamber to conduct AI training sessions for AutoDev — fully interactive, auto-debuggable, and Replit-Agent-like.”
+
+🛠️ Tasks to Assign (in order):
+1. Add a Training Module to Synapse Chamber
+Create a TrainingSessionManager class
+
+Responsibilities:
+
+Orchestrates multi-AI training rounds
+
+Chooses topic (e.g., Natural Language, API Handling)
+
+Gives all AIs the same prompt
+
+Collects & logs answers
+
+Aggregates a final recommendation
+
+2. Add Session Logging & UI Progress Tracker
+Every training step logs to a UI pane (like Replit’s testing output)
+
+Status updates include:
+
+“Starting training on X”
+
+“Claude encountered issue Y — debugging…”
+
+“Session complete. Summary: …”
+
+Highlighted checkpoints: “✅ Claude said… GPT suggested… FINAL ACTION taken…”
+
+3. Enable Topic-Specific Sessions
+From the web UI, you should be able to select:
+
+Topic (e.g., NLP, File Handling, API Auth)
+
+Mode: “All AIs train”, or “1 AI teaches AutoDev”
+
+Goal: Update AutoDev’s capabilities
+
+4. Auto-Decision Execution
+Synapse Chamber makes a final call from all AI responses
+
+Updates AutoDev’s memory, logic, or scripts
+
+Logs the change (like Git commit summaries)
+
+🧬 Final Goal for This Phase:
+You tell Synapse Chamber: “Train AutoDev on Natural Language Parsing.”
+It spins up the training session → runs AI prompts → handles hiccups → logs everything → updates AutoDev → briefs you like a boss:
+
+“Training complete. GPT provided best tokenizer pipeline. Claude flagged a regex issue (fixed). AutoDev updated. Logs stored under thread_NLP001.json.”
+
+✅ After This: Host Itself
+Once Synapse Chamber is stable and AutoDev is smart enough:
+
+Add “Hosting Migration Module”
+
+It scans platforms like Render, Railway, Vercel
+
+Creates account, sets up deployment (via browser or later via API)
+
+🧠 Reminder to Replit:
+This is not just a debugging tool. It’s a compound AI lab. Each agent is a contributor. Synapse Chamber is the CTO. AutoDev is the product. Replit Agent is the blueprint. We move like clockwork with self-reporting, self-debugging, and real progress displayed at every turn.
+

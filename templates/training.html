@@ -1,0 +1,672 @@
+{% extends 'layout.html' %}
+
+{% block title %}Training - Synapse Chamber{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="mb-3">AutoDev Training Engine</h1>
+      <p class="lead">Train AutoDev through multi-AI learning sessions that collect knowledge from various AI platforms.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Left column - Start Training Form -->
+    <div class="col-lg-5 mb-4">
+      <div class="card border-0 bg-dark">
+        <div class="card-header bg-dark">
+          <h5 class="card-title mb-0">Start New Training Session</h5>
+        </div>
+        <div class="card-body">
+          <form id="training-form">
+            <div class="mb-3">
+              <label for="topic" class="form-label">Training Topic</label>
+              <select class="form-select" id="topic" name="topic" required>
+                <option value="" selected disabled>Select a topic...</option>
+                {% for id, topic in topics.items() %}
+                <option value="{{ id }}">{{ topic.name }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text" id="topic-description"></div>
+            </div>
+
+            <div class="mb-3">
+              <label for="mode" class="form-label">Training Mode</label>
+              <select class="form-select" id="mode" name="mode" required>
+                <option value="" selected disabled>Select a mode...</option>
+                {% for mode in modes %}
+                <option value="{{ mode }}">{{ mode|replace('_', ' ')|title }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text">Select how the training should be conducted.</div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">AI Platforms</label>
+              <div class="row ps-2">
+                <div class="col-sm-6 form-check">
+                  <input class="form-check-input" type="checkbox" value="gpt" id="platform-gpt" name="platforms" checked>
+                  <label class="form-check-label" for="platform-gpt">
+                    ChatGPT
+                  </label>
+                </div>
+                <div class="col-sm-6 form-check">
+                  <input class="form-check-input" type="checkbox" value="claude" id="platform-claude" name="platforms" checked>
+                  <label class="form-check-label" for="platform-claude">
+                    Claude
+                  </label>
+                </div>
+                <div class="col-sm-6 form-check">
+                  <input class="form-check-input" type="checkbox" value="gemini" id="platform-gemini" name="platforms" checked>
+                  <label class="form-check-label" for="platform-gemini">
+                    Gemini
+                  </label>
+                </div>
+                <div class="col-sm-6 form-check">
+                  <input class="form-check-input" type="checkbox" value="deepseek" id="platform-deepseek" name="platforms">
+                  <label class="form-check-label" for="platform-deepseek">
+                    DeepSeek
+                  </label>
+                </div>
+                <div class="col-sm-6 form-check">
+                  <input class="form-check-input" type="checkbox" value="grok" id="platform-grok" name="platforms">
+                  <label class="form-check-label" for="platform-grok">
+                    Grok
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="goal" class="form-label">Specific Goal (Optional)</label>
+              <textarea class="form-control" id="goal" name="goal" rows="3" placeholder="Describe what you want to achieve with this training session..."></textarea>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary" id="start-training-btn">Start Training Session</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column - Status & Logs -->
+    <div class="col-lg-7">
+      <!-- Current Session Status -->
+      <div class="card border-0 bg-dark mb-4" id="current-session-card" style="display:none;">
+        <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Current Training Session</h5>
+          <span class="badge bg-primary" id="session-status">In Progress</span>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <p><strong>Topic:</strong> <span id="session-topic"></span></p>
+            <p><strong>Mode:</strong> <span id="session-mode"></span></p>
+            <p><strong>AI Platforms:</strong> <span id="session-platforms"></span></p>
+          </div>
+          <div class="progress mb-3" style="height: 20px;">
+            <div class="progress-bar" id="session-progress" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+          </div>
+          <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <button class="btn btn-outline-info" id="view-details-btn">View Details</button>
+            <button class="btn btn-outline-success" id="apply-training-btn" disabled>Apply to AutoDev</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Training Live Logs -->
+      <div class="card border-0 bg-dark">
+        <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">Training Logs</h5>
+          <button class="btn btn-sm btn-outline-secondary" id="clear-logs-btn">Clear</button>
+        </div>
+        <div class="card-body">
+          <div class="training-logs mb-2" id="training-logs">
+            <div class="text-muted text-center py-5">
+              No active training session. Start a new training session to see logs.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Training Sessions History -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card border-0 bg-dark">
+        <div class="card-header bg-dark">
+          <h5 class="card-title mb-0">Training History</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-dark table-hover">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Topic</th>
+                  <th>Created</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="training-history">
+                {% if training_threads %}
+                  {% for thread in training_threads %}
+                  <tr>
+                    <td>{{ thread.id }}</td>
+                    <td>{{ thread.subject }}</td>
+                    <td>{{ thread.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{% if thread.final_plan %}Completed{% else %}In Progress{% endif %}</td>
+                    <td>
+                      <button class="btn btn-sm btn-outline-info view-thread-btn" data-thread-id="{{ thread.id }}">Details</button>
+                      {% if thread.final_plan %}
+                      <button class="btn btn-sm btn-outline-success apply-thread-btn" data-thread-id="{{ thread.id }}">Apply</button>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="5" class="text-center">No training sessions yet</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Training Session Details Modal -->
+  <div class="modal fade" id="session-details-modal" tabindex="-1" aria-labelledby="sessionDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content bg-dark">
+        <div class="modal-header">
+          <h5 class="modal-title" id="sessionDetailsModalLabel">Training Session Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Session Information</h6>
+              <dl class="row">
+                <dt class="col-sm-4">Thread ID:</dt>
+                <dd class="col-sm-8" id="detail-thread-id"></dd>
+                <dt class="col-sm-4">Topic:</dt>
+                <dd class="col-sm-8" id="detail-topic"></dd>
+                <dt class="col-sm-4">Goal:</dt>
+                <dd class="col-sm-8" id="detail-goal"></dd>
+                <dt class="col-sm-4">Created:</dt>
+                <dd class="col-sm-8" id="detail-created"></dd>
+                <dt class="col-sm-4">Status:</dt>
+                <dd class="col-sm-8" id="detail-status"></dd>
+              </dl>
+            </div>
+            <div class="col-md-6">
+              <h6>AI Contributions</h6>
+              <div id="detail-contributions">
+                <p class="text-muted">No AI contributions available</p>
+              </div>
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-12">
+              <h6>Final Plan</h6>
+              <div id="detail-final-plan" class="bg-dark border p-3 rounded">
+                <p class="text-muted">No final plan available</p>
+              </div>
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <div class="col-12">
+              <h6>Associated Conversations</h6>
+              <div class="table-responsive">
+                <table class="table table-dark table-sm">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Platform</th>
+                      <th>Created</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="detail-conversations">
+                    <tr>
+                      <td colspan="4" class="text-center">No conversations associated</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-success" id="modal-apply-btn">Apply to AutoDev</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Alert -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="success-toast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header bg-success text-white">
+        <strong class="me-auto">Success</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body" id="success-message">
+        Training session started successfully.
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Alert -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="error-toast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header bg-danger text-white">
+        <strong class="me-auto">Error</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body" id="error-message">
+        An error occurred while starting the training session.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Elements
+    const trainingForm = document.getElementById('training-form');
+    const topicSelect = document.getElementById('topic');
+    const topicDescription = document.getElementById('topic-description');
+    const trainingLogs = document.getElementById('training-logs');
+    const clearLogsBtn = document.getElementById('clear-logs-btn');
+    const currentSessionCard = document.getElementById('current-session-card');
+    const viewDetailsBtn = document.getElementById('view-details-btn');
+    const applyTrainingBtn = document.getElementById('apply-training-btn');
+    const sessionDetailsModal = new bootstrap.Modal(document.getElementById('session-details-modal'));
+    const modalApplyBtn = document.getElementById('modal-apply-btn');
+    const successToast = new bootstrap.Toast(document.getElementById('success-toast'));
+    const errorToast = new bootstrap.Toast(document.getElementById('error-toast'));
+    const successMessage = document.getElementById('success-message');
+    const errorMessage = document.getElementById('error-message');
+    
+    // Topic descriptions for improved UX
+    const topicDescriptions = {
+      {% for id, topic in topics.items() %}
+      "{{ id }}": "{{ topic.description }}",
+      {% endfor %}
+    };
+    
+    // Update topic description when selection changes
+    topicSelect.addEventListener('change', function() {
+      const selectedTopic = this.value;
+      topicDescription.textContent = topicDescriptions[selectedTopic] || '';
+    });
+    
+    // Handle form submission
+    trainingForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Get selected platforms
+      const platformCheckboxes = document.querySelectorAll('input[name="platforms"]:checked');
+      const platforms = Array.from(platformCheckboxes).map(cb => cb.value);
+      
+      if (platforms.length === 0) {
+        showError('Please select at least one AI platform');
+        return;
+      }
+      
+      const formData = {
+        topic: document.getElementById('topic').value,
+        mode: document.getElementById('mode').value,
+        platforms: platforms,
+        goal: document.getElementById('goal').value
+      };
+      
+      // Disable form while submitting
+      const submitBtn = document.getElementById('start-training-btn');
+      const originalBtnText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Starting...';
+      
+      // Clear previous logs
+      trainingLogs.innerHTML = '<div class="text-info">Starting training session...</div>';
+      
+      // Start training session
+      fetch('/api/training/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Show success message
+          successMessage.textContent = 'Training session started successfully!';
+          successToast.show();
+          
+          // Store session ID for polling
+          const sessionId = data.result.session_id;
+          localStorage.setItem('currentTrainingSession', sessionId);
+          
+          // Update UI to show current session
+          updateCurrentSessionUI(data.result);
+          
+          // Start polling for updates
+          startPollingUpdates(sessionId);
+        } else {
+          showError(data.message || 'Failed to start training session');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showError('An error occurred while starting the training session');
+      })
+      .finally(() => {
+        // Re-enable form
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      });
+    });
+    
+    // Update current session UI
+    function updateCurrentSessionUI(sessionData) {
+      document.getElementById('session-topic').textContent = sessionData.topic;
+      document.getElementById('session-mode').textContent = sessionData.mode;
+      document.getElementById('session-platforms').textContent = sessionData.platforms ? sessionData.platforms.join(', ') : 'All';
+      document.getElementById('session-status').textContent = 'In Progress';
+      currentSessionCard.style.display = 'block';
+    }
+    
+    // Show error message
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorToast.show();
+    }
+    
+    // Poll for training updates
+    function startPollingUpdates(sessionId) {
+      // Initial status check
+      fetchSessionStatus(sessionId);
+      
+      // Setup polling interval (every 5 seconds)
+      const pollingInterval = setInterval(() => {
+        fetchSessionStatus(sessionId);
+        fetchTrainingUpdates();
+      }, 5000);
+      
+      // Store interval ID to clear it later
+      localStorage.setItem('pollingIntervalId', pollingInterval);
+    }
+    
+    // Fetch session status
+    function fetchSessionStatus(sessionId) {
+      fetch(`/api/training/status/${sessionId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            const sessionStatus = data.session_status;
+            
+            // Update progress
+            const progressPercent = Math.min(100, Math.max(0, sessionStatus.progress || 0));
+            document.getElementById('session-progress').style.width = `${progressPercent}%`;
+            document.getElementById('session-progress').textContent = `${progressPercent}%`;
+            
+            // Update status badge
+            const statusBadge = document.getElementById('session-status');
+            if (sessionStatus.status === 'completed') {
+              statusBadge.textContent = 'Completed';
+              statusBadge.classList.remove('bg-primary');
+              statusBadge.classList.add('bg-success');
+              
+              // Enable apply button
+              applyTrainingBtn.disabled = false;
+              
+              // Stop polling
+              clearInterval(parseInt(localStorage.getItem('pollingIntervalId')));
+              
+              // Refresh training history
+              refreshTrainingHistory();
+            } else if (sessionStatus.status === 'failed') {
+              statusBadge.textContent = 'Failed';
+              statusBadge.classList.remove('bg-primary');
+              statusBadge.classList.add('bg-danger');
+              
+              // Stop polling
+              clearInterval(parseInt(localStorage.getItem('pollingIntervalId')));
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching session status:', error);
+        });
+    }
+    
+    // Fetch training updates
+    function fetchTrainingUpdates() {
+      fetch('/api/training/updates')
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success' && data.updates && data.updates.length > 0) {
+            // Update logs display
+            updateTrainingLogs(data.updates);
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching training updates:', error);
+        });
+    }
+    
+    // Update training logs in UI
+    function updateTrainingLogs(updates) {
+      trainingLogs.innerHTML = '';
+      
+      updates.forEach(update => {
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry mb-2';
+        
+        // Format timestamp
+        const timestamp = new Date(update.timestamp);
+        const timeStr = timestamp.toLocaleTimeString();
+        
+        // Style based on content
+        let messageClass = '';
+        if (update.message.includes('Error') || update.message.includes('❌')) {
+          messageClass = 'text-danger';
+        } else if (update.message.includes('✅')) {
+          messageClass = 'text-success';
+        } else if (update.message.includes('🔄')) {
+          messageClass = 'text-info';
+        } else if (update.message.includes('🧠')) {
+          messageClass = 'text-warning';
+        }
+        
+        logEntry.innerHTML = `
+          <small class="text-muted">${timeStr}</small>
+          <span class="${messageClass}">${update.message}</span>
+        `;
+        
+        trainingLogs.appendChild(logEntry);
+      });
+      
+      // Scroll to bottom
+      trainingLogs.scrollTop = trainingLogs.scrollHeight;
+    }
+    
+    // Clear logs
+    clearLogsBtn.addEventListener('click', function() {
+      trainingLogs.innerHTML = '<div class="text-muted text-center py-5">Logs cleared</div>';
+    });
+    
+    // View session details
+    viewDetailsBtn.addEventListener('click', function() {
+      const sessionId = localStorage.getItem('currentTrainingSession');
+      if (sessionId) {
+        showSessionDetails(sessionId);
+      }
+    });
+    
+    // Apply training to AutoDev
+    applyTrainingBtn.addEventListener('click', function() {
+      const sessionId = localStorage.getItem('currentTrainingSession');
+      if (sessionId) {
+        applyTrainingToAutodev(sessionId);
+      }
+    });
+    
+    // Show session details in modal
+    function showSessionDetails(threadId) {
+      fetch(`/api/training/status/${threadId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            const sessionData = data.session_status;
+            
+            // Populate modal
+            document.getElementById('detail-thread-id').textContent = threadId;
+            document.getElementById('detail-topic').textContent = sessionData.topic || 'N/A';
+            document.getElementById('detail-goal').textContent = sessionData.goal || 'N/A';
+            document.getElementById('detail-created').textContent = new Date(sessionData.timestamp || Date.now()).toLocaleString();
+            document.getElementById('detail-status').textContent = sessionData.status || 'N/A';
+            
+            // Final plan
+            const finalPlanEl = document.getElementById('detail-final-plan');
+            if (sessionData.recommendation && sessionData.recommendation.summary) {
+              finalPlanEl.innerHTML = `<p>${sessionData.recommendation.summary}</p>`;
+            } else if (sessionData.final_plan) {
+              finalPlanEl.innerHTML = `<p>${sessionData.final_plan}</p>`;
+            } else {
+              finalPlanEl.innerHTML = '<p class="text-muted">No final plan available</p>';
+            }
+            
+            // AI Contributions
+            const contributionsEl = document.getElementById('detail-contributions');
+            if (sessionData.recommendation && sessionData.recommendation.insights) {
+              const insights = sessionData.recommendation.insights;
+              contributionsEl.innerHTML = '<ul class="list-unstyled">';
+              insights.forEach(insight => {
+                contributionsEl.innerHTML += `<li><strong>${insight.platform}:</strong> ${insight.insight}</li>`;
+              });
+              contributionsEl.innerHTML += '</ul>';
+            } else {
+              contributionsEl.innerHTML = '<p class="text-muted">No AI contributions available</p>';
+            }
+            
+            // Conversations
+            const conversationsEl = document.getElementById('detail-conversations');
+            if (sessionData.conversations && sessionData.conversations.length > 0) {
+              conversationsEl.innerHTML = '';
+              sessionData.conversations.forEach(convId => {
+                conversationsEl.innerHTML += `
+                  <tr>
+                    <td>${convId}</td>
+                    <td>Unknown</td>
+                    <td>Unknown</td>
+                    <td><a href="/logs?conversation=${convId}" class="btn btn-sm btn-outline-info" target="_blank">View</a></td>
+                  </tr>
+                `;
+              });
+            } else {
+              conversationsEl.innerHTML = '<tr><td colspan="4" class="text-center">No conversations associated</td></tr>';
+            }
+            
+            // Set thread ID for apply button
+            modalApplyBtn.dataset.threadId = threadId;
+            
+            // Show modal
+            sessionDetailsModal.show();
+          } else {
+            showError('Failed to load session details');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading session details:', error);
+          showError('An error occurred while loading session details');
+        });
+    }
+    
+    // Apply training to AutoDev
+    function applyTrainingToAutodev(threadId) {
+      fetch('/api/autodev/apply_training', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({thread_id: threadId})
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          successMessage.textContent = 'Training applied to AutoDev successfully!';
+          successToast.show();
+          
+          // Close modal if open
+          sessionDetailsModal.hide();
+        } else {
+          showError(data.message || 'Failed to apply training to AutoDev');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showError('An error occurred while applying training to AutoDev');
+      });
+    }
+    
+    // Handle apply button in modal
+    modalApplyBtn.addEventListener('click', function() {
+      const threadId = this.dataset.threadId;
+      if (threadId) {
+        applyTrainingToAutodev(threadId);
+      }
+    });
+    
+    // Refresh training history
+    function refreshTrainingHistory() {
+      // In a real implementation, this would fetch the latest training threads
+      // and update the table. For simplicity, we'll just reload the page.
+      // window.location.reload();
+      
+      // For now, let's just update the UI to indicate success
+      const historyTable = document.getElementById('training-history');
+      if (historyTable) {
+        const sessionId = localStorage.getItem('currentTrainingSession');
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+          <td>${sessionId}</td>
+          <td>${document.getElementById('session-topic').textContent}</td>
+          <td>${new Date().toLocaleString()}</td>
+          <td>Completed</td>
+          <td>
+            <button class="btn btn-sm btn-outline-info view-thread-btn" data-thread-id="${sessionId}">Details</button>
+            <button class="btn btn-sm btn-outline-success apply-thread-btn" data-thread-id="${sessionId}">Apply</button>
+          </td>
+        `;
+        historyTable.prepend(newRow);
+      }
+    }
+    
+    // Add event listeners for history table buttons
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('view-thread-btn')) {
+        const threadId = e.target.dataset.threadId;
+        showSessionDetails(threadId);
+      } else if (e.target.classList.contains('apply-thread-btn')) {
+        const threadId = e.target.dataset.threadId;
+        applyTrainingToAutodev(threadId);
+      }
+    });
+  });
+</script>
+{% endblock %}
