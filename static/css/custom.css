@@ -208,3 +208,106 @@ body {
 .status-pending {
     background-color: var(--bs-warning);
 }
+
+/* Training Module Styles */
+.training-logs {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    height: 400px;
+    overflow-y: auto;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.log-entry {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.log-entry:last-child {
+    border-bottom: none;
+}
+
+.log-entry small {
+    flex-shrink: 0;
+    width: 80px;
+}
+
+.progress {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+#session-progress {
+    transition: width 0.5s ease;
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.topic-description {
+    font-size: 0.875rem;
+    color: var(--bs-secondary);
+}
+
+.detail-contributions ul {
+    margin-bottom: 0;
+}
+
+.detail-contributions li {
+    margin-bottom: 0.5rem;
+}
+
+#detail-final-plan {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.training-history-item {
+    transition: background-color 0.2s ease;
+}
+
+.training-history-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* AutoDev update styles */
+.capabilities-tag {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background-color: rgba(13, 110, 253, 0.1);
+    color: var(--bs-info);
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.update-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.update-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background-color: var(--bs-info);
+}
+
+.autodev-update-timestamp {
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+}
