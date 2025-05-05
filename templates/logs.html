@@ -1,0 +1,62 @@
+{% extends 'layout.html' %}
+
+{% block title %}Conversation Logs - Synapse Chamber{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-history"></i> Conversation Logs</h4>
+                
+                {% if not conversation %}
+                <div>
+                    <a href="{{ url_for('ai_interaction') }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> New Interaction
+                    </a>
+                </div>
+                {% else %}
+                <div>
+                    <a href="{{ url_for('logs') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to All Logs
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="card-body">
+                {% if conversation %}
+                <!-- Individual Conversation View -->
+                <div id="conversation-view">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading conversation...</span>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Conversations List View -->
+                <div id="logs-container">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading conversations...</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if conversation %}
+        // Display the specific conversation
+        displayConversationDetails({{ conversation|tojson }});
+        {% endif %}
+    });
+</script>
+{% endblock %}

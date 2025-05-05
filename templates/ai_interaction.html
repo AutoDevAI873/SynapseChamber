@@ -1,0 +1,82 @@
+{% extends 'layout.html' %}
+
+{% block title %}AI Interaction - Synapse Chamber{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-robot text-primary"></i> AI Interaction</h4>
+            </div>
+            <div class="card-body">
+                <form id="interaction-form">
+                    <div class="mb-4">
+                        <label class="form-label">Select AI Platform</label>
+                        <div class="row">
+                            {% for platform in ai_platforms %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card platform-card h-100" data-platform="{{ platform }}">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title platform-label">
+                                            <i class="fas fa-robot text-{{ 'primary' if platform == 'gpt' else 'success' if platform == 'gemini' else 'info' if platform == 'claude' else 'warning' if platform == 'grok' else 'danger' }}"></i>
+                                            {{ platform|capitalize }}
+                                        </h5>
+                                        <p class="card-text small text-muted">
+                                            {% if platform == 'gpt' %}
+                                            OpenAI's powerful large language model
+                                            {% elif platform == 'gemini' %}
+                                            Google's advanced AI model
+                                            {% elif platform == 'deepseek' %}
+                                            DeepSeek AI's large language model
+                                            {% elif platform == 'claude' %}
+                                            Anthropic's helpful AI assistant
+                                            {% elif platform == 'grok' %}
+                                            xAI's witty conversation model
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" id="selected-platform" name="platform" value="">
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="subject" name="subject" placeholder="Subject">
+                                <label for="subject">Subject (optional)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="goal" name="goal" placeholder="Goal">
+                                <label for="goal">Training Goal (optional)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-floating mb-4">
+                        <textarea class="form-control textarea-tall" id="prompt" name="prompt" placeholder="Enter your prompt here" required></textarea>
+                        <label for="prompt">Prompt</label>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-paper-plane"></i> Send to AI
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="response-container" class="row d-none">
+    <div class="col-12">
+        <!-- Response will be injected here by JavaScript -->
+    </div>
+</div>
+{% endblock %}

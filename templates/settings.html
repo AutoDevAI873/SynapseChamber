@@ -1,0 +1,419 @@
+{% extends 'layout.html' %}
+
+{% block title %}Settings - Synapse Chamber{% endblock %}
+
+{% block content %}
+<div class="row my-4">
+    <div class="col-12">
+        <h2>Synapse Chamber Settings</h2>
+        <p class="lead">Configure how the Synapse Chamber operates</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="list-group mb-4" id="settings-tabs" role="tablist">
+            <a class="list-group-item list-group-item-action active" id="browser-tab" data-bs-toggle="list" href="#browser-settings" role="tab" aria-controls="browser-settings">
+                <i class="fas fa-globe me-2"></i>Browser Automation
+            </a>
+            <a class="list-group-item list-group-item-action" id="captcha-tab" data-bs-toggle="list" href="#captcha-settings" role="tab" aria-controls="captcha-settings">
+                <i class="fas fa-shield-alt me-2"></i>CAPTCHA Solver
+            </a>
+            <a class="list-group-item list-group-item-action" id="memory-tab" data-bs-toggle="list" href="#memory-settings" role="tab" aria-controls="memory-settings">
+                <i class="fas fa-memory me-2"></i>Memory System
+            </a>
+            <a class="list-group-item list-group-item-action" id="ui-tab" data-bs-toggle="list" href="#ui-settings" role="tab" aria-controls="ui-settings">
+                <i class="fas fa-palette me-2"></i>UI Preferences
+            </a>
+            <a class="list-group-item list-group-item-action" id="ai-platforms-tab" data-bs-toggle="list" href="#ai-platforms-settings" role="tab" aria-controls="ai-platforms-settings">
+                <i class="fas fa-robot me-2"></i>AI Platforms
+            </a>
+            <a class="list-group-item list-group-item-action" id="advanced-tab" data-bs-toggle="list" href="#advanced-settings" role="tab" aria-controls="advanced-settings">
+                <i class="fas fa-cogs me-2"></i>Advanced
+            </a>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">System Status</h5>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center p-2">
+                        Browser Driver
+                        <span class="badge bg-success">OK</span>
+                    </li>
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center p-2">
+                        Tesseract OCR
+                        <span class="badge bg-success">OK</span>
+                    </li>
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center p-2">
+                        Database
+                        <span class="badge bg-success">Connected</span>
+                    </li>
+                    <li class="list-group-item bg-transparent d-flex justify-content-between align-items-center p-2">
+                        Memory System
+                        <span class="badge bg-success">Active</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-body">
+                <form id="settings-form">
+                    <div class="tab-content">
+                        <!-- Browser Automation Settings -->
+                        <div class="tab-pane fade show active" id="browser-settings" role="tabpanel" aria-labelledby="browser-tab">
+                            <div class="settings-section">
+                                <h4>Browser Automation Settings</h4>
+                                <p class="text-muted">Configure how Synapse Chamber interacts with web browsers</p>
+                                
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="headless" name="headless">
+                                    <label class="form-check-label" for="headless">Run in Headless Mode</label>
+                                    <div class="form-text">Run browser without a visible window. Faster but harder to debug.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="timeout" class="form-label">Operation Timeout (seconds)</label>
+                                    <input type="number" class="form-control" id="timeout" name="timeout" value="30" min="5" max="120">
+                                    <div class="form-text">Maximum time to wait for browser operations before timing out.</div>
+                                </div>
+                                
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="screenshot_on_action" name="screenshot_on_action" checked>
+                                    <label class="form-check-label" for="screenshot_on_action">Take Screenshots on Actions</label>
+                                    <div class="form-text">Capture a screenshot whenever a significant browser action occurs.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="user_agent" class="form-label">Custom User Agent (Optional)</label>
+                                    <input type="text" class="form-control" id="user_agent" name="user_agent" placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64)...">
+                                    <div class="form-text">Leave blank to use the default user agent.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- CAPTCHA Solver Settings -->
+                        <div class="tab-pane fade" id="captcha-settings" role="tabpanel" aria-labelledby="captcha-tab">
+                            <div class="settings-section">
+                                <h4>CAPTCHA Solver Settings</h4>
+                                <p class="text-muted">Configure how Synapse Chamber handles CAPTCHA and verification challenges</p>
+                                
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="use_tesseract" name="use_tesseract" checked>
+                                    <label class="form-check-label" for="use_tesseract">Use Tesseract OCR</label>
+                                    <div class="form-text">Enable Tesseract for scanning text in images and CAPTCHAs.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="tesseract_path" class="form-label">Tesseract Path</label>
+                                    <input type="text" class="form-control" id="tesseract_path" name="tesseract_path" value="/usr/bin/tesseract">
+                                    <div class="form-text">Path to Tesseract executable on your system.</div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="delay_min" class="form-label">Minimum Delay (seconds)</label>
+                                            <input type="number" class="form-control" id="delay_min" name="delay_min" value="1.0" min="0.1" max="10" step="0.1">
+                                            <div class="form-text">Minimum delay for human-like behavior.</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="delay_max" class="form-label">Maximum Delay (seconds)</label>
+                                            <input type="number" class="form-control" id="delay_max" name="delay_max" value="3.0" min="0.5" max="15" step="0.1">
+                                            <div class="form-text">Maximum delay for human-like behavior.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    CAPTCHA solving requires simulating human-like behavior with randomized delays and mouse movements.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Memory System Settings -->
+                        <div class="tab-pane fade" id="memory-settings" role="tabpanel" aria-labelledby="memory-tab">
+                            <div class="settings-section">
+                                <h4>Memory System Settings</h4>
+                                <p class="text-muted">Configure how Synapse Chamber stores and manages conversation data</p>
+                                
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="use_database" name="use_database" checked>
+                                    <label class="form-check-label" for="use_database">Use Database</label>
+                                    <div class="form-text">Store data in SQLite database (recommended). If disabled, will use JSON files.</div>
+                                </div>
+                                
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="backup_to_json" name="backup_to_json" checked>
+                                    <label class="form-check-label" for="backup_to_json">Backup to JSON</label>
+                                    <div class="form-text">Create JSON backups of all conversations.</div>
+                                </div>
+                                
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="auto_create_threads" name="auto_create_threads" checked>
+                                    <label class="form-check-label" for="auto_create_threads">Automatically Create Threads</label>
+                                    <div class="form-text">Automatically create or update training threads when subjects match.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="retention_period" class="form-label">Data Retention Period (days)</label>
+                                    <input type="number" class="form-control" id="retention_period" name="retention_period" value="365" min="30" max="3650">
+                                    <div class="form-text">How long to keep conversation data before auto-pruning.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="screenshot_quality" class="form-label">Screenshot Quality</label>
+                                    <select class="form-select" id="screenshot_quality" name="screenshot_quality">
+                                        <option value="low">Low (smaller file size)</option>
+                                        <option value="medium" selected>Medium (balanced)</option>
+                                        <option value="high">High (better quality)</option>
+                                    </select>
+                                    <div class="form-text">Quality setting for captured screenshots.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- UI Preferences -->
+                        <div class="tab-pane fade" id="ui-settings" role="tabpanel" aria-labelledby="ui-tab">
+                            <div class="settings-section">
+                                <h4>UI Preferences</h4>
+                                <p class="text-muted">Customize the Synapse Chamber user interface</p>
+                                
+                                <div class="mb-3">
+                                    <label for="theme" class="form-label">Theme</label>
+                                    <select class="form-select" id="theme" name="theme">
+                                        <option value="dark" selected>Dark (Default)</option>
+                                        <option value="light">Light</option>
+                                        <option value="system">Follow System Preference</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="code_theme" class="form-label">Code Syntax Highlighting</label>
+                                    <select class="form-select" id="code_theme" name="code_theme">
+                                        <option value="monokai" selected>Monokai</option>
+                                        <option value="github">GitHub</option>
+                                        <option value="solarized">Solarized Dark</option>
+                                        <option value="dracula">Dracula</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="show_timestamps" name="show_timestamps" checked>
+                                    <label class="form-check-label" for="show_timestamps">Show Timestamps</label>
+                                    <div class="form-text">Display timestamps for all messages and logs.</div>
+                                </div>
+                                
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="compact_view" name="compact_view">
+                                    <label class="form-check-label" for="compact_view">Compact View</label>
+                                    <div class="form-text">Use a more condensed UI layout.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="default_ai" class="form-label">Default AI Platform</label>
+                                    <select class="form-select" id="default_ai" name="default_ai">
+                                        <option value="">None (Ask each time)</option>
+                                        <option value="gpt" selected>ChatGPT</option>
+                                        <option value="gemini">Gemini</option>
+                                        <option value="grok">Grok</option>
+                                        <option value="deepseek">DeepSeek</option>
+                                        <option value="claude">Claude</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- AI Platforms Settings -->
+                        <div class="tab-pane fade" id="ai-platforms-settings" role="tabpanel" aria-labelledby="ai-platforms-tab">
+                            <div class="settings-section">
+                                <h4>AI Platforms Configuration</h4>
+                                <p class="text-muted">Configure settings for each AI platform</p>
+                                
+                                <ul class="nav nav-tabs mb-3" id="ai-tabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="gpt-settings-tab" data-bs-toggle="tab" data-bs-target="#gpt-config" type="button" role="tab" aria-controls="gpt-config" aria-selected="true">ChatGPT</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="gemini-settings-tab" data-bs-toggle="tab" data-bs-target="#gemini-config" type="button" role="tab" aria-controls="gemini-config" aria-selected="false">Gemini</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="grok-settings-tab" data-bs-toggle="tab" data-bs-target="#grok-config" type="button" role="tab" aria-controls="grok-config" aria-selected="false">Grok</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="deepseek-settings-tab" data-bs-toggle="tab" data-bs-target="#deepseek-config" type="button" role="tab" aria-controls="deepseek-config" aria-selected="false">DeepSeek</button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="claude-settings-tab" data-bs-toggle="tab" data-bs-target="#claude-config" type="button" role="tab" aria-controls="claude-config" aria-selected="false">Claude</button>
+                                    </li>
+                                </ul>
+                                
+                                <div class="tab-content" id="ai-tabs-content">
+                                    <!-- ChatGPT -->
+                                    <div class="tab-pane fade show active" id="gpt-config" role="tabpanel" aria-labelledby="gpt-settings-tab">
+                                        <div class="mb-3 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="gpt_enabled" name="gpt_enabled" checked>
+                                            <label class="form-check-label" for="gpt_enabled">Enabled</label>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="gpt_url" class="form-label">ChatGPT URL</label>
+                                            <input type="url" class="form-control" id="gpt_url" name="gpt_url" value="https://chat.openai.com/">
+                                        </div>
+                                        
+                                        <div class="mb-3 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="gpt_login_required" name="gpt_login_required" checked>
+                                            <label class="form-check-label" for="gpt_login_required">Login Required</label>
+                                        </div>
+                                        
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            Login credentials should be managed securely. Current implementation uses demo credentials.
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Gemini -->
+                                    <div class="tab-pane fade" id="gemini-config" role="tabpanel" aria-labelledby="gemini-settings-tab">
+                                        <div class="mb-3 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="gemini_enabled" name="gemini_enabled" checked>
+                                            <label class="form-check-label" for="gemini_enabled">Enabled</label>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="gemini_url" class="form-label">Gemini URL</label>
+                                            <input type="url" class="form-control" id="gemini_url" name="gemini_url" value="https://gemini.google.com/">
+                                        </div>
+                                        
+                                        <div class="mb-3 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="gemini_login_required" name="gemini_login_required" checked>
+                                            <label class="form-check-label" for="gemini_login_required">Login Required</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Grok -->
+                                    <div class="tab-pane fade" id="grok-config" role="tabpanel" aria-labelledby="grok-settings-tab">
+                                        <div class="mb-3 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="grok_enabled" name="grok_enabled" checked>
+                                            <label class="form-check-label" for="grok_enabled">Enabled</label>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="grok_url" class="form-label">Grok URL</label>
+                                            <input type="url" class="form-control" id="grok_url" name="grok_url" value="https://grok.x.ai/">
+                                        </div>
+                                        
+                                        <div class="mb-3 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="grok_login_required" name="grok_login_required" checked>
+                                            <label class="form-check-label" for="grok_login_required">Login Required</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- DeepSeek -->
+                                    <div class="tab-pane fade" id="deepseek-config" role="tabpanel" aria-labelledby="deepseek-settings-tab">
+                                        <div class="mb-3 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="deepseek_enabled" name="deepseek_enabled" checked>
+                                            <label class="form-check-label" for="deepseek_enabled">Enabled</label>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="deepseek_url" class="form-label">DeepSeek URL</label>
+                                            <input type="url" class="form-control" id="deepseek_url" name="deepseek_url" value="https://chat.deepseek.com/">
+                                        </div>
+                                        
+                                        <div class="mb-3 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="deepseek_login_required" name="deepseek_login_required" checked>
+                                            <label class="form-check-label" for="deepseek_login_required">Login Required</label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Claude -->
+                                    <div class="tab-pane fade" id="claude-config" role="tabpanel" aria-labelledby="claude-settings-tab">
+                                        <div class="mb-3 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="claude_enabled" name="claude_enabled" checked>
+                                            <label class="form-check-label" for="claude_enabled">Enabled</label>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="claude_url" class="form-label">Claude URL</label>
+                                            <input type="url" class="form-control" id="claude_url" name="claude_url" value="https://claude.ai/">
+                                        </div>
+                                        
+                                        <div class="mb-3 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="claude_login_required" name="claude_login_required" checked>
+                                            <label class="form-check-label" for="claude_login_required">Login Required</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced Settings -->
+                        <div class="tab-pane fade" id="advanced-settings" role="tabpanel" aria-labelledby="advanced-tab">
+                            <div class="settings-section">
+                                <h4>Advanced Settings</h4>
+                                <p class="text-muted">Expert configuration options</p>
+                                
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    These settings are for advanced users. Incorrect values may cause system instability.
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="log_level" class="form-label">Log Level</label>
+                                    <select class="form-select" id="log_level" name="log_level">
+                                        <option value="DEBUG" selected>DEBUG</option>
+                                        <option value="INFO">INFO</option>
+                                        <option value="WARNING">WARNING</option>
+                                        <option value="ERROR">ERROR</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="max_retries" class="form-label">Maximum Retries</label>
+                                    <input type="number" class="form-control" id="max_retries" name="max_retries" value="3" min="0" max="10">
+                                    <div class="form-text">Number of times to retry a failed operation.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="concurrency" class="form-label">Concurrency</label>
+                                    <input type="number" class="form-control" id="concurrency" name="concurrency" value="1" min="1" max="5">
+                                    <div class="form-text">Number of simultaneous browser sessions (higher values require more resources).</div>
+                                </div>
+                                
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="debug_mode" name="debug_mode">
+                                    <label class="form-check-label" for="debug_mode">Debug Mode</label>
+                                    <div class="form-text">Enable verbose logging and additional development features.</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="custom_js" class="form-label">Custom JavaScript Injection</label>
+                                    <textarea class="form-control" id="custom_js" name="custom_js" rows="3" placeholder="// Optional JavaScript to inject into browser pages"></textarea>
+                                    <div class="form-text">Advanced: Custom JavaScript that will be injected into browser sessions.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-secondary" id="reset-settings-btn">
+                            <i class="fas fa-undo me-2"></i>Reset to Defaults
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="settings-submit-btn">
+                            <i class="fas fa-save me-2"></i>Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
