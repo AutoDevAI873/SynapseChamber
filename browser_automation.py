@@ -2,6 +2,7 @@ import os
 import logging
 import time
 import random
+import json
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -44,14 +45,70 @@ class BrowserAutomation:
         self.logger = logging.getLogger(__name__)
         self.driver = None
         self.screenshot_dir = "static/screenshots"
+        self.data_dir = "data"
         self.settings = {
-            "headless": False,
+            "headless": True,  # Always headless in this environment
             "timeout": 30,
-            "screenshot_on_action": True
+            "screenshot_on_action": True,
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
+            "viewport_width": 1920,
+            "viewport_height": 1080,
+            "wait_time_min": 1.0,  # Minimum wait time in seconds
+            "wait_time_max": 3.0,   # Maximum wait time in seconds
+            "cookies_enabled": True
         }
         
-        # Ensure screenshot directory exists
+        # AI platform URLs
+        self.platform_urls = {
+            "gpt": "https://chat.openai.com/",
+            "gemini": "https://gemini.google.com/",
+            "deepseek": "https://chat.deepseek.com/",
+            "claude": "https://claude.ai/",
+            "grok": "https://grok.x.com/"
+        }
+        
+        # AI platform selectors
+        self.platform_selectors = {
+            "gpt": {
+                "login_button": (By.XPATH, "//button[contains(text(), 'Log in')]"),
+                "email_input": (By.ID, "username"),
+                "password_input": (By.ID, "password"),
+                "continue_button": (By.XPATH, "//button[contains(text(), 'Continue')]"),
+                "prompt_textarea": (By.XPATH, "//textarea[contains(@placeholder, 'Message')]"),
+                "send_button": (By.XPATH, "//button[@data-testid='send-button']"),
+                "response_container": (By.XPATH, "//div[contains(@class, 'markdown')]"),
+                "new_chat_button": (By.XPATH, "//a[contains(text(), 'New chat')]")
+            },
+            "gemini": {
+                "login_button": (By.XPATH, "//a[contains(text(), 'Sign in')]"),
+                "prompt_textarea": (By.XPATH, "//textarea[contains(@placeholder, 'Enter')]"),
+                "send_button": (By.XPATH, "//button[@aria-label='Send message']"),
+                "response_container": (By.XPATH, "//div[contains(@class, 'response-container')]")
+            },
+            "deepseek": {
+                "login_button": (By.XPATH, "//button[contains(text(), 'Sign In')]"),
+                "prompt_textarea": (By.XPATH, "//textarea[contains(@placeholder, 'Send a message')]"),
+                "send_button": (By.XPATH, "//button[@type='submit']"),
+                "response_container": (By.XPATH, "//div[contains(@class, 'message')]")
+            },
+            "claude": {
+                "login_button": (By.XPATH, "//button[contains(text(), 'Sign in')]"),
+                "prompt_textarea": (By.XPATH, "//textarea[contains(@placeholder, 'Message')]"),
+                "send_button": (By.XPATH, "//button[@aria-label='Send message']"),
+                "response_container": (By.XPATH, "//div[contains(@class, 'claude-response')]")
+            },
+            "grok": {
+                "login_button": (By.XPATH, "//a[contains(text(), 'Log in')]"),
+                "prompt_textarea": (By.XPATH, "//textarea[contains(@placeholder, 'Ask Grok')]"),
+                "send_button": (By.XPATH, "//button[@type='submit']"),
+                "response_container": (By.XPATH, "//div[contains(@class, 'Message')]")
+            }
+        }
+        
+        # Ensure directories exist
         os.makedirs(self.screenshot_dir, exist_ok=True)
+        os.makedirs(self.data_dir, exist_ok=True)
+        os.makedirs(os.path.join(self.data_dir, "cookies"), exist_ok=True)
     
     def update_settings(self, settings):
         """Update the browser automation settings"""
@@ -265,3 +322,312 @@ class BrowserAutomation:
         except Exception as e:
             self.logger.error(f"Error switching to default content: {str(e)}")
             return False
+            
+    # AI Platform Specific Methods
+    def navigate_to_platform(self, platform):
+        """Navigate to an AI platform"""
+        if platform not in self.platform_urls:
+            self.logger.error(f"Unknown platform: {platform}")
+            return False
+            
+        url = self.platform_urls[platform]
+        return self.navigate_to(url)
+        
+    def save_cookies(self, platform):
+        """Save cookies for a specific platform"""
+        if not self.driver:
+            self.logger.error("Cannot save cookies - driver not initialized")
+            return False
+            
+        if platform not in self.platform_urls:
+            self.logger.error(f"Unknown platform: {platform}")
+            return False
+            
+        try:
+            cookies = self.get_cookies()
+            if not cookies:
+                self.logger.warning(f"No cookies to save for {platform}")
+                return False
+                
+            cookie_file = os.path.join(self.data_dir, "cookies", f"{platform}.json")
+            with open(cookie_file, 'w') as f:
+                json.dump(cookies, f)
+                
+            self.logger.info(f"Saved {len(cookies)} cookies for {platform}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error saving cookies for {platform}: {str(e)}")
+            return False
+            
+    def load_cookies(self, platform):
+        """Load cookies for a specific platform"""
+        if not self.driver:
+            self.logger.error("Cannot load cookies - driver not initialized")
+            return False
+            
+        if platform not in self.platform_urls:
+            self.logger.error(f"Unknown platform: {platform}")
+            return False
+            
+        try:
+            cookie_file = os.path.join(self.data_dir, "cookies", f"{platform}.json")
+            if not os.path.exists(cookie_file):
+                self.logger.warning(f"No cookie file found for {platform}")
+                return False
+                
+            # First navigate to the platform domain to set cookies
+            self.navigate_to(self.platform_urls[platform])
+                
+            # Load and add cookies
+            with open(cookie_file, 'r') as f:
+                cookies = json.load(f)
+                
+            for cookie in cookies:
+                try:
+                    # Some cookie attributes might cause issues, so we remove them
+                    if 'expiry' in cookie:
+                        del cookie['expiry']
+                    self.add_cookie(cookie)
+                except Exception as e:
+                    self.logger.warning(f"Error adding cookie: {str(e)}")
+                    
+            self.logger.info(f"Loaded cookies for {platform}")
+            
+            # Refresh page to apply cookies
+            self.driver.refresh()
+            time.sleep(2)  # Wait for page to reload
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"Error loading cookies for {platform}: {str(e)}")
+            return False
+            
+    def is_logged_in(self, platform):
+        """Check if logged in to a specific platform"""
+        if not self.driver:
+            return False
+            
+        if platform not in self.platform_selectors:
+            self.logger.error(f"Unknown platform: {platform}")
+            return False
+            
+        try:
+            # Each platform has different indicators for being logged in
+            # For example, presence of prompt textarea
+            selectors = self.platform_selectors[platform]
+            prompt_textarea = selectors.get("prompt_textarea")
+            
+            if prompt_textarea:
+                element = self.find_element(prompt_textarea[0], prompt_textarea[1], timeout=5)
+                if element and element.is_displayed():
+                    self.logger.info(f"Detected logged in state for {platform}")
+                    return True
+                    
+            # If login button is visible, we're not logged in
+            login_button = selectors.get("login_button")
+            if login_button:
+                element = self.find_element(login_button[0], login_button[1], timeout=5)
+                if element and element.is_displayed():
+                    self.logger.info(f"Not logged in to {platform}")
+                    return False
+                    
+            # If we can't determine the state, assume not logged in
+            self.logger.warning(f"Could not determine login state for {platform}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Error checking login state for {platform}: {str(e)}")
+            return False
+            
+    def login_to_platform(self, platform, username, password):
+        """Login to an AI platform"""
+        if not self.driver:
+            self.initialize_driver()
+            
+        if platform not in self.platform_selectors:
+            self.logger.error(f"Unknown platform: {platform}")
+            return False
+            
+        # First try to load cookies
+        self.navigate_to_platform(platform)
+        cookie_loaded = self.load_cookies(platform)
+        
+        # Check if already logged in
+        if self.is_logged_in(platform):
+            self.logger.info(f"Already logged in to {platform}")
+            return True
+            
+        # If not logged in with cookies, try manual login
+        try:
+            self.logger.info(f"Attempting login to {platform}")
+            selectors = self.platform_selectors[platform]
+            
+            # Click login button
+            login_button = selectors.get("login_button")
+            if login_button and not self.click_element(login_button[0], login_button[1]):
+                self.logger.error(f"Could not click login button for {platform}")
+                return False
+                
+            # Wait for human-like delay
+            self._human_delay()
+            
+            # Enter username/email
+            email_input = selectors.get("email_input")
+            if email_input and not self.send_keys(email_input[0], email_input[1], username):
+                self.logger.error(f"Could not enter username for {platform}")
+                return False
+                
+            # Some platforms have a continue button after email
+            continue_button = selectors.get("continue_button")
+            if continue_button:
+                self.click_element(continue_button[0], continue_button[1])
+                self._human_delay()
+                
+            # Enter password
+            password_input = selectors.get("password_input")
+            if password_input and not self.send_keys(password_input[0], password_input[1], password):
+                self.logger.error(f"Could not enter password for {platform}")
+                return False
+                
+            # Click submit/login button - might be the same selector or different
+            submit_button = selectors.get("submit_button", login_button)
+            if submit_button and not self.click_element(submit_button[0], submit_button[1]):
+                self.logger.error(f"Could not click submit button for {platform}")
+                return False
+                
+            # Wait for login to complete
+            time.sleep(5)
+            
+            # Check if login was successful
+            if self.is_logged_in(platform):
+                self.logger.info(f"Successfully logged in to {platform}")
+                # Save the cookies for future use
+                self.save_cookies(platform)
+                return True
+            else:
+                self.logger.error(f"Login to {platform} appears to have failed")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error during login to {platform}: {str(e)}")
+            return False
+            
+    def send_prompt_to_platform(self, platform, prompt):
+        """Send a prompt to an AI platform and wait for response"""
+        if not self.driver:
+            self.initialize_driver()
+            
+        if platform not in self.platform_selectors:
+            self.logger.error(f"Unknown platform: {platform}")
+            return None
+            
+        # Check if we're on the platform and logged in
+        if not self.is_logged_in(platform):
+            self.logger.error(f"Not logged in to {platform}, cannot send prompt")
+            return None
+            
+        try:
+            self.logger.info(f"Sending prompt to {platform}")
+            selectors = self.platform_selectors[platform]
+            
+            # Send the prompt
+            prompt_textarea = selectors.get("prompt_textarea")
+            if not prompt_textarea or not self.send_keys(prompt_textarea[0], prompt_textarea[1], prompt):
+                self.logger.error(f"Could not enter prompt for {platform}")
+                return None
+                
+            # Click send button
+            send_button = selectors.get("send_button")
+            if not send_button or not self.click_element(send_button[0], send_button[1]):
+                self.logger.error(f"Could not click send button for {platform}")
+                return None
+                
+            # Wait for response - this varies by platform
+            self._wait_for_response(platform)
+            
+            # Extract and return the response
+            return self._extract_response(platform)
+            
+        except Exception as e:
+            self.logger.error(f"Error sending prompt to {platform}: {str(e)}")
+            return None
+            
+    def _wait_for_response(self, platform):
+        """Wait for AI platform to generate a response"""
+        if not self.driver:
+            return False
+            
+        selectors = self.platform_selectors.get(platform, {})
+        response_indicator = selectors.get("response_container")
+        
+        if not response_indicator:
+            # If no specific indicator, just wait a reasonable time
+            self.logger.info(f"No response indicator for {platform}, waiting fixed time")
+            time.sleep(15)  # Default wait time
+            return True
+            
+        try:
+            # First wait for the element to appear
+            element = self.find_element(response_indicator[0], response_indicator[1], timeout=10)
+            if not element:
+                self.logger.warning(f"Response container not found for {platform}")
+                time.sleep(15)  # Default wait time
+                return False
+                
+            # Wait for response to stop changing
+            previous_text = ""
+            stable_count = 0
+            max_wait_time = 60  # Maximum wait time in seconds
+            start_time = time.time()
+            
+            while stable_count < 3 and (time.time() - start_time) < max_wait_time:
+                current_text = element.text
+                
+                if current_text == previous_text and current_text.strip():
+                    stable_count += 1
+                else:
+                    stable_count = 0
+                    
+                previous_text = current_text
+                time.sleep(2)
+                
+            # Take a final screenshot of the response
+            self.take_screenshot(f"{platform}_response_{int(time.time())}")
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"Error waiting for response from {platform}: {str(e)}")
+            time.sleep(15)  # Default wait time as fallback
+            return False
+            
+    def _extract_response(self, platform):
+        """Extract the AI's response from the page"""
+        if not self.driver:
+            return None
+            
+        selectors = self.platform_selectors.get(platform, {})
+        response_container = selectors.get("response_container")
+        
+        if not response_container:
+            self.logger.warning(f"No response container selector for {platform}")
+            return None
+            
+        try:
+            element = self.find_element(response_container[0], response_container[1])
+            if not element:
+                self.logger.warning(f"Response container not found for {platform}")
+                return None
+                
+            response_text = element.text.strip()
+            self.logger.info(f"Extracted response from {platform} ({len(response_text)} chars)")
+            
+            return response_text
+        except Exception as e:
+            self.logger.error(f"Error extracting response from {platform}: {str(e)}")
+            return None
+            
+    def _human_delay(self):
+        """Add a random delay to simulate human behavior"""
+        min_time = self.settings.get("wait_time_min", 1.0)
+        max_time = self.settings.get("wait_time_max", 3.0)
+        delay = min_time + random.random() * (max_time - min_time)
+        time.sleep(delay)
