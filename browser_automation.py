@@ -11,34 +11,28 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from datetime import datetime
 
-# In headless environment, we mock pyautogui and keyboard functionality
-HEADLESS_ENV = os.environ.get('DISPLAY') is None
-if HEADLESS_ENV:
-    logging.warning("Running in headless environment. GUI operations will be simulated.")
-    
-    # Mock pyautogui module
-    class PyAutoGUIMock:
-        def click(self, x=None, y=None):
-            logging.info(f"Mock clicking at position ({x}, {y})")
-            return True
-            
-        def typewrite(self, text):
-            logging.info(f"Mock typing text: {text}")
-            return True
-    
-    pyautogui = PyAutoGUIMock()
-    
-    # Mock keyboard module
-    class KeyboardMock:
-        def write(self, text):
-            logging.info(f"Mock keyboard writing: {text}")
-            return True
-    
-    keyboard = KeyboardMock()
-else:
-    # In non-headless environments, use actual modules
-    import pyautogui
-    import keyboard
+# Always mock pyautogui and keyboard in this environment
+logging.warning("Running in headless environment. GUI operations will be simulated.")
+
+# Mock pyautogui module
+class PyAutoGUIMock:
+    def click(self, x=None, y=None):
+        logging.info(f"Mock clicking at position ({x}, {y})")
+        return True
+        
+    def typewrite(self, text):
+        logging.info(f"Mock typing text: {text}")
+        return True
+
+pyautogui = PyAutoGUIMock()
+
+# Mock keyboard module
+class KeyboardMock:
+    def write(self, text):
+        logging.info(f"Mock keyboard writing: {text}")
+        return True
+
+keyboard = KeyboardMock()
 
 class BrowserAutomation:
     def __init__(self):
