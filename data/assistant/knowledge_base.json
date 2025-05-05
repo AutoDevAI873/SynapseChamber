@@ -1,0 +1,135 @@
+{
+  "greeting_responses": [
+    "Hello! I'm your Synapse Chamber assistant. How can I help with your AI training today?",
+    "Welcome back to Synapse Chamber! What would you like to work on today?",
+    "Hi there! I'm here to help you train and develop AutoDev. What can I assist you with?",
+    "Hello! Ready to make AutoDev even smarter? I'm here to guide you through the process."
+  ],
+  "farewell_responses": [
+    "Goodbye! Come back soon to continue training AutoDev.",
+    "See you later! Your progress has been saved.",
+    "Until next time! Don't forget to check back on your training results.",
+    "Farewell! AutoDev will be waiting for your next training session."
+  ],
+  "topics": {
+    "training": {
+      "keywords": [
+        "train",
+        "training",
+        "session",
+        "learn",
+        "teach"
+      ],
+      "responses": [
+        "To start a new training session, go to the Training tab and select a topic. You can choose between different modes like 'All AIs Train' or 'Single AI Teaches'.",
+        "Training sessions help AutoDev learn from multiple AI platforms. Each session focuses on a specific topic like NLP or API handling.",
+        "The training engine orchestrates sessions across multiple AI platforms, collecting their responses and synthesizing a final recommendation."
+      ]
+    },
+    "platforms": {
+      "keywords": [
+        "platform",
+        "gpt",
+        "claude",
+        "gemini",
+        "deepseek",
+        "grok",
+        "ai"
+      ],
+      "responses": [
+        "Synapse Chamber supports multiple AI platforms: GPT, Claude, Gemini, DeepSeek, and Grok. Each brings different strengths to training.",
+        "You can select which AI platforms to include in each training session. Using multiple platforms provides diverse perspectives.",
+        "Different platforms excel at different topics. Analytics can help you identify which platforms perform best for specific training areas."
+      ]
+    },
+    "analytics": {
+      "keywords": [
+        "analytics",
+        "stats",
+        "statistics",
+        "performance",
+        "metrics",
+        "dashboard"
+      ],
+      "responses": [
+        "The Analytics Dashboard provides insights into your training performance, platform comparisons, and system health.",
+        "You can track success rates, response times, and contribution quality for each AI platform in the Analytics section.",
+        "Analytics helps you optimize your training approach by identifying patterns and trends in your sessions."
+      ]
+    },
+    "recommendations": {
+      "keywords": [
+        "recommend",
+        "recommendation",
+        "suggest",
+        "suggestion"
+      ],
+      "responses": [
+        "The recommendation system analyzes your training history to suggest new topics and approaches tailored to your needs.",
+        "Personalized recommendations help you explore new training areas and optimize your existing approach.",
+        "Recommendations are based on your training patterns, success rates, and areas you haven't explored yet."
+      ]
+    },
+    "gamification": {
+      "keywords": [
+        "achievement",
+        "badge",
+        "point",
+        "level",
+        "streak",
+        "challenge",
+        "leaderboard"
+      ],
+      "responses": [
+        "Earn points by completing training sessions and challenges. Points help you level up in the system.",
+        "Achievements are awarded for reaching training milestones, like completing sessions or using multiple platforms.",
+        "Maintaining a daily streak gives bonus points and unlocks special achievements. Try to train every day!"
+      ]
+    },
+    "autodev": {
+      "keywords": [
+        "autodev",
+        "agent",
+        "capability",
+        "skill",
+        "ability"
+      ],
+      "responses": [
+        "AutoDev is the AI agent being trained by Synapse Chamber. Your training sessions improve its capabilities.",
+        "After completing training sessions, you can apply the results to update AutoDev's skills and knowledge.",
+        "AutoDev's capabilities include natural language processing, API handling, error recovery, and more."
+      ]
+    },
+    "help": {
+      "keywords": [
+        "help",
+        "guide",
+        "tutorial",
+        "how to",
+        "instruction"
+      ],
+      "responses": [
+        "To get started, go to the Training tab and select a topic. Once you've completed a session, you can apply the results to AutoDev.",
+        "The navigation menu at the top lets you access different sections: Home, AI Interaction, Training, Analytics, and Settings.",
+        "If you're new, I recommend starting with a Natural Language Processing training session to get familiar with the system."
+      ]
+    }
+  },
+  "questions": {
+    "what is synapse chamber": "Synapse Chamber is an AI training environment designed to help develop and enhance AutoDev, an AI agent. It allows you to run training sessions across multiple AI platforms, analyze results, and improve AutoDev's capabilities.",
+    "how do i start training": "To start training, navigate to the Training tab, select a topic of interest (like NLP or API Handling), choose which AI platforms to include, and then click 'Start Training Session'.",
+    "what are training sessions": "Training sessions are structured learning experiences where you present a topic to multiple AI platforms, collect their responses, and synthesize the best insights to improve AutoDev.",
+    "how do levels work": "Levels represent your progression in Synapse Chamber. You earn points by completing training sessions, achieving milestones, and daily activities. Each level unlocks new features and capabilities.",
+    "what are achievements": "Achievements are special recognition for reaching milestones in your training journey. They include completing your first session, using all available platforms, maintaining streaks, and more.",
+    "how do i improve autodev": "To improve AutoDev, complete training sessions and then apply the results using the 'Apply to AutoDev' button. The system will analyze the AI responses and update AutoDev's capabilities accordingly.",
+    "which ai platform is best": "Each platform has different strengths. GPT excels at general knowledge, Claude at reasoning, Gemini at multimodal tasks, DeepSeek at technical topics, and Grok at creative approaches. The Analytics section can show you which performs best for your specific needs.",
+    "what are daily challenges": "Daily challenges are special tasks that refresh each day. They might ask you to train on a specific topic, use particular platforms, or achieve certain metrics. Completing them earns bonus points and keeps training engaging.",
+    "how does the recommendation system work": "The recommendation system analyzes your training history, success patterns, and unexplored areas to suggest optimal next steps. It helps you diversify your training approach and focus on areas that will benefit AutoDev most."
+  },
+  "fallback_responses": [
+    "I'm not sure I understand. Could you rephrase that or ask about training, platforms, achievements, or analytics?",
+    "I don't have information on that yet. Would you like to know about training sessions, AutoDev capabilities, or using the system instead?",
+    "I'm still learning too! Could you ask about something related to Synapse Chamber's features or training processes?",
+    "I'm not familiar with that topic. Can I help you with starting a training session, understanding analytics, or using recommendations instead?"
+  ]
+}

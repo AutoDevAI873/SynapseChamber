@@ -1,0 +1,116 @@
+[
+  {
+    "id": "first_training",
+    "name": "First Steps",
+    "description": "Complete your first training session",
+    "icon": "baby-steps.svg",
+    "points": 50,
+    "condition": {
+      "type": "sessions_completed",
+      "threshold": 1
+    }
+  },
+  {
+    "id": "training_master",
+    "name": "Training Master",
+    "description": "Complete 10 training sessions",
+    "icon": "master.svg",
+    "points": 200,
+    "condition": {
+      "type": "sessions_completed",
+      "threshold": 10
+    }
+  },
+  {
+    "id": "topic_explorer",
+    "name": "Topic Explorer",
+    "description": "Train on 3 different topics",
+    "icon": "explorer.svg",
+    "points": 100,
+    "condition": {
+      "type": "unique_topics",
+      "threshold": 3
+    }
+  },
+  {
+    "id": "ai_diplomat",
+    "name": "AI Diplomat",
+    "description": "Use all available AI platforms",
+    "icon": "diplomat.svg",
+    "points": 150,
+    "condition": {
+      "type": "all_platforms",
+      "threshold": 5
+    }
+  },
+  {
+    "id": "streak_week",
+    "name": "Consistent Trainer",
+    "description": "Maintain a 7-day training streak",
+    "icon": "streak.svg",
+    "points": 300,
+    "condition": {
+      "type": "streak",
+      "threshold": 7
+    }
+  },
+  {
+    "id": "nlp_expert",
+    "name": "NLP Expert",
+    "description": "Complete 5 Natural Language Processing training sessions",
+    "icon": "nlp.svg",
+    "points": 250,
+    "condition": {
+      "type": "topic_sessions",
+      "topic": "Natural Language Processing",
+      "threshold": 5
+    }
+  },
+  {
+    "id": "api_master",
+    "name": "API Master",
+    "description": "Complete 5 API Integration training sessions",
+    "icon": "api.svg",
+    "points": 250,
+    "condition": {
+      "type": "topic_sessions",
+      "topic": "API Integration",
+      "threshold": 5
+    }
+  },
+  {
+    "id": "error_handler",
+    "name": "Error Handler",
+    "description": "Complete 5 Error Handling training sessions",
+    "icon": "error.svg",
+    "points": 250,
+    "condition": {
+      "type": "topic_sessions",
+      "topic": "Error Handling",
+      "threshold": 5
+    }
+  },
+  {
+    "id": "perfect_score",
+    "name": "Perfect Score",
+    "description": "Achieve a 100% success rate in training sessions (minimum 5 sessions)",
+    "icon": "perfect.svg",
+    "points": 500,
+    "condition": {
+      "type": "success_rate",
+      "threshold": 1.0,
+      "min_sessions": 5
+    }
+  },
+  {
+    "id": "analytics_lover",
+    "name": "Analytics Lover",
+    "description": "View the analytics dashboard 10 times",
+    "icon": "analytics.svg",
+    "points": 100,
+    "condition": {
+      "type": "view_dashboard",
+      "threshold": 10
+    }
+  }
+]

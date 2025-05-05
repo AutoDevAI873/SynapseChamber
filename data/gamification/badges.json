@@ -1,0 +1,85 @@
+[
+  {
+    "id": "novice",
+    "name": "Novice Trainer",
+    "description": "Awarded to users who reach level 5",
+    "icon": "novice.svg",
+    "condition": {
+      "type": "level",
+      "threshold": 5
+    }
+  },
+  {
+    "id": "expert",
+    "name": "Expert Trainer",
+    "description": "Awarded to users who reach level 15",
+    "icon": "expert.svg",
+    "condition": {
+      "type": "level",
+      "threshold": 15
+    }
+  },
+  {
+    "id": "master",
+    "name": "Master Trainer",
+    "description": "Awarded to users who reach level 30",
+    "icon": "master.svg",
+    "condition": {
+      "type": "level",
+      "threshold": 30
+    }
+  },
+  {
+    "id": "achievement_hunter",
+    "name": "Achievement Hunter",
+    "description": "Earn 5 achievements",
+    "icon": "hunter.svg",
+    "condition": {
+      "type": "achievements_count",
+      "threshold": 5
+    }
+  },
+  {
+    "id": "platform_master_gpt",
+    "name": "GPT Master",
+    "description": "Complete 10 sessions using GPT",
+    "icon": "gpt.svg",
+    "condition": {
+      "type": "platform_sessions",
+      "platform": "gpt",
+      "threshold": 10
+    }
+  },
+  {
+    "id": "platform_master_claude",
+    "name": "Claude Master",
+    "description": "Complete 10 sessions using Claude",
+    "icon": "claude.svg",
+    "condition": {
+      "type": "platform_sessions",
+      "platform": "claude",
+      "threshold": 10
+    }
+  },
+  {
+    "id": "platform_master_gemini",
+    "name": "Gemini Master",
+    "description": "Complete 10 sessions using Gemini",
+    "icon": "gemini.svg",
+    "condition": {
+      "type": "platform_sessions",
+      "platform": "gemini",
+      "threshold": 10
+    }
+  },
+  {
+    "id": "top_contributor",
+    "name": "Top Contributor",
+    "description": "Have one of your training sessions significantly improve AutoDev",
+    "icon": "contributor.svg",
+    "condition": {
+      "type": "special",
+      "special_type": "top_contribution"
+    }
+  }
+]

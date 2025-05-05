@@ -1,0 +1,452 @@
+[
+  {
+    "level": 1,
+    "name": "Level 1",
+    "points_required": 100,
+    "reward": {
+      "type": "feature_unlock",
+      "value": "feature_1"
+    }
+  },
+  {
+    "level": 2,
+    "name": "Level 2",
+    "points_required": 120,
+    "reward": {
+      "type": "feature_unlock",
+      "value": "feature_2"
+    }
+  },
+  {
+    "level": 3,
+    "name": "Level 3",
+    "points_required": 144,
+    "reward": {
+      "type": "feature_unlock",
+      "value": "feature_3"
+    }
+  },
+  {
+    "level": 4,
+    "name": "Level 4",
+    "points_required": 172,
+    "reward": {
+      "type": "feature_unlock",
+      "value": "feature_4"
+    }
+  },
+  {
+    "level": 5,
+    "name": "Level 5",
+    "points_required": 207,
+    "reward": {
+      "type": "feature_unlock",
+      "value": "feature_5"
+    }
+  },
+  {
+    "level": 6,
+    "name": "Level 6",
+    "points_required": 248,
+    "reward": {
+      "type": "feature_unlock",
+      "value": "feature_6"
+    }
+  },
+  {
+    "level": 7,
+    "name": "Level 7",
+    "points_required": 298,
+    "reward": {
+      "type": "feature_unlock",
+      "value": "feature_7"
+    }
+  },
+  {
+    "level": 8,
+    "name": "Level 8",
+    "points_required": 358,
+    "reward": {
+      "type": "feature_unlock",
+      "value": "feature_8"
+    }
+  },
+  {
+    "level": 9,
+    "name": "Level 9",
+    "points_required": 429,
+    "reward": {
+      "type": "feature_unlock",
+      "value": "feature_9"
+    }
+  },
+  {
+    "level": 10,
+    "name": "Level 10",
+    "points_required": 515,
+    "reward": {
+      "type": "feature_unlock",
+      "value": "feature_10"
+    }
+  },
+  {
+    "level": 11,
+    "name": "Level 11",
+    "points_required": 619,
+    "reward": {
+      "type": "points_bonus",
+      "value": 110
+    }
+  },
+  {
+    "level": 12,
+    "name": "Level 12",
+    "points_required": 743,
+    "reward": {
+      "type": "points_bonus",
+      "value": 120
+    }
+  },
+  {
+    "level": 13,
+    "name": "Level 13",
+    "points_required": 891,
+    "reward": {
+      "type": "points_bonus",
+      "value": 130
+    }
+  },
+  {
+    "level": 14,
+    "name": "Level 14",
+    "points_required": 1069,
+    "reward": {
+      "type": "points_bonus",
+      "value": 140
+    }
+  },
+  {
+    "level": 15,
+    "name": "Level 15",
+    "points_required": 1283,
+    "reward": {
+      "type": "points_bonus",
+      "value": 150
+    }
+  },
+  {
+    "level": 16,
+    "name": "Level 16",
+    "points_required": 1540,
+    "reward": {
+      "type": "points_bonus",
+      "value": 160
+    }
+  },
+  {
+    "level": 17,
+    "name": "Level 17",
+    "points_required": 1848,
+    "reward": {
+      "type": "points_bonus",
+      "value": 170
+    }
+  },
+  {
+    "level": 18,
+    "name": "Level 18",
+    "points_required": 2218,
+    "reward": {
+      "type": "points_bonus",
+      "value": 180
+    }
+  },
+  {
+    "level": 19,
+    "name": "Level 19",
+    "points_required": 2662,
+    "reward": {
+      "type": "points_bonus",
+      "value": 190
+    }
+  },
+  {
+    "level": 20,
+    "name": "Level 20",
+    "points_required": 3194,
+    "reward": {
+      "type": "points_bonus",
+      "value": 200
+    }
+  },
+  {
+    "level": 21,
+    "name": "Level 21",
+    "points_required": 3833,
+    "reward": {
+      "type": "points_bonus",
+      "value": 210
+    }
+  },
+  {
+    "level": 22,
+    "name": "Level 22",
+    "points_required": 4600,
+    "reward": {
+      "type": "points_bonus",
+      "value": 220
+    }
+  },
+  {
+    "level": 23,
+    "name": "Level 23",
+    "points_required": 5520,
+    "reward": {
+      "type": "points_bonus",
+      "value": 230
+    }
+  },
+  {
+    "level": 24,
+    "name": "Level 24",
+    "points_required": 6624,
+    "reward": {
+      "type": "points_bonus",
+      "value": 240
+    }
+  },
+  {
+    "level": 25,
+    "name": "Level 25",
+    "points_required": 7949,
+    "reward": {
+      "type": "points_bonus",
+      "value": 250
+    }
+  },
+  {
+    "level": 26,
+    "name": "Level 26",
+    "points_required": 9539,
+    "reward": {
+      "type": "points_bonus",
+      "value": 260
+    }
+  },
+  {
+    "level": 27,
+    "name": "Level 27",
+    "points_required": 11447,
+    "reward": {
+      "type": "points_bonus",
+      "value": 270
+    }
+  },
+  {
+    "level": 28,
+    "name": "Level 28",
+    "points_required": 13737,
+    "reward": {
+      "type": "points_bonus",
+      "value": 280
+    }
+  },
+  {
+    "level": 29,
+    "name": "Level 29",
+    "points_required": 16484,
+    "reward": {
+      "type": "points_bonus",
+      "value": 290
+    }
+  },
+  {
+    "level": 30,
+    "name": "Level 30",
+    "points_required": 19781,
+    "reward": {
+      "type": "points_bonus",
+      "value": 300
+    }
+  },
+  {
+    "level": 31,
+    "name": "Level 31",
+    "points_required": 23737,
+    "reward": {
+      "type": "points_bonus",
+      "value": 310
+    }
+  },
+  {
+    "level": 32,
+    "name": "Level 32",
+    "points_required": 28485,
+    "reward": {
+      "type": "points_bonus",
+      "value": 320
+    }
+  },
+  {
+    "level": 33,
+    "name": "Level 33",
+    "points_required": 34182,
+    "reward": {
+      "type": "points_bonus",
+      "value": 330
+    }
+  },
+  {
+    "level": 34,
+    "name": "Level 34",
+    "points_required": 41018,
+    "reward": {
+      "type": "points_bonus",
+      "value": 340
+    }
+  },
+  {
+    "level": 35,
+    "name": "Level 35",
+    "points_required": 49222,
+    "reward": {
+      "type": "points_bonus",
+      "value": 350
+    }
+  },
+  {
+    "level": 36,
+    "name": "Level 36",
+    "points_required": 59066,
+    "reward": {
+      "type": "points_bonus",
+      "value": 360
+    }
+  },
+  {
+    "level": 37,
+    "name": "Level 37",
+    "points_required": 70880,
+    "reward": {
+      "type": "points_bonus",
+      "value": 370
+    }
+  },
+  {
+    "level": 38,
+    "name": "Level 38",
+    "points_required": 85056,
+    "reward": {
+      "type": "points_bonus",
+      "value": 380
+    }
+  },
+  {
+    "level": 39,
+    "name": "Level 39",
+    "points_required": 102067,
+    "reward": {
+      "type": "points_bonus",
+      "value": 390
+    }
+  },
+  {
+    "level": 40,
+    "name": "Level 40",
+    "points_required": 122480,
+    "reward": {
+      "type": "points_bonus",
+      "value": 400
+    }
+  },
+  {
+    "level": 41,
+    "name": "Level 41",
+    "points_required": 146977,
+    "reward": {
+      "type": "points_bonus",
+      "value": 410
+    }
+  },
+  {
+    "level": 42,
+    "name": "Level 42",
+    "points_required": 176372,
+    "reward": {
+      "type": "points_bonus",
+      "value": 420
+    }
+  },
+  {
+    "level": 43,
+    "name": "Level 43",
+    "points_required": 211647,
+    "reward": {
+      "type": "points_bonus",
+      "value": 430
+    }
+  },
+  {
+    "level": 44,
+    "name": "Level 44",
+    "points_required": 253976,
+    "reward": {
+      "type": "points_bonus",
+      "value": 440
+    }
+  },
+  {
+    "level": 45,
+    "name": "Level 45",
+    "points_required": 304771,
+    "reward": {
+      "type": "points_bonus",
+      "value": 450
+    }
+  },
+  {
+    "level": 46,
+    "name": "Level 46",
+    "points_required": 365726,
+    "reward": {
+      "type": "points_bonus",
+      "value": 460
+    }
+  },
+  {
+    "level": 47,
+    "name": "Level 47",
+    "points_required": 438871,
+    "reward": {
+      "type": "points_bonus",
+      "value": 470
+    }
+  },
+  {
+    "level": 48,
+    "name": "Level 48",
+    "points_required": 526645,
+    "reward": {
+      "type": "points_bonus",
+      "value": 480
+    }
+  },
+  {
+    "level": 49,
+    "name": "Level 49",
+    "points_required": 631974,
+    "reward": {
+      "type": "points_bonus",
+      "value": 490
+    }
+  },
+  {
+    "level": 50,
+    "name": "Level 50",
+    "points_required": 758369,
+    "reward": {
+      "type": "points_bonus",
+      "value": 500
+    }
+  }
+]

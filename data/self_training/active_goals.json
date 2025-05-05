@@ -1,0 +1,74 @@
+[
+  {
+    "area": "natural_language_processing",
+    "topic": "natural_language",
+    "created_at": 1746466073.0999565,
+    "target_score": 0.7,
+    "status": "in_progress",
+    "priority": 2,
+    "training_sessions": []
+  },
+  {
+    "area": "api_integration",
+    "topic": "api_handling",
+    "created_at": 1746466073.0999596,
+    "target_score": 0.7,
+    "status": "planned",
+    "priority": 2,
+    "training_sessions": []
+  },
+  {
+    "area": "error_handling",
+    "topic": "error_handling",
+    "created_at": 1746466073.0999613,
+    "target_score": 0.7,
+    "status": "planned",
+    "priority": 2,
+    "training_sessions": []
+  },
+  {
+    "area": "file_operations",
+    "topic": "file_handling",
+    "created_at": 1746466073.0999625,
+    "target_score": 0.7,
+    "status": "planned",
+    "priority": 2,
+    "training_sessions": []
+  },
+  {
+    "area": "automation",
+    "topic": "automation",
+    "created_at": 1746466073.0999634,
+    "target_score": 0.7,
+    "status": "planned",
+    "priority": 2,
+    "training_sessions": []
+  },
+  {
+    "area": "reasoning",
+    "topic": "natural_language",
+    "created_at": 1746466073.0999646,
+    "target_score": 0.7,
+    "status": "planned",
+    "priority": 2,
+    "training_sessions": []
+  },
+  {
+    "area": "problem_solving",
+    "topic": "error_handling",
+    "created_at": 1746466073.0999663,
+    "target_score": 0.7,
+    "status": "planned",
+    "priority": 2,
+    "training_sessions": []
+  },
+  {
+    "area": "self_improvement",
+    "topic": "natural_language",
+    "created_at": 1746466073.09997,
+    "target_score": 0.7,
+    "status": "planned",
+    "priority": 2,
+    "training_sessions": []
+  }
+]
