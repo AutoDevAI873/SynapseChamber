@@ -83,6 +83,73 @@ with app.app_context():
 @app.route('/')
 def index():
     return render_template('index.html')
+    
+@app.route('/terminal')
+def terminal():
+    """Interactive terminal interface for command-line interactions"""
+    return render_template('terminal.html')
+    
+@app.route('/memory')
+def memory_explorer():
+    """Advanced memory explorer for visualizing and managing the memory system"""
+    return render_template('memory_explorer.html')
+    
+@app.route('/platforms')
+def platforms():
+    """AI platforms management interface"""
+    return render_template('platforms.html')
+    
+@app.route('/editor')
+def code_editor():
+    """Code editor with Monaco integration"""
+    return render_template('code_editor.html')
+    
+@app.route('/api/command_palette/recent', methods=['GET'])
+def get_recent_commands():
+    """Get recent commands for the command palette"""
+    # This would normally fetch from a database
+    recent_commands = [
+        {"id": "terminal", "title": "Open Terminal", "category": "Navigation"},
+        {"id": "memory", "title": "Open Memory Explorer", "category": "Navigation"},
+        {"id": "platforms", "title": "Manage AI Platforms", "category": "Navigation"}
+    ]
+    return jsonify({"status": "success", "commands": recent_commands})
+    
+@app.route('/api/files/list', methods=['GET'])
+def get_file_list():
+    """List files for the code editor file explorer"""
+    path = request.args.get('path', '/')
+    # This would normally list files from the filesystem
+    files = [
+        {"name": "main.py", "type": "file", "path": "/main.py", "language": "python"},
+        {"name": "app.py", "type": "file", "path": "/app.py", "language": "python"},
+        {"name": "templates", "type": "directory", "path": "/templates"}
+    ]
+    return jsonify({"status": "success", "files": files})
+    
+@app.route('/api/files/get', methods=['GET'])
+def get_file_content():
+    """Get file content for the code editor"""
+    path = request.args.get('path')
+    if not path:
+        return jsonify({"status": "error", "message": "Path is required"}), 400
+        
+    # This would normally read from the actual file
+    content = "# Sample file content\nprint('Hello, world!')"
+    return jsonify({"status": "success", "content": content})
+    
+@app.route('/api/files/save', methods=['POST'])
+def save_file():
+    """Save file content from the code editor"""
+    data = request.json
+    path = data.get('path')
+    content = data.get('content')
+    
+    if not path or content is None:
+        return jsonify({"status": "error", "message": "Path and content are required"}), 400
+        
+    # This would normally save to the actual file
+    return jsonify({"status": "success"})
 
 @app.route('/ai_interaction')
 def ai_interaction():

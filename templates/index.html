@@ -1,187 +1,552 @@
 {% extends 'layout.html' %}
 
-{% block title %}Synapse Chamber - AI Agent Training Environment{% endblock %}
+{% block title %}Synapse Chamber - Advanced AI Training Environment{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero section */
+    .hero {
+        padding: 4rem 0;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .hero h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        background: linear-gradient(90deg, #0d6efd, #6610f2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .hero p {
+        font-size: 1.25rem;
+        margin-bottom: 1.5rem;
+        color: #ced4da;
+    }
+    
+    /* Feature cards */
+    .feature-card {
+        background-color: #212529;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        height: 100%;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        border-color: rgba(13, 110, 253, 0.2);
+    }
+    
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        margin-bottom: 1.5rem;
+        color: white;
+        font-size: 1.5rem;
+    }
+    
+    .icon-terminal {
+        background: linear-gradient(135deg, #20c997, #0dcaf0);
+    }
+    
+    .icon-code {
+        background: linear-gradient(135deg, #6f42c1, #0d6efd);
+    }
+    
+    .icon-brain {
+        background: linear-gradient(135deg, #dc3545, #fd7e14);
+    }
+    
+    .icon-robot {
+        background: linear-gradient(135deg, #0dcaf0, #0d6efd);
+    }
+    
+    .icon-bolt {
+        background: linear-gradient(135deg, #ffc107, #fd7e14);
+    }
+    
+    .icon-network {
+        background: linear-gradient(135deg, #6610f2, #6f42c1);
+    }
+    
+    .feature-card h3 {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    
+    .feature-card p {
+        color: #adb5bd;
+        font-size: 0.95rem;
+    }
+    
+    .feature-card .btn {
+        margin-top: 1rem;
+    }
+    
+    /* Status panel */
+    .status-panel {
+        background-color: #212529;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .status-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .status-item:last-child {
+        border-bottom: none;
+    }
+    
+    .status-name {
+        display: flex;
+        align-items: center;
+    }
+    
+    .status-icon {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 1rem;
+    }
+    
+    .status-icon.active {
+        background-color: #20c997;
+        box-shadow: 0 0 10px rgba(32, 201, 151, 0.5);
+    }
+    
+    .status-icon.warning {
+        background-color: #ffc107;
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+    }
+    
+    .status-icon.inactive {
+        background-color: #6c757d;
+    }
+    
+    .status-value {
+        font-size: 0.875rem;
+        color: #adb5bd;
+    }
+    
+    /* Recent activity */
+    .activity-item {
+        padding: 1rem;
+        background-color: #212529;
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+        border-left: 3px solid #6610f2;
+    }
+    
+    .activity-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .activity-title {
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+    
+    .activity-time {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    
+    .activity-content {
+        font-size: 0.875rem;
+        color: #adb5bd;
+    }
+    
+    .activity-platform {
+        display: inline-block;
+        font-size: 0.75rem;
+        color: white;
+        background-color: #0d6efd;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        margin-right: 0.5rem;
+    }
+    
+    .activity-platform.gpt {
+        background-color: #10a37f;
+    }
+    
+    .activity-platform.gemini {
+        background-color: #4285f4;
+    }
+    
+    .activity-platform.claude {
+        background-color: #a33a33;
+    }
+    
+    .activity-platform.deepseek {
+        background-color: #6f42c1;
+    }
+    
+    .activity-platform.grok {
+        background-color: #e03c31;
+    }
+    
+    /* Training progress */
+    .progress-thin {
+        height: 6px;
+    }
+    
+    /* Quick actions */
+    .quick-action {
+        display: block;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        background-color: #212529;
+        color: white;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .quick-action:hover {
+        background-color: #2c3034;
+        color: white;
+        border-color: rgba(13, 110, 253, 0.2);
+    }
+    
+    .quick-action i {
+        margin-right: 0.5rem;
+    }
+    
+    /* Notifications */
+    .notification-badge {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: #dc3545;
+        color: white;
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Enhancement badge */
+    .badge-new {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #0d6efd;
+        color: white;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-lg-8 mx-auto text-center mb-5">
-        <h1 class="display-4 mb-4">Synapse Chamber</h1>
-        <p class="lead">
-            The advanced training environment for AI agents, enabling autonomous browser-based interactions
-            with various AI platforms to enhance agent capabilities.
-        </p>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-robot text-primary"></i> AI Interaction</h5>
-            </div>
-            <div class="card-body">
-                <p>
-                    Connect with multiple leading AI platforms like ChatGPT, Gemini, DeepSeek, 
-                    Claude, and Grok to train your AI agent through automated interactions.
-                </p>
-                <ul class="list-group list-group-flush mb-3">
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Multi-platform support
-                    </li>
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Automated browser interactions
-                    </li>
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> CAPTCHA solving capabilities
-                    </li>
-                </ul>
-            </div>
-            <div class="card-footer">
-                <a href="{{ url_for('ai_interaction') }}" class="btn btn-primary">Start Interaction</a>
+<div class="container py-4">
+    <!-- Hero Section -->
+    <div class="hero text-center py-5 px-3">
+        <div class="container">
+            <h1>Synapse Chamber</h1>
+            <p class="lead mb-4">Advanced development environment for AI agent training</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/training" class="btn btn-primary">
+                    <i class="fas fa-play me-2"></i>Start Training
+                </a>
+                <a href="/platforms" class="btn btn-outline-light">
+                    <i class="fas fa-robot me-2"></i>Manage AI Platforms
+                </a>
             </div>
         </div>
     </div>
     
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-brain text-info"></i> Memory System</h5>
-            </div>
-            <div class="card-body">
-                <p>
-                    Advanced memory system for storing, retrieving, and analyzing AI conversations
-                    to improve agent performance through learned patterns and historical context.
-                </p>
-                <ul class="list-group list-group-flush mb-3">
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Conversation history
-                    </li>
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Pattern recognition
-                    </li>
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Training threads
-                    </li>
-                </ul>
-            </div>
-            <div class="card-footer">
-                <a href="{{ url_for('logs') }}" class="btn btn-info">View Logs</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-brain text-primary"></i> Neural Interface</h5>
-            </div>
-            <div class="card-body">
-                <p>
-                    Experience the neural network visualization of the Synapse Chamber's cognitive architecture with
-                    our 3D interactive brain model showing real-time neural activity.
-                </p>
-                <ul class="list-group list-group-flush mb-3">
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> 3D WebGL visualization
-                    </li>
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Real-time neural activity
-                    </li>
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Component mapping
-                    </li>
-                </ul>
-            </div>
-            <div class="card-footer">
-                <a href="{{ url_for('brain_visualization_view') }}" class="btn btn-primary">Open Neural Interface</a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-terminal text-info"></i> Development Console</h5>
-            </div>
-            <div class="card-body">
-                <p>
-                    Access advanced development tools including code editor, terminal, and debugging interfaces
-                    for direct control over Synapse Chamber's core systems.
-                </p>
-                <ul class="list-group list-group-flush mb-3">
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Code editor with syntax highlighting
-                    </li>
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Terminal access
-                    </li>
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Git integration
-                    </li>
-                </ul>
-            </div>
-            <div class="card-footer">
-                <a href="{{ url_for('code_editor_view') }}" class="btn btn-info">Open Editor</a>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-project-diagram text-warning"></i> AI Platforms</h5>
-            </div>
-            <div class="card-body">
-                <p>
-                    Manage connections to various AI platforms including GPT, Claude, Gemini, DeepSeek, and Grok
-                    with the platform management interface.
-                </p>
-                <ul class="list-group list-group-flush mb-3">
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Connection status monitoring
-                    </li>
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> API usage analytics
-                    </li>
-                    <li class="list-group-item bg-transparent">
-                        <i class="fas fa-check-circle text-success"></i> Custom prompt templates
-                    </li>
-                </ul>
-            </div>
-            <div class="card-footer">
-                <a href="{{ url_for('platforms_view') }}" class="btn btn-warning">Manage Platforms</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row mt-3">
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-history"></i> Recent Activity</h5>
-            </div>
-            <div class="card-body">
-                <div id="conversation-history" class="list-group">
-                    <div class="text-center py-3">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Cutting-Edge Enhancements -->
+            <h3 class="mb-4">Cutting-Edge Enhancements</h3>
+            <div class="row g-4 mb-5">
+                <!-- Terminal -->
+                <div class="col-md-6">
+                    <div class="feature-card position-relative">
+                        <div class="badge-new">NEW</div>
+                        <div class="feature-icon icon-terminal">
+                            <i class="fas fa-terminal"></i>
                         </div>
+                        <h3>Interactive Terminal</h3>
+                        <p>Access a powerful command-line interface with syntax highlighting, command history, and intelligent autocompletion.</p>
+                        <a href="/terminal" class="btn btn-outline-primary">Open Terminal</a>
+                    </div>
+                </div>
+                
+                <!-- Code Editor -->
+                <div class="col-md-6">
+                    <div class="feature-card position-relative">
+                        <div class="badge-new">NEW</div>
+                        <div class="feature-icon icon-code">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <h3>Monaco Code Editor</h3>
+                        <p>Full-featured code editor with Monaco integration for syntax highlighting, intelligent suggestions, and project management.</p>
+                        <a href="/editor" class="btn btn-outline-primary">Open Editor</a>
+                    </div>
+                </div>
+                
+                <!-- Memory Explorer -->
+                <div class="col-md-6">
+                    <div class="feature-card position-relative">
+                        <div class="badge-new">NEW</div>
+                        <div class="feature-icon icon-brain">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h3>Memory Explorer</h3>
+                        <p>Visualize and explore the semantic memory system. View connections, search across knowledge, and identify patterns.</p>
+                        <a href="/memory" class="btn btn-outline-primary">Explore Memory</a>
+                    </div>
+                </div>
+                
+                <!-- AI Platforms -->
+                <div class="col-md-6">
+                    <div class="feature-card position-relative">
+                        <div class="badge-new">NEW</div>
+                        <div class="feature-icon icon-robot">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <h3>AI Platforms Manager</h3>
+                        <p>Centralized interface for managing connections to multiple AI platforms, templates, and automation settings.</p>
+                        <a href="/platforms" class="btn btn-outline-primary">Manage Platforms</a>
+                    </div>
+                </div>
+                
+                <!-- Command Palette -->
+                <div class="col-md-6">
+                    <div class="feature-card position-relative">
+                        <div class="badge-new">NEW</div>
+                        <div class="feature-icon icon-bolt">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <h3>Command Palette</h3>
+                        <p>Press Ctrl+K to access the powerful command palette for quick navigation and actions throughout the system.</p>
+                        <button class="btn btn-outline-primary" onclick="window.synapseCommandPalette?.toggle()">
+                            <i class="fas fa-bolt me-2"></i>Open Command Palette
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Neural Visualization -->
+                <div class="col-md-6">
+                    <div class="feature-card position-relative">
+                        <div class="badge-new">COMING SOON</div>
+                        <div class="feature-icon icon-network">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <h3>Neural Visualization</h3>
+                        <p>Immersive 3D visualization of the neural network architecture powering the Synapse Chamber.</p>
+                        <button class="btn btn-outline-secondary" disabled>
+                            <i class="fas fa-clock me-2"></i>Coming Soon
+                        </button>
                     </div>
                 </div>
             </div>
-            <div class="card-footer text-center">
-                <div class="btn-group">
-                    <a href="{{ url_for('ai_interaction') }}" class="btn btn-outline-primary">Start New Interaction</a>
-                    <a href="{{ url_for('memory_explorer_view') }}" class="btn btn-outline-info">Memory Explorer</a>
-                    <button type="button" class="btn btn-outline-success" id="commandPaletteBtn">
-                        <i class="fas fa-keyboard"></i> Command Palette <span class="badge bg-secondary">Ctrl+Shift+P</span>
-                    </button>
+            
+            <!-- Recent Training Activity -->
+            <h3 class="mb-3">Recent Training Activity</h3>
+            <div class="mb-5">
+                <div class="activity-item">
+                    <div class="activity-header">
+                        <div class="activity-title">Entity Extraction Training</div>
+                        <div class="activity-time">10 minutes ago</div>
+                    </div>
+                    <div class="activity-content mb-2">
+                        <span class="activity-platform gpt">GPT</span>
+                        <span class="activity-platform claude">CLAUDE</span>
+                        <span class="activity-platform gemini">GEMINI</span>
+                    </div>
+                    <div class="activity-content">
+                        Training session on regex-based entity extraction patterns completed with 3 AI platforms. Collected insights on optimal pattern construction and performance differences.
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-header">
+                        <div class="activity-title">Algorithm Efficiency Analysis</div>
+                        <div class="activity-time">2 hours ago</div>
+                    </div>
+                    <div class="activity-content mb-2">
+                        <span class="activity-platform deepseek">DEEPSEEK</span>
+                        <span class="activity-platform grok">GROK</span>
+                    </div>
+                    <div class="activity-content">
+                        Comparative analysis of sorting algorithm implementations. DeepSeek provided detailed complexity analysis while Grok offered creative optimization approaches.
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <div class="activity-header">
+                        <div class="activity-title">API Design Patterns</div>
+                        <div class="activity-time">Yesterday</div>
+                    </div>
+                    <div class="activity-content mb-2">
+                        <span class="activity-platform gpt">GPT</span>
+                        <span class="activity-platform claude">CLAUDE</span>
+                    </div>
+                    <div class="activity-content">
+                        Exploration of RESTful API design patterns and best practices. Session focused on authentication strategies, rate limiting, and versioning approaches.
+                    </div>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="/training" class="btn btn-sm btn-outline-secondary">View All Activities</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- System Status -->
+            <div class="status-panel mb-4">
+                <h5 class="mb-3">System Status</h5>
+                
+                <div class="status-item">
+                    <div class="status-name">
+                        <div class="status-icon active"></div>
+                        <div>Browser Automation</div>
+                    </div>
+                    <div class="status-value">Operational</div>
+                </div>
+                
+                <div class="status-item">
+                    <div class="status-name">
+                        <div class="status-icon active"></div>
+                        <div>Memory System</div>
+                    </div>
+                    <div class="status-value">127 entries</div>
+                </div>
+                
+                <div class="status-item">
+                    <div class="status-name">
+                        <div class="status-icon warning"></div>
+                        <div>CAPTCHA Solver</div>
+                    </div>
+                    <div class="status-value">Limited</div>
+                </div>
+                
+                <div class="status-item">
+                    <div class="status-name">
+                        <div class="status-icon active"></div>
+                        <div>Training Engine</div>
+                    </div>
+                    <div class="status-value">Idle</div>
+                </div>
+                
+                <div class="status-item">
+                    <div class="status-name">
+                        <div class="status-icon active"></div>
+                        <div>Database</div>
+                    </div>
+                    <div class="status-value">Connected</div>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="/dashboard" class="btn btn-sm btn-outline-info">View Detailed Status</a>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="mb-4">
+                <h5 class="mb-3">Quick Actions</h5>
+                
+                <a href="/training" class="quick-action">
+                    <i class="fas fa-play"></i> Start New Training Session
+                </a>
+                
+                <a href="/ai_interaction" class="quick-action">
+                    <i class="fas fa-comments"></i> AI Interaction Console
+                </a>
+                
+                <a href="/editor" class="quick-action">
+                    <i class="fas fa-code"></i> Open Code Editor
+                </a>
+                
+                <a href="/memory" class="quick-action">
+                    <i class="fas fa-brain"></i> Explore Memory System
+                </a>
+                
+                <a href="/settings" class="quick-action">
+                    <i class="fas fa-cog"></i> Customize Settings
+                </a>
+            </div>
+            
+            <!-- Current Training -->
+            <div class="card bg-dark mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Auto-Training Progress</h5>
+                    <span class="badge bg-primary">Self-Training</span>
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-3">Topic: Advanced Prompt Engineering</h6>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>GPT</span>
+                            <span>78%</span>
+                        </div>
+                        <div class="progress progress-thin">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 78%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Claude</span>
+                            <span>45%</span>
+                        </div>
+                        <div class="progress progress-thin">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 45%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Gemini</span>
+                            <span>62%</span>
+                        </div>
+                        <div class="progress progress-thin">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 62%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <button class="btn btn-sm btn-outline-primary">View Details</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include Command Palette JS -->
+<script src="{{ url_for('static', filename='js/command_palette.js') }}"></script>
 {% endblock %}
