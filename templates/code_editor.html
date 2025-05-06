@@ -1,0 +1,1010 @@
+{% extends 'layout.html' %}
+
+{% block title %}Synapse Chamber - Code Editor{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/editor/editor.main.min.css">
+<style>
+    #editor-container {
+        width: 100%;
+        height: 600px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    
+    .file-tree {
+        height: 600px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+    }
+    
+    .editor-toolbar {
+        background-color: #1e1e1e;
+        padding: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .file-tree-item {
+        padding: 4px 8px;
+        cursor: pointer;
+        border-radius: 3px;
+        margin-bottom: 2px;
+    }
+    
+    .file-tree-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .file-tree-item.active {
+        background-color: rgba(13, 110, 253, 0.2);
+    }
+    
+    .file-icon {
+        margin-right: 5px;
+        width: 16px;
+        text-align: center;
+    }
+    
+    .terminal {
+        background-color: #1e1e1e;
+        color: #f0f0f0;
+        padding: 10px;
+        font-family: 'Courier New', monospace;
+        height: 200px;
+        overflow-y: auto;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .terminal-prompt {
+        color: #0dcaf0;
+    }
+    
+    .terminal-output {
+        margin-bottom: 8px;
+    }
+    
+    .terminal-error {
+        color: #dc3545;
+    }
+    
+    .terminal-success {
+        color: #198754;
+    }
+    
+    .split-view {
+        display: flex;
+        gap: 15px;
+    }
+    
+    .split-view-vertical {
+        flex-direction: column;
+    }
+    
+    .split-view-horizontal {
+        flex-direction: row;
+    }
+    
+    .split-pane {
+        flex: 1;
+    }
+    
+    .split-pane-sm {
+        flex: 0 0 200px;
+    }
+    
+    .editor-status-bar {
+        background-color: #1e1e1e;
+        color: #adb5bd;
+        padding: 4px 10px;
+        font-size: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .editor-status-language {
+        margin-right: 15px;
+    }
+    
+    .editor-status-position {
+        margin-right: 15px;
+    }
+    
+    @media (max-width: 768px) {
+        .split-view-horizontal {
+            flex-direction: column;
+        }
+        
+        .split-pane-sm {
+            flex: 1;
+            margin-bottom: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3">Code Editor</h1>
+        <div class="btn-group">
+            <button id="saveBtn" class="btn btn-primary">
+                <i class="fas fa-save"></i> Save
+            </button>
+            <button id="runBtn" class="btn btn-success">
+                <i class="fas fa-play"></i> Run
+            </button>
+            <button id="gitBtn" class="btn btn-info">
+                <i class="fas fa-code-branch"></i> Git
+            </button>
+            <button id="terminalBtn" class="btn btn-secondary">
+                <i class="fas fa-terminal"></i> Terminal
+            </button>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="split-view split-view-horizontal">
+                <div class="split-pane-sm">
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Files</h5>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary" id="newFileBtn">
+                                    <i class="fas fa-file-plus"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" id="newFolderBtn">
+                                    <i class="fas fa-folder-plus"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" id="refreshBtn">
+                                    <i class="fas fa-sync"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="file-tree" id="fileTree">
+                                <!-- File tree will be dynamically populated -->
+                                <div class="p-3 text-center">
+                                    <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+                                    <div class="small text-muted mt-2">Loading files...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="split-pane">
+                    <div class="card">
+                        <div class="card-header editor-toolbar d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <div class="dropdown me-2">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="fileActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        File
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="fileActionsDropdown">
+                                        <li><a class="dropdown-item" href="#" id="newFileAction">New File</a></li>
+                                        <li><a class="dropdown-item" href="#" id="saveFileAction">Save</a></li>
+                                        <li><a class="dropdown-item" href="#" id="saveAsAction">Save As...</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="#" id="closeFileAction">Close</a></li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="dropdown me-2">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="editActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Edit
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="editActionsDropdown">
+                                        <li><a class="dropdown-item" href="#" id="undoAction">Undo</a></li>
+                                        <li><a class="dropdown-item" href="#" id="redoAction">Redo</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="#" id="findAction">Find</a></li>
+                                        <li><a class="dropdown-item" href="#" id="replaceAction">Replace</a></li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="dropdown me-2">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="viewActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        View
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="viewActionsDropdown">
+                                        <li><a class="dropdown-item" href="#" id="toggleTerminalAction">Toggle Terminal</a></li>
+                                        <li><a class="dropdown-item" href="#" id="toggleFileTreeAction">Toggle File Tree</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="#" id="fontSizeIncreaseAction">Increase Font Size</a></li>
+                                        <li><a class="dropdown-item" href="#" id="fontSizeDecreaseAction">Decrease Font Size</a></li>
+                                    </ul>
+                                </div>
+                                
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="aiActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        AI Assist
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="aiActionsDropdown">
+                                        <li><a class="dropdown-item" href="#" id="explainCodeAction">Explain Code</a></li>
+                                        <li><a class="dropdown-item" href="#" id="optimizeCodeAction">Optimize Code</a></li>
+                                        <li><a class="dropdown-item" href="#" id="generateDocAction">Generate Documentation</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="#" id="completeCodeAction">Complete Code</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div id="currentFileName" class="text-muted">No file selected</div>
+                        </div>
+                        
+                        <!-- Editor container -->
+                        <div id="editor-container"></div>
+                        
+                        <div class="editor-status-bar">
+                            <div class="d-flex">
+                                <div class="editor-status-language" id="editorLanguage">plaintext</div>
+                                <div class="editor-status-position" id="cursorPosition">Ln 1, Col 1</div>
+                            </div>
+                            <div>
+                                <span id="editorStatus">Ready</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Terminal -->
+                    <div class="card mt-3" id="terminalContainer" style="display: none;">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Terminal</h5>
+                            <button class="btn btn-sm btn-close btn-close-white" id="closeTerminalBtn"></button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="terminal" id="terminal">
+                                <div class="terminal-output">Welcome to Synapse Chamber Terminal</div>
+                                <div class="terminal-output">Type 'help' for a list of available commands</div>
+                                <div class="terminal-prompt">
+                                    <span>synapse@chamber:~$</span>
+                                    <input type="text" id="terminalInput" class="bg-transparent border-0 outline-0 text-light w-75" autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Command Palette -->
+<div class="command-palette" id="commandPalette">
+    <input type="text" id="commandPaletteInput" class="command-input" placeholder="Type a command or search...">
+    <div class="command-results" id="commandResults"></div>
+</div>
+
+<!-- Modals -->
+<!-- Save As Modal -->
+<div class="modal fade" id="saveAsModal" tabindex="-1" aria-labelledby="saveAsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="saveAsModalLabel">Save As</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="saveAsFilename" class="form-label">File name</label>
+                    <input type="text" class="form-control" id="saveAsFilename">
+                </div>
+                <div class="mb-3">
+                    <label for="saveAsPath" class="form-label">Path</label>
+                    <input type="text" class="form-control" id="saveAsPath" placeholder="/" value="/">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveAsConfirmBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New File Modal -->
+<div class="modal fade" id="newFileModal" tabindex="-1" aria-labelledby="newFileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newFileModalLabel">New File</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="newFilename" class="form-label">File name</label>
+                    <input type="text" class="form-control" id="newFilename">
+                </div>
+                <div class="mb-3">
+                    <label for="newFilePath" class="form-label">Path</label>
+                    <input type="text" class="form-control" id="newFilePath" placeholder="/" value="/">
+                </div>
+                <div class="mb-3">
+                    <label for="newFileType" class="form-label">File type</label>
+                    <select class="form-select" id="newFileType">
+                        <option value="py">Python (.py)</option>
+                        <option value="js">JavaScript (.js)</option>
+                        <option value="html">HTML (.html)</option>
+                        <option value="css">CSS (.css)</option>
+                        <option value="json">JSON (.json)</option>
+                        <option value="md">Markdown (.md)</option>
+                        <option value="txt">Text (.txt)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="newFileConfirmBtn">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Monaco Editor -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+
+<script>
+    // Initialize Monaco Editor
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+    require(['vs/editor/editor.main'], function() {
+        // Initialize editor with dark theme
+        monaco.editor.defineTheme('synapseDark', {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [],
+            colors: {
+                'editor.background': '#1e1e1e',
+                'editor.foreground': '#d4d4d4',
+                'editor.lineHighlightBackground': '#2a2d2e',
+                'editorLineNumber.foreground': '#858585',
+                'editor.selectionBackground': '#264f78',
+                'editor.inactiveSelectionBackground': '#3a3d41'
+            }
+        });
+        
+        monaco.editor.setTheme('synapseDark');
+        
+        // Create editor instance
+        const editor = monaco.editor.create(document.getElementById('editor-container'), {
+            value: '# Welcome to Synapse Chamber Code Editor\n\n# Start coding here...',
+            language: 'python',
+            automaticLayout: true,
+            minimap: {
+                enabled: true
+            },
+            scrollBeyondLastLine: false,
+            renderLineHighlight: 'all',
+            fontSize: 14,
+            lineNumbers: 'on',
+            renderIndentGuides: true,
+            matchBrackets: 'always',
+            wordWrap: 'on'
+        });
+        
+        // Get file path from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const filePath = urlParams.get('file');
+        
+        if (filePath) {
+            loadFile(filePath);
+        }
+        
+        // Update cursor position display
+        editor.onDidChangeCursorPosition(function(e) {
+            document.getElementById('cursorPosition').textContent = `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
+        });
+        
+        // Resize editor on window resize
+        window.addEventListener('resize', function() {
+            editor.layout();
+        });
+        
+        // Toggle terminal visibility
+        document.getElementById('terminalBtn').addEventListener('click', function() {
+            const terminal = document.getElementById('terminalContainer');
+            terminal.style.display = terminal.style.display === 'none' ? 'block' : 'none';
+            
+            // Focus terminal input if visible
+            if (terminal.style.display === 'block') {
+                document.getElementById('terminalInput').focus();
+            } else {
+                editor.focus();
+            }
+        });
+        
+        // Close terminal button
+        document.getElementById('closeTerminalBtn').addEventListener('click', function() {
+            document.getElementById('terminalContainer').style.display = 'none';
+            editor.focus();
+        });
+        
+        // Terminal input handling
+        document.getElementById('terminalInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                
+                const command = this.value.trim();
+                this.value = '';
+                
+                // Add command to terminal output
+                const terminal = document.getElementById('terminal');
+                const commandOutput = document.createElement('div');
+                commandOutput.className = 'terminal-output';
+                commandOutput.innerHTML = `<span class="terminal-prompt">synapse@chamber:~$</span> ${command}`;
+                
+                // Insert before the prompt
+                terminal.insertBefore(commandOutput, document.querySelector('.terminal-prompt').parentNode);
+                
+                // Process command
+                processTerminalCommand(command);
+                
+                // Scroll to bottom
+                terminal.scrollTop = terminal.scrollHeight;
+            }
+        });
+        
+        // Process terminal commands
+        function processTerminalCommand(command) {
+            const terminal = document.getElementById('terminal');
+            let output = '';
+            
+            // Basic command processing
+            switch (command.toLowerCase()) {
+                case 'help':
+                    output = `Available commands:
+                        <br>- help: Show this help message
+                        <br>- clear: Clear the terminal
+                        <br>- ls: List files in current directory
+                        <br>- cd: Change directory
+                        <br>- cat: View file contents
+                        <br>- python: Run Python code
+                        <br>- run: Run the current file`;
+                    break;
+                    
+                case 'clear':
+                    // Clear all terminal outputs (except the prompt)
+                    const outputs = terminal.querySelectorAll('.terminal-output');
+                    outputs.forEach(output => output.remove());
+                    return;
+                    
+                case 'ls':
+                    // This would normally fetch from API
+                    output = 'main.py<br>app.py<br>models.py<br>static/<br>templates/';
+                    break;
+                    
+                case 'run':
+                    // This would normally send to API
+                    output = '<span class="terminal-success">Running current file...</span><br>Process completed successfully';
+                    break;
+                    
+                default:
+                    if (command.trim() === '') return;
+                    output = `<span class="terminal-error">Command not found: ${command}</span><br>Type 'help' for available commands`;
+            }
+            
+            // Add output to terminal
+            const outputElement = document.createElement('div');
+            outputElement.className = 'terminal-output';
+            outputElement.innerHTML = output;
+            
+            // Insert before the prompt
+            terminal.insertBefore(outputElement, document.querySelector('.terminal-prompt').parentNode);
+        }
+        
+        // Load a file into the editor
+        function loadFile(path) {
+            // Update status
+            document.getElementById('editorStatus').textContent = 'Loading...';
+            
+            // Fetch file content from API
+            fetch(`/api/files/open?path=${encodeURIComponent(path)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load file');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Set editor content
+                        editor.setValue(data.content);
+                        
+                        // Set language based on file extension
+                        const language = data.language || 'plaintext';
+                        monaco.editor.setModelLanguage(editor.getModel(), language);
+                        
+                        // Update UI
+                        document.getElementById('currentFileName').textContent = path;
+                        document.getElementById('editorLanguage').textContent = language;
+                        document.getElementById('editorStatus').textContent = 'Ready';
+                        
+                        // Focus editor
+                        editor.focus();
+                        
+                        // Mark file as active in file tree
+                        const fileElements = document.querySelectorAll('.file-tree-item');
+                        fileElements.forEach(el => {
+                            el.classList.remove('active');
+                            if (el.dataset.path === path) {
+                                el.classList.add('active');
+                            }
+                        });
+                    } else {
+                        document.getElementById('editorStatus').textContent = 'Error loading file';
+                        console.error('Error loading file:', data.message);
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('editorStatus').textContent = 'Error loading file';
+                    console.error('Error loading file:', error);
+                });
+        }
+        
+        // Load file tree
+        function loadFileTree() {
+            const fileTree = document.getElementById('fileTree');
+            fileTree.innerHTML = '<div class="p-3 text-center"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div><div class="small text-muted mt-2">Loading files...</div></div>';
+            
+            // Fetch file list from API
+            fetch('/api/files/list')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to load files');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        renderFileTree(data.files, fileTree);
+                    } else {
+                        fileTree.innerHTML = '<div class="p-3 text-center text-danger">Error loading files</div>';
+                        console.error('Error loading files:', data.message);
+                    }
+                })
+                .catch(error => {
+                    fileTree.innerHTML = '<div class="p-3 text-center text-danger">Error loading files</div>';
+                    console.error('Error loading files:', error);
+                    
+                    // In development mode, render a dummy file tree
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        renderDummyFileTree(fileTree);
+                    }
+                });
+        }
+        
+        // Render file tree
+        function renderFileTree(files, container) {
+            container.innerHTML = '';
+            
+            // Sort files (folders first, then alphabetical)
+            files.sort((a, b) => {
+                if (a.type === 'dir' && b.type !== 'dir') return -1;
+                if (a.type !== 'dir' && b.type === 'dir') return 1;
+                return a.name.localeCompare(b.name);
+            });
+            
+            // Create elements for each file
+            files.forEach(file => {
+                const item = document.createElement('div');
+                item.className = 'file-tree-item';
+                item.dataset.path = file.path;
+                item.dataset.type = file.type;
+                
+                // Add appropriate icon
+                if (file.type === 'dir') {
+                    item.innerHTML = `<i class="fas fa-folder file-icon text-warning"></i> ${file.name}`;
+                    
+                    // Add click handler to toggle folder
+                    item.addEventListener('click', function() {
+                        // Toggle folder open/closed
+                        // This would normally fetch children from API
+                    });
+                } else {
+                    // Choose icon based on file extension
+                    const extension = file.name.split('.').pop().toLowerCase();
+                    let iconClass = 'fa-file';
+                    let iconColor = 'text-muted';
+                    
+                    if (['py'].includes(extension)) {
+                        iconClass = 'fa-file-code';
+                        iconColor = 'text-primary';
+                    } else if (['js'].includes(extension)) {
+                        iconClass = 'fa-file-code';
+                        iconColor = 'text-warning';
+                    } else if (['html'].includes(extension)) {
+                        iconClass = 'fa-file-code';
+                        iconColor = 'text-danger';
+                    } else if (['css'].includes(extension)) {
+                        iconClass = 'fa-file-code';
+                        iconColor = 'text-info';
+                    } else if (['json'].includes(extension)) {
+                        iconClass = 'fa-file-code';
+                        iconColor = 'text-success';
+                    } else if (['md', 'txt'].includes(extension)) {
+                        iconClass = 'fa-file-alt';
+                    } else if (['jpg', 'png', 'gif'].includes(extension)) {
+                        iconClass = 'fa-file-image';
+                    }
+                    
+                    item.innerHTML = `<i class="fas ${iconClass} file-icon ${iconColor}"></i> ${file.name}`;
+                    
+                    // Add click handler to open file
+                    item.addEventListener('click', function() {
+                        loadFile(this.dataset.path);
+                    });
+                    
+                    // Mark active if this is the current file
+                    if (file.path === document.getElementById('currentFileName').textContent) {
+                        item.classList.add('active');
+                    }
+                }
+                
+                container.appendChild(item);
+                
+                // If directory, render children
+                if (file.type === 'dir' && file.children) {
+                    const childContainer = document.createElement('div');
+                    childContainer.style.paddingLeft = '15px';
+                    renderFileTree(file.children, childContainer);
+                    container.appendChild(childContainer);
+                }
+            });
+        }
+        
+        // Render a dummy file tree for development
+        function renderDummyFileTree(container) {
+            const dummyFiles = [
+                { name: 'app.py', path: 'app.py', type: 'file' },
+                { name: 'main.py', path: 'main.py', type: 'file' },
+                { name: 'models.py', path: 'models.py', type: 'file' },
+                { name: 'static', path: 'static', type: 'dir', children: [
+                    { name: 'main.css', path: 'static/main.css', type: 'file' },
+                    { name: 'main.js', path: 'static/main.js', type: 'file' }
+                ]},
+                { name: 'templates', path: 'templates', type: 'dir', children: [
+                    { name: 'index.html', path: 'templates/index.html', type: 'file' },
+                    { name: 'layout.html', path: 'templates/layout.html', type: 'file' }
+                ]}
+            ];
+            
+            renderFileTree(dummyFiles, container);
+        }
+        
+        // Initialize file tree
+        loadFileTree();
+        
+        // Save button click handler
+        document.getElementById('saveBtn').addEventListener('click', function() {
+            const path = document.getElementById('currentFileName').textContent;
+            
+            if (path === 'No file selected') {
+                // Show save as modal
+                const saveAsModal = new bootstrap.Modal(document.getElementById('saveAsModal'));
+                saveAsModal.show();
+                return;
+            }
+            
+            // Get content
+            const content = editor.getValue();
+            
+            // Save file
+            saveFile(path, content);
+        });
+        
+        // Save file
+        function saveFile(path, content) {
+            document.getElementById('editorStatus').textContent = 'Saving...';
+            
+            // Send to API
+            fetch('/api/files/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    path: path,
+                    content: content
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to save file');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('editorStatus').textContent = 'Saved';
+                    
+                    // Reset after a while
+                    setTimeout(() => {
+                        document.getElementById('editorStatus').textContent = 'Ready';
+                    }, 2000);
+                } else {
+                    document.getElementById('editorStatus').textContent = 'Error saving file';
+                    console.error('Error saving file:', data.message);
+                }
+            })
+            .catch(error => {
+                document.getElementById('editorStatus').textContent = 'Error saving file';
+                console.error('Error saving file:', error);
+            });
+        }
+        
+        // Run button click handler
+        document.getElementById('runBtn').addEventListener('click', function() {
+            const path = document.getElementById('currentFileName').textContent;
+            
+            if (path === 'No file selected') {
+                alert('Please select a file to run');
+                return;
+            }
+            
+            // Save first, then run
+            const content = editor.getValue();
+            saveFile(path, content);
+            
+            // Show terminal
+            document.getElementById('terminalContainer').style.display = 'block';
+            
+            // Add command to terminal
+            const terminal = document.getElementById('terminal');
+            const commandOutput = document.createElement('div');
+            commandOutput.className = 'terminal-output';
+            commandOutput.innerHTML = `<span class="terminal-prompt">synapse@chamber:~$</span> run ${path}`;
+            
+            // Insert before the prompt
+            terminal.insertBefore(commandOutput, document.querySelector('.terminal-prompt').parentNode);
+            
+            // Add output
+            const outputElement = document.createElement('div');
+            outputElement.className = 'terminal-output';
+            outputElement.innerHTML = `<span class="terminal-success">Running ${path}...</span><br>Process completed successfully`;
+            
+            // Insert before the prompt
+            terminal.insertBefore(outputElement, document.querySelector('.terminal-prompt').parentNode);
+            
+            // Scroll to bottom
+            terminal.scrollTop = terminal.scrollHeight;
+        });
+        
+        // Save As confirmation
+        document.getElementById('saveAsConfirmBtn').addEventListener('click', function() {
+            const filename = document.getElementById('saveAsFilename').value;
+            const path = document.getElementById('saveAsPath').value;
+            
+            if (!filename) {
+                alert('Please enter a filename');
+                return;
+            }
+            
+            // Construct full path
+            let fullPath = path;
+            if (fullPath !== '/' && !fullPath.endsWith('/')) {
+                fullPath += '/';
+            }
+            fullPath += filename;
+            
+            // Get content
+            const content = editor.getValue();
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('saveAsModal')).hide();
+            
+            // Save file
+            saveFile(fullPath, content);
+            
+            // Update UI
+            document.getElementById('currentFileName').textContent = fullPath;
+            
+            // Refresh file tree
+            loadFileTree();
+        });
+        
+        // New File confirmation
+        document.getElementById('newFileConfirmBtn').addEventListener('click', function() {
+            const filename = document.getElementById('newFilename').value;
+            const path = document.getElementById('newFilePath').value;
+            const type = document.getElementById('newFileType').value;
+            
+            if (!filename) {
+                alert('Please enter a filename');
+                return;
+            }
+            
+            // Construct full path
+            let fullPath = path;
+            if (fullPath !== '/' && !fullPath.endsWith('/')) {
+                fullPath += '/';
+            }
+            
+            // Add extension if not present
+            if (!filename.includes('.')) {
+                fullPath += filename + '.' + type;
+            } else {
+                fullPath += filename;
+            }
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('newFileModal')).hide();
+            
+            // Create file on server
+            fetch('/api/files/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    path: fullPath,
+                    content: ''
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to create file');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // Refresh file tree
+                    loadFileTree();
+                    
+                    // Open the new file
+                    loadFile(fullPath);
+                } else {
+                    console.error('Error creating file:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error creating file:', error);
+            });
+        });
+        
+        // Initialize command palette
+        // This is just a basic mock-up for now
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+Shift+P or Cmd+Shift+P to toggle command palette
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
+                e.preventDefault();
+                toggleCommandPalette();
+            }
+            
+            // Escape to close command palette
+            if (e.key === 'Escape' && document.getElementById('commandPalette').classList.contains('visible')) {
+                closeCommandPalette();
+            }
+        });
+        
+        // Toggle command palette
+        function toggleCommandPalette() {
+            const palette = document.getElementById('commandPalette');
+            if (palette.classList.contains('visible')) {
+                closeCommandPalette();
+            } else {
+                openCommandPalette();
+            }
+        }
+        
+        // Open command palette
+        function openCommandPalette() {
+            const palette = document.getElementById('commandPalette');
+            palette.classList.add('visible');
+            document.getElementById('commandPaletteInput').focus();
+            
+            // Populate with default commands
+            populateCommandResults([
+                { id: 'open', title: 'Open File', description: 'Open a file from the workspace', icon: 'fa-file-import' },
+                { id: 'save', title: 'Save File', description: 'Save the current file', icon: 'fa-save' },
+                { id: 'run', title: 'Run File', description: 'Run the current file', icon: 'fa-play' },
+                { id: 'terminal', title: 'Toggle Terminal', description: 'Show or hide the terminal', icon: 'fa-terminal' },
+                { id: 'find', title: 'Find in File', description: 'Search within the current file', icon: 'fa-search' },
+                { id: 'replace', title: 'Replace in File', description: 'Find and replace text in current file', icon: 'fa-exchange-alt' },
+                { id: 'format', title: 'Format Document', description: 'Format the current document', icon: 'fa-indent' }
+            ]);
+        }
+        
+        // Close command palette
+        function closeCommandPalette() {
+            const palette = document.getElementById('commandPalette');
+            palette.classList.remove('visible');
+            document.getElementById('commandPaletteInput').value = '';
+        }
+        
+        // Populate command results
+        function populateCommandResults(commands) {
+            const resultsContainer = document.getElementById('commandResults');
+            resultsContainer.innerHTML = '';
+            
+            commands.forEach(command => {
+                const item = document.createElement('div');
+                item.className = 'command-result';
+                item.dataset.id = command.id;
+                
+                item.innerHTML = `
+                    <div class="command-icon"><i class="fas ${command.icon}"></i></div>
+                    <div class="command-details">
+                        <div class="command-title">${command.title}</div>
+                        <div class="command-description">${command.description}</div>
+                    </div>
+                `;
+                
+                // Add click handler
+                item.addEventListener('click', function() {
+                    executeCommand(command.id);
+                });
+                
+                resultsContainer.appendChild(item);
+            });
+        }
+        
+        // Execute a command
+        function executeCommand(id) {
+            closeCommandPalette();
+            
+            // Handle different commands
+            switch (id) {
+                case 'open':
+                    // Show file browser
+                    break;
+                case 'save':
+                    document.getElementById('saveBtn').click();
+                    break;
+                case 'run':
+                    document.getElementById('runBtn').click();
+                    break;
+                case 'terminal':
+                    document.getElementById('terminalBtn').click();
+                    break;
+                case 'find':
+                    editor.getAction('actions.find').run();
+                    break;
+                case 'replace':
+                    editor.getAction('editor.action.startFindReplaceAction').run();
+                    break;
+                case 'format':
+                    editor.getAction('editor.action.formatDocument').run();
+                    break;
+            }
+        }
+        
+        // Command palette input handler
+        document.getElementById('commandPaletteInput').addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            
+            // Filter commands based on query
+            const commands = [
+                { id: 'open', title: 'Open File', description: 'Open a file from the workspace', icon: 'fa-file-import' },
+                { id: 'save', title: 'Save File', description: 'Save the current file', icon: 'fa-save' },
+                { id: 'run', title: 'Run File', description: 'Run the current file', icon: 'fa-play' },
+                { id: 'terminal', title: 'Toggle Terminal', description: 'Show or hide the terminal', icon: 'fa-terminal' },
+                { id: 'find', title: 'Find in File', description: 'Search within the current file', icon: 'fa-search' },
+                { id: 'replace', title: 'Replace in File', description: 'Find and replace text in current file', icon: 'fa-exchange-alt' },
+                { id: 'format', title: 'Format Document', description: 'Format the current document', icon: 'fa-indent' }
+            ];
+            
+            if (!query) {
+                populateCommandResults(commands);
+                return;
+            }
+            
+            const filtered = commands.filter(cmd => 
+                cmd.title.toLowerCase().includes(query) || 
+                cmd.description.toLowerCase().includes(query)
+            );
+            
+            populateCommandResults(filtered);
+        });
+        
+        // Connect command palette button
+        document.getElementById('commandPaletteBtn').addEventListener('click', toggleCommandPalette);
+    });
+</script>
+{% endblock %}
