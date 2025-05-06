@@ -1,0 +1,406 @@
+{% extends "layout.html" %}
+
+{% block title %}Synapse Chamber - Brain Visualization{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/brain_visualization.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3">Synapse Chamber Neural Interface</h1>
+                <div class="btn-group">
+                    <button id="fullscreenBtn" class="btn btn-outline-primary">
+                        <i class="fas fa-expand"></i> Fullscreen
+                    </button>
+                    <button id="resetViewBtn" class="btn btn-outline-secondary">
+                        <i class="fas fa-sync"></i> Reset View
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Brain Visualization</h5>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autoRotateToggle" checked>
+                        <label class="form-check-label" for="autoRotateToggle">Auto-rotate</label>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="brainVisualizationContainer" class="brain-container">
+                        <!-- Brain visualization will be rendered here -->
+                        
+                        <!-- Health bar overlay -->
+                        <div class="brain-health-container" id="brainHealthBar">
+                            <h5>Synapse Chamber Health</h5>
+                            <div class="health-bar-label">
+                                <span>Overall Health</span>
+                                <span id="overallHealthValue">100%</span>
+                            </div>
+                            <div class="health-bar mb-3">
+                                <div class="health-bar-inner overall-health-bar bg-success" style="width: 100%"></div>
+                            </div>
+                            
+                            <div class="health-bar-label">
+                                <span>Memory System</span>
+                                <span id="memoryHealthValue">100%</span>
+                            </div>
+                            <div class="health-bar">
+                                <div class="health-bar-inner memory-health-bar" style="width: 100%"></div>
+                            </div>
+                            
+                            <div class="health-bar-label">
+                                <span>Training Engine</span>
+                                <span id="trainingHealthValue">100%</span>
+                            </div>
+                            <div class="health-bar">
+                                <div class="health-bar-inner training-health-bar" style="width: 100%"></div>
+                            </div>
+                            
+                            <div class="health-bar-label">
+                                <span>API Connections</span>
+                                <span id="apiHealthValue">100%</span>
+                            </div>
+                            <div class="health-bar">
+                                <div class="health-bar-inner api-health-bar" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Info panel -->
+                        <div class="brain-info-panel hidden" id="brainInfoPanel">
+                            <h5>Component Information</h5>
+                            <div class="brain-info-content" id="brainInfoContent">
+                                Select a brain region to see details
+                            </div>
+                        </div>
+                        
+                        <!-- Controls -->
+                        <div class="brain-controls">
+                            <button class="brain-control-btn" id="toggleLabelsBtn">
+                                <i class="fas fa-tags"></i> Labels
+                            </button>
+                            <button class="brain-control-btn" id="activateRandomBtn">
+                                <i class="fas fa-bolt"></i> Pulse
+                            </button>
+                        </div>
+                        
+                        <!-- Loading indicator -->
+                        <div class="brain-loading" id="brainLoading">
+                            <div class="brain-loading-spinner"></div>
+                            <div class="brain-loading-text">Initializing neural interface...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">System Components</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group" id="componentsList">
+                        <!-- System components will be dynamically added here -->
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">Brainstem</div>
+                                <small class="text-muted">main.py</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary activate-component-btn" data-component="main.py">
+                                <i class="fas fa-bolt"></i>
+                            </button>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">Hippocampus</div>
+                                <small class="text-muted">memory_system.py</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary activate-component-btn" data-component="memory_system.py">
+                                <i class="fas fa-bolt"></i>
+                            </button>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">Frontal Lobe</div>
+                                <small class="text-muted">self_training_system.py</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary activate-component-btn" data-component="self_training_system.py">
+                                <i class="fas fa-bolt"></i>
+                            </button>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">Temporal Lobe</div>
+                                <small class="text-muted">ai_controller.py</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary activate-component-btn" data-component="ai_controller.py">
+                                <i class="fas fa-bolt"></i>
+                            </button>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">Cerebellum</div>
+                                <small class="text-muted">agent_system.py</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary activate-component-btn" data-component="agent_system.py">
+                                <i class="fas fa-bolt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">System Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="activity-log" id="activityLog">
+                        <!-- Activity logs will be added here -->
+                        <div class="activity-item">
+                            <span class="activity-timestamp">17:42:15</span>
+                            <span class="activity-message">Memory system consolidation started</span>
+                        </div>
+                        <div class="activity-item">
+                            <span class="activity-timestamp">17:40:32</span>
+                            <span class="activity-message">AI Controller initialized 3 platforms</span>
+                        </div>
+                        <div class="activity-item">
+                            <span class="activity-timestamp">17:38:07</span>
+                            <span class="activity-message">Agent system loaded project plan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Three.js library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- OrbitControls for Three.js -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+<!-- Socket.IO for real-time updates -->
+<script src="https://cdn.jsdelivr.net/npm/socket.io-client@4.4.1/dist/socket.io.min.js"></script>
+
+<!-- Brain visualization script -->
+<script src="{{ url_for('static', filename='js/brain_visualization.js') }}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize brain visualization
+        let brainViz = null;
+        
+        // Wait for Three.js to load
+        setTimeout(() => {
+            // Hide loading indicator
+            document.getElementById('brainLoading').style.display = 'none';
+            
+            // Create brain visualization
+            brainViz = new BrainVisualization('brainVisualizationContainer', {
+                showLabels: true,
+                enableInteraction: true,
+                healthBarId: 'brainHealthBar',
+                rotationSpeed: 0.0005
+            });
+            
+            // Update UI elements with brain regions
+            updateComponentList(brainViz);
+            
+            // Override region click handler
+            brainViz.onRegionClick = function(regionData) {
+                showComponentInfo(regionData);
+            };
+            
+            // Add to command palette
+            if (window.commandPalette) {
+                window.commandPalette.updateContext({
+                    brainVisualization: brainViz
+                });
+            }
+            
+            // Event listeners for UI
+            setupEventListeners(brainViz);
+            
+            // Start simulation
+            brainViz.startSimulation();
+        }, 1000);
+        
+        function updateComponentList(brainViz) {
+            // This would normally be done dynamically based on the brain mapping
+            // but for simplicity, we're using the static HTML
+            
+            // Add click handlers to the activation buttons
+            document.querySelectorAll('.activate-component-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const component = this.dataset.component;
+                    if (brainViz && component) {
+                        brainViz.triggerComponent(component, 1.0);
+                        
+                        // Add to activity log
+                        addActivityLog(`Component ${component} activated`);
+                    }
+                });
+            });
+        }
+        
+        function setupEventListeners(brainViz) {
+            // Toggle fullscreen
+            document.getElementById('fullscreenBtn').addEventListener('click', function() {
+                const container = document.getElementById('brainVisualizationContainer');
+                
+                if (container.classList.contains('fullscreen')) {
+                    container.classList.remove('fullscreen');
+                    this.innerHTML = '<i class="fas fa-expand"></i> Fullscreen';
+                } else {
+                    container.classList.add('fullscreen');
+                    this.innerHTML = '<i class="fas fa-compress"></i> Exit Fullscreen';
+                }
+                
+                // Resize the visualization
+                setTimeout(() => brainViz.resize(), 300);
+            });
+            
+            // Reset view
+            document.getElementById('resetViewBtn').addEventListener('click', function() {
+                if (brainViz && brainViz.controls) {
+                    brainViz.camera.position.set(0, 0, 300);
+                    brainViz.camera.lookAt(0, 0, 0);
+                    brainViz.controls.reset();
+                }
+            });
+            
+            // Toggle auto-rotation
+            document.getElementById('autoRotateToggle').addEventListener('change', function() {
+                if (brainViz && brainViz.controls) {
+                    brainViz.controls.autoRotate = this.checked;
+                }
+            });
+            
+            // Toggle labels
+            document.getElementById('toggleLabelsBtn').addEventListener('click', function() {
+                if (brainViz) {
+                    brainViz.options.showLabels = !brainViz.options.showLabels;
+                    
+                    // Update button text
+                    this.innerHTML = brainViz.options.showLabels ? 
+                        '<i class="fas fa-tags"></i> Labels' : 
+                        '<i class="fas fa-tags"></i> No Labels';
+                    
+                    // Hide all labels if disabled
+                    if (!brainViz.options.showLabels) {
+                        Object.values(brainViz.brainRegions).forEach(region => {
+                            if (region.label) {
+                                region.label.style.display = 'none';
+                            }
+                        });
+                    }
+                }
+            });
+            
+            // Random activation
+            document.getElementById('activateRandomBtn').addEventListener('click', function() {
+                if (brainViz) {
+                    // Get all components
+                    const components = Object.values(brainViz.systemMapping).map(m => m.component);
+                    
+                    // Activate 3 random components in sequence
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => {
+                            const randomComponent = components[Math.floor(Math.random() * components.length)];
+                            brainViz.triggerComponent(randomComponent, 0.8 + Math.random() * 0.2);
+                            
+                            // Add to activity log
+                            addActivityLog(`Component ${randomComponent} activated`);
+                        }, i * 1000);
+                    }
+                }
+            });
+        }
+        
+        function showComponentInfo(regionData) {
+            const infoPanel = document.getElementById('brainInfoPanel');
+            const infoContent = document.getElementById('brainInfoContent');
+            
+            // Update content
+            infoContent.innerHTML = `
+                <div class="brain-component-name">${regionData.name}</div>
+                <div class="brain-component-file">${regionData.component}</div>
+                <div class="mt-2">
+                    <small>This component represents the ${regionData.name} of the Synapse Chamber, handling core functionality in the ${regionData.component} file.</small>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-info view-code-btn">
+                        <i class="fas fa-code"></i> View Code
+                    </button>
+                </div>
+            `;
+            
+            // Add click handler to view code button
+            infoContent.querySelector('.view-code-btn').addEventListener('click', function() {
+                // Open the file in the editor
+                window.location.href = `/editor?file=${regionData.component}`;
+            });
+            
+            // Show panel
+            infoPanel.classList.remove('hidden');
+            
+            // Add to activity log
+            addActivityLog(`Viewing ${regionData.name} (${regionData.component})`);
+        }
+        
+        function addActivityLog(message) {
+            const logContainer = document.getElementById('activityLog');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logItem = document.createElement('div');
+            logItem.className = 'activity-item';
+            logItem.innerHTML = `
+                <span class="activity-timestamp">${timestamp}</span>
+                <span class="activity-message">${message}</span>
+            `;
+            
+            // Add to beginning of log
+            logContainer.insertBefore(logItem, logContainer.firstChild);
+            
+            // Limit log items
+            const items = logContainer.querySelectorAll('.activity-item');
+            if (items.length > 10) {
+                logContainer.removeChild(items[items.length - 1]);
+            }
+        }
+    });
+</script>
+
+<style>
+    .activity-log {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .activity-item {
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .activity-timestamp {
+        background-color: rgba(13, 110, 253, 0.1);
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+        margin-right: 8px;
+        font-size: 0.8rem;
+    }
+</style>
+{% endblock %}
