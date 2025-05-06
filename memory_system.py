@@ -31,21 +31,53 @@ class MemorySystem:
         """
         try:
             if self.settings.get("use_database", True):
-                new_conversation = AIConversation(
-                    platform=platform,
-                    subject=subject,
-                    goal=goal
-                )
-                db.session.add(new_conversation)
-                db.session.commit()
-                
-                conversation_id = new_conversation.id
-                self.logger.info(f"Created new conversation in database, ID: {conversation_id}")
-                
-                # If auto-create threads is enabled and subject is provided,
-                # check if a thread with this subject exists or create a new one
-                if self.settings.get("auto_create_threads", True) and subject:
-                    self._associate_with_thread(conversation_id, subject, goal)
+                try:
+                    # Try to use the database with app context
+                    from app import app
+                    
+                    with app.app_context():
+                        new_conversation = AIConversation(
+                            platform=platform,
+                            subject=subject,
+                            goal=goal
+                        )
+                        db.session.add(new_conversation)
+                        db.session.commit()
+                        
+                        conversation_id = new_conversation.id
+                        self.logger.info(f"Created new conversation in database, ID: {conversation_id}")
+                        
+                        # If auto-create threads is enabled and subject is provided,
+                        # check if a thread with this subject exists or create a new one
+                        if self.settings.get("auto_create_threads", True) and subject:
+                            self._associate_with_thread(conversation_id, subject, goal)
+                    
+                except Exception as context_error:
+                    # Handle app context errors by falling back to JSON storage
+                    self.logger.warning(f"Flask app context error in create_conversation: {str(context_error)}. Using JSON fallback.")
+                    
+                    # Create conversation in JSON
+                    # Generate a unique ID
+                    conversation_id = int(time.time())
+                    file_path = f"{self.data_dir}/conversation_{conversation_id}.json"
+                    
+                    # Create conversation data structure
+                    conversation_data = {
+                        "id": conversation_id,
+                        "platform": platform,
+                        "subject": subject or "Untitled Conversation",
+                        "goal": goal or "Generated due to database access error",
+                        "created_at": datetime.now().isoformat(),
+                        "messages": []
+                    }
+                    
+                    # Save to JSON
+                    os.makedirs(self.data_dir, exist_ok=True)
+                    with open(file_path, 'w') as f:
+                        json.dump(conversation_data, f, indent=2)
+                    
+                    self.logger.info(f"Created new conversation in JSON (fallback), ID: {conversation_id}")
+                    return conversation_id
             else:
                 # Generate a unique ID for JSON storage
                 conversation_id = int(time.time())
@@ -80,22 +112,71 @@ class MemorySystem:
         """
         try:
             if self.settings.get("use_database", True):
-                new_message = Message(
-                    conversation_id=conversation_id,
-                    is_user=is_user,
-                    content=content,
-                    screenshot_path=screenshot_path
-                )
-                db.session.add(new_message)
-                db.session.commit()
-                
-                self.logger.info(f"Added message to conversation {conversation_id} in database")
-                
-                # Optionally backup to JSON
-                if self.settings.get("backup_to_json", True):
-                    self._backup_conversation(conversation_id)
-                
-                return new_message.id
+                try:
+                    # Try to use the database with app context
+                    from app import app
+                    
+                    with app.app_context():
+                        new_message = Message(
+                            conversation_id=conversation_id,
+                            is_user=is_user,
+                            content=content,
+                            screenshot_path=screenshot_path
+                        )
+                        db.session.add(new_message)
+                        db.session.commit()
+                        
+                        self.logger.info(f"Added message to conversation {conversation_id} in database")
+                        
+                        # Optionally backup to JSON
+                        if self.settings.get("backup_to_json", True):
+                            self._backup_conversation(conversation_id)
+                        
+                        return new_message.id
+                except Exception as context_error:
+                    # Handle app context errors by falling back to JSON storage
+                    self.logger.warning(f"Flask app context error: {str(context_error)}. Using JSON fallback.")
+                    # Use the JSON storage code that's already in the else branch
+                    message_id = int(time.time())
+                    # Create a conversation JSON file if it doesn't exist
+                    file_path = f"{self.data_dir}/conversation_{conversation_id}.json"
+                    if not os.path.exists(file_path):
+                        conversation_data = {
+                            "id": conversation_id,
+                            "platform": "unknown",
+                            "subject": "Fallback conversation",
+                            "goal": "Created due to database access error",
+                            "created_at": datetime.now().isoformat(),
+                            "messages": []
+                        }
+                    else:
+                        try:
+                            with open(file_path, 'r') as f:
+                                conversation_data = json.load(f)
+                        except:
+                            conversation_data = {
+                                "id": conversation_id,
+                                "messages": []
+                            }
+                    
+                    # Add the message
+                    message_data = {
+                        "id": message_id,
+                        "is_user": is_user,
+                        "content": content,
+                        "screenshot_path": screenshot_path,
+                        "timestamp": datetime.now().isoformat()
+                    }
+                    
+                    conversation_data["messages"].append(message_data)
+                    
+                    # Save to JSON
+                    os.makedirs(self.data_dir, exist_ok=True)
+                    with open(file_path, 'w') as f:
+                        json.dump(conversation_data, f, indent=2)
+                    
+                    self.logger.info(f"Added message to conversation {conversation_id} in JSON (fallback)")
+                    return message_id
             else:
                 # Load the conversation from JSON
                 file_path = f"{self.data_dir}/conversation_{conversation_id}.json"

@@ -1,0 +1,23 @@
+{
+  "id": 4,
+  "platform": "claude",
+  "subject": "Fallback interaction with claude",
+  "goal": "Generated response due to browser automation failure",
+  "created_at": "2025-05-06T21:59:38.249987",
+  "messages": [
+    {
+      "id": 27,
+      "is_user": true,
+      "content": "What's the best approach to implement sentiment analysis that can handle sarcasm and context?",
+      "screenshot_path": null,
+      "timestamp": "2025-05-06T21:59:39.542849"
+    },
+    {
+      "id": 28,
+      "is_user": false,
+      "content": "I'm sorry, I couldn't connect to Anthropic's Claude at the moment due to technical issues. Please try again later or consider trying a different AI platform.\n\nYour prompt was: 'What's the best approach to implement sentiment analysis that can handle sarcasm and context?'",
+      "screenshot_path": null,
+      "timestamp": "2025-05-06T21:59:40.183847"
+    }
+  ]
+}
