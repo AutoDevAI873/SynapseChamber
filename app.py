@@ -866,3 +866,30 @@ def provide_agent_feedback(feedback_id):
     except Exception as e:
         logger.error(f"Error providing agent feedback: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+# Additional Page Routes for Enhanced User Interface
+@app.route('/brain')
+def brain_visualization_view():
+    """3D Brain visualization of the Synapse Chamber"""
+    return render_template('brain_visualization.html')
+
+@app.route('/editor')
+def code_editor_view():
+    """Code editor view"""
+    file_path = request.args.get('file', '')
+    return render_template('code_editor.html', file_path=file_path)
+
+@app.route('/terminal')
+def terminal_view():
+    """Terminal view"""
+    return render_template('terminal.html')
+
+@app.route('/memory')
+def memory_explorer_view():
+    """Memory explorer view"""
+    return render_template('memory_explorer.html')
+
+@app.route('/platforms')
+def platforms_view():
+    """AI platforms management view"""
+    return render_template('platforms.html')
