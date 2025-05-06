@@ -3,344 +3,776 @@
 {% block title %}Synapse Chamber - Code Editor{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/editor/editor.main.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
 <style>
-    #editor-container {
-        width: 100%;
-        height: 600px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 6px;
+    /* Editor Layout */
+    .editor-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 56px - 2rem);
+        background-color: #1e1e1e;
+        border-radius: 0.5rem;
         overflow: hidden;
     }
     
-    .file-tree {
-        height: 600px;
+    .editor-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background-color: #252526;
+        border-bottom: 1px solid #3e3e42;
+    }
+    
+    .editor-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .editor-title-text {
+        font-weight: 500;
+        color: #e0e0e0;
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .editor-modified-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #3794ff;
+        display: none;
+    }
+    
+    .editor-modified .editor-modified-indicator {
+        display: block;
+    }
+    
+    .editor-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .editor-main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+    
+    .editor-sidebar {
+        width: 250px;
+        border-right: 1px solid #3e3e42;
+        display: flex;
+        flex-direction: column;
+        background-color: #252526;
+    }
+    
+    .editor-sidebar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #3e3e42;
+    }
+    
+    .editor-sidebar-title {
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: #e0e0e0;
+    }
+    
+    .editor-sidebar-content {
+        flex: 1;
         overflow-y: auto;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 6px;
     }
     
-    .editor-toolbar {
-        background-color: #1e1e1e;
-        padding: 8px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    .editor-content {
+        flex: 1;
+        overflow: hidden;
     }
     
-    .file-tree-item {
-        padding: 4px 8px;
-        cursor: pointer;
+    #monaco-editor-container {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .editor-footer {
+        padding: 0.25rem 1rem;
+        background-color: #007acc;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+    }
+    
+    .editor-info {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    .editor-status {
+        display: flex;
+        gap: 1rem;
+    }
+    
+    /* File Explorer */
+    .file-explorer {
+        height: 100%;
+        overflow-y: auto;
+        padding: 0.5rem 0;
+    }
+    
+    .file-explorer::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .file-explorer::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .file-explorer::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.15);
         border-radius: 3px;
-        margin-bottom: 2px;
     }
     
-    .file-tree-item:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+    .file-explorer::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.25);
     }
     
-    .file-tree-item.active {
-        background-color: rgba(13, 110, 253, 0.2);
+    .folder-item {
+        padding: 0.25rem 0;
     }
     
-    .file-icon {
-        margin-right: 5px;
+    .folder-header {
+        display: flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .folder-header:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .folder-icon {
+        margin-right: 0.5rem;
         width: 16px;
         text-align: center;
     }
     
-    .terminal {
-        background-color: #1e1e1e;
-        color: #f0f0f0;
-        padding: 10px;
-        font-family: 'Courier New', monospace;
-        height: 200px;
-        overflow-y: auto;
-        border-radius: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .terminal-prompt {
-        color: #0dcaf0;
-    }
-    
-    .terminal-output {
-        margin-bottom: 8px;
-    }
-    
-    .terminal-error {
-        color: #dc3545;
-    }
-    
-    .terminal-success {
-        color: #198754;
-    }
-    
-    .split-view {
-        display: flex;
-        gap: 15px;
-    }
-    
-    .split-view-vertical {
-        flex-direction: column;
-    }
-    
-    .split-view-horizontal {
-        flex-direction: row;
-    }
-    
-    .split-pane {
+    .folder-name {
         flex: 1;
+        font-size: 0.875rem;
+        color: #e0e0e0;
     }
     
-    .split-pane-sm {
-        flex: 0 0 200px;
+    .folder-content {
+        padding-left: 1.5rem;
     }
     
-    .editor-status-bar {
+    .folder-collapsed .folder-content {
+        display: none;
+    }
+    
+    .folder-collapsed .folder-icon .fa-folder-open {
+        display: none;
+    }
+    
+    .folder-collapsed .folder-icon .fa-folder {
+        display: inline;
+    }
+    
+    .folder-expanded .folder-icon .fa-folder-open {
+        display: inline;
+    }
+    
+    .folder-expanded .folder-icon .fa-folder {
+        display: none;
+    }
+    
+    .file-item {
+        display: flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .file-item:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .file-item.active {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .file-icon {
+        margin-right: 0.5rem;
+        width: 16px;
+        text-align: center;
+        color: #75beff;
+    }
+    
+    .file-icon.python {
+        color: #4b8bbe;
+    }
+    
+    .file-icon.javascript {
+        color: #f0db4f;
+    }
+    
+    .file-icon.html {
+        color: #e34c26;
+    }
+    
+    .file-icon.css {
+        color: #264de4;
+    }
+    
+    .file-icon.json {
+        color: #f0c674;
+    }
+    
+    .file-icon.markdown {
+        color: #b294bb;
+    }
+    
+    .file-name {
+        font-size: 0.875rem;
+        color: #e0e0e0;
+    }
+    
+    /* Tabs */
+    .editor-tabs {
+        display: flex;
+        background-color: #2d2d2d;
+        border-bottom: 1px solid #3e3e42;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .editor-tabs::-webkit-scrollbar {
+        height: 5px;
+    }
+    
+    .editor-tabs::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .editor-tabs::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-radius: 3px;
+    }
+    
+    .editor-tabs::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.25);
+    }
+    
+    .editor-tab {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-right: 1px solid #3e3e42;
+        cursor: pointer;
+        background-color: #2d2d2d;
+        color: #cccccc;
+        position: relative;
+        max-width: 200px;
+    }
+    
+    .editor-tab.active {
         background-color: #1e1e1e;
-        color: #adb5bd;
-        padding: 4px 10px;
-        font-size: 12px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+    }
+    
+    .editor-tab.active::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #007acc;
+    }
+    
+    .editor-tab-icon {
+        margin-right: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .editor-tab-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .editor-tab-close {
+        margin-left: 0.5rem;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 3px;
+    }
+    
+    .editor-tab-close:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .editor-tab-modified {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #3794ff;
+        margin-left: 0.5rem;
+        display: none;
+    }
+    
+    .editor-tab.modified .editor-tab-modified {
+        display: block;
+    }
+    
+    .editor-tab.modified .editor-tab-close {
+        display: none;
+    }
+    
+    .editor-tab.modified:hover .editor-tab-modified {
+        display: none;
+    }
+    
+    .editor-tab.modified:hover .editor-tab-close {
+        display: flex;
+    }
+    
+    /* Terminal */
+    .editor-terminal {
+        height: 200px;
+        background-color: #1e1e1e;
+        border-top: 1px solid #3e3e42;
+        overflow: hidden;
+        display: none;
+    }
+    
+    .editor-terminal.open {
+        display: block;
+    }
+    
+    .terminal-header {
         display: flex;
         justify-content: space-between;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        background-color: #252526;
+        border-bottom: 1px solid #3e3e42;
     }
     
-    .editor-status-language {
-        margin-right: 15px;
+    .terminal-tabs {
+        display: flex;
     }
     
-    .editor-status-position {
-        margin-right: 15px;
+    .terminal-tab {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+        color: #cccccc;
+        border-right: 1px solid #3e3e42;
     }
     
-    @media (max-width: 768px) {
-        .split-view-horizontal {
-            flex-direction: column;
-        }
-        
-        .split-pane-sm {
-            flex: 1;
-            margin-bottom: 15px;
-        }
+    .terminal-tab.active {
+        background-color: #1e1e1e;
+        color: #ffffff;
+    }
+    
+    .terminal-actions {
+        display: flex;
+    }
+    
+    .terminal-content {
+        height: calc(100% - 31px);
+        overflow: auto;
+        padding: 0.5rem;
+        font-family: 'Courier New', monospace;
+        font-size: 0.875rem;
+        color: #e0e0e0;
+    }
+    
+    /* Context Menu */
+    .context-menu {
+        position: absolute;
+        background-color: #252526;
+        border: 1px solid #3e3e42;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        padding: 0.25rem 0;
+        min-width: 180px;
+        z-index: 1000;
+    }
+    
+    .context-menu-item {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+    
+    .context-menu-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .context-menu-icon {
+        width: 16px;
+        margin-right: 0.5rem;
+        text-align: center;
+    }
+    
+    .context-menu-separator {
+        height: 1px;
+        background-color: #3e3e42;
+        margin: 0.25rem 0;
+    }
+    
+    /* Monaco Editor Overrides */
+    .monaco-editor .monaco-editor-background,
+    .monaco-editor .margin-view-overlays {
+        background-color: #1e1e1e !important;
+    }
+    
+    /* Dialog */
+    .editor-dialog {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+    
+    .editor-dialog-content {
+        background-color: #252526;
+        border-radius: 6px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        width: 400px;
+        max-width: 90%;
+    }
+    
+    .editor-dialog-header {
+        padding: 1rem;
+        border-bottom: 1px solid #3e3e42;
+    }
+    
+    .editor-dialog-title {
+        font-size: 1.125rem;
+        font-weight: 500;
+        color: #e0e0e0;
+        margin: 0;
+    }
+    
+    .editor-dialog-body {
+        padding: 1rem;
+    }
+    
+    .editor-dialog-footer {
+        padding: 1rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        border-top: 1px solid #3e3e42;
+    }
+    
+    /* Custom Scrollbar for all elements */
+    *::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    *::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    
+    *::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-radius: 3px;
+    }
+    
+    *::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.25);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3">Code Editor</h1>
-        <div class="btn-group">
-            <button id="saveBtn" class="btn btn-primary">
-                <i class="fas fa-save"></i> Save
+<div class="editor-container">
+    <div class="editor-header">
+        <div class="editor-title">
+            <div class="editor-modified-indicator"></div>
+            <div class="editor-title-text">Synapse Chamber Code Editor</div>
+        </div>
+        <div class="editor-actions">
+            <button class="btn btn-sm btn-outline-secondary" id="newFileBtn" title="New File">
+                <i class="fas fa-file"></i>
             </button>
-            <button id="runBtn" class="btn btn-success">
-                <i class="fas fa-play"></i> Run
+            <button class="btn btn-sm btn-outline-secondary" id="saveFileBtn" title="Save File">
+                <i class="fas fa-save"></i>
             </button>
-            <button id="gitBtn" class="btn btn-info">
-                <i class="fas fa-code-branch"></i> Git
+            <button class="btn btn-sm btn-outline-secondary" id="runFileBtn" title="Run File">
+                <i class="fas fa-play"></i>
             </button>
-            <button id="terminalBtn" class="btn btn-secondary">
-                <i class="fas fa-terminal"></i> Terminal
-            </button>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="editorMenuBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="editorMenuBtn">
+                    <li><a class="dropdown-item" href="#" id="toggleTerminalBtn"><i class="fas fa-terminal me-2"></i> Toggle Terminal</a></li>
+                    <li><a class="dropdown-item" href="#" id="toggleSidebarBtn"><i class="fas fa-columns me-2"></i> Toggle Sidebar</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="formatCodeBtn"><i class="fas fa-indent me-2"></i> Format Code</a></li>
+                    <li><a class="dropdown-item" href="#" id="findReplaceBtn"><i class="fas fa-search me-2"></i> Find/Replace</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="editorSettingsBtn"><i class="fas fa-cog me-2"></i> Editor Settings</a></li>
+                </ul>
+            </div>
         </div>
     </div>
     
-    <div class="row">
-        <div class="col-12">
-            <div class="split-view split-view-horizontal">
-                <div class="split-pane-sm">
-                    <div class="card mb-3">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Files</h5>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-secondary" id="newFileBtn">
-                                    <i class="fas fa-file-plus"></i>
-                                </button>
-                                <button class="btn btn-outline-secondary" id="newFolderBtn">
-                                    <i class="fas fa-folder-plus"></i>
-                                </button>
-                                <button class="btn btn-outline-secondary" id="refreshBtn">
-                                    <i class="fas fa-sync"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="file-tree" id="fileTree">
-                                <!-- File tree will be dynamically populated -->
-                                <div class="p-3 text-center">
-                                    <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
-                                    <div class="small text-muted mt-2">Loading files...</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    <div class="editor-main">
+        <div class="editor-sidebar">
+            <div class="editor-sidebar-header">
+                <div class="editor-sidebar-title">EXPLORER</div>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" id="newFolderBtn" title="New Folder">
+                        <i class="fas fa-folder-plus"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" id="refreshExplorerBtn" title="Refresh">
+                        <i class="fas fa-sync"></i>
+                    </button>
                 </div>
-                
-                <div class="split-pane">
-                    <div class="card">
-                        <div class="card-header editor-toolbar d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center">
-                                <div class="dropdown me-2">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="fileActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                        File
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="fileActionsDropdown">
-                                        <li><a class="dropdown-item" href="#" id="newFileAction">New File</a></li>
-                                        <li><a class="dropdown-item" href="#" id="saveFileAction">Save</a></li>
-                                        <li><a class="dropdown-item" href="#" id="saveAsAction">Save As...</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item" href="#" id="closeFileAction">Close</a></li>
-                                    </ul>
+            </div>
+            <div class="editor-sidebar-content">
+                <div class="file-explorer" id="fileExplorer">
+                    <!-- File explorer content will be populated dynamically -->
+                    <div class="folder-item folder-expanded">
+                        <div class="folder-header">
+                            <div class="folder-icon">
+                                <i class="fas fa-folder-open"></i>
+                                <i class="fas fa-folder" style="display: none;"></i>
+                            </div>
+                            <div class="folder-name">synapse_chamber</div>
+                        </div>
+                        <div class="folder-content">
+                            <div class="folder-item folder-expanded">
+                                <div class="folder-header">
+                                    <div class="folder-icon">
+                                        <i class="fas fa-folder-open"></i>
+                                        <i class="fas fa-folder" style="display: none;"></i>
+                                    </div>
+                                    <div class="folder-name">templates</div>
                                 </div>
-                                
-                                <div class="dropdown me-2">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="editActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                        Edit
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="editActionsDropdown">
-                                        <li><a class="dropdown-item" href="#" id="undoAction">Undo</a></li>
-                                        <li><a class="dropdown-item" href="#" id="redoAction">Redo</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item" href="#" id="findAction">Find</a></li>
-                                        <li><a class="dropdown-item" href="#" id="replaceAction">Replace</a></li>
-                                    </ul>
-                                </div>
-                                
-                                <div class="dropdown me-2">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="viewActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                        View
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="viewActionsDropdown">
-                                        <li><a class="dropdown-item" href="#" id="toggleTerminalAction">Toggle Terminal</a></li>
-                                        <li><a class="dropdown-item" href="#" id="toggleFileTreeAction">Toggle File Tree</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item" href="#" id="fontSizeIncreaseAction">Increase Font Size</a></li>
-                                        <li><a class="dropdown-item" href="#" id="fontSizeDecreaseAction">Decrease Font Size</a></li>
-                                    </ul>
-                                </div>
-                                
-                                <div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="aiActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                        AI Assist
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="aiActionsDropdown">
-                                        <li><a class="dropdown-item" href="#" id="explainCodeAction">Explain Code</a></li>
-                                        <li><a class="dropdown-item" href="#" id="optimizeCodeAction">Optimize Code</a></li>
-                                        <li><a class="dropdown-item" href="#" id="generateDocAction">Generate Documentation</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item" href="#" id="completeCodeAction">Complete Code</a></li>
-                                    </ul>
+                                <div class="folder-content">
+                                    <div class="file-item">
+                                        <div class="file-icon html">
+                                            <i class="fab fa-html5"></i>
+                                        </div>
+                                        <div class="file-name">layout.html</div>
+                                    </div>
+                                    <div class="file-item">
+                                        <div class="file-icon html">
+                                            <i class="fab fa-html5"></i>
+                                        </div>
+                                        <div class="file-name">terminal.html</div>
+                                    </div>
+                                    <div class="file-item">
+                                        <div class="file-icon html">
+                                            <i class="fab fa-html5"></i>
+                                        </div>
+                                        <div class="file-name">memory_explorer.html</div>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <div id="currentFileName" class="text-muted">No file selected</div>
-                        </div>
-                        
-                        <!-- Editor container -->
-                        <div id="editor-container"></div>
-                        
-                        <div class="editor-status-bar">
-                            <div class="d-flex">
-                                <div class="editor-status-language" id="editorLanguage">plaintext</div>
-                                <div class="editor-status-position" id="cursorPosition">Ln 1, Col 1</div>
-                            </div>
-                            <div>
-                                <span id="editorStatus">Ready</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Terminal -->
-                    <div class="card mt-3" id="terminalContainer" style="display: none;">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Terminal</h5>
-                            <button class="btn btn-sm btn-close btn-close-white" id="closeTerminalBtn"></button>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="terminal" id="terminal">
-                                <div class="terminal-output">Welcome to Synapse Chamber Terminal</div>
-                                <div class="terminal-output">Type 'help' for a list of available commands</div>
-                                <div class="terminal-prompt">
-                                    <span>synapse@chamber:~$</span>
-                                    <input type="text" id="terminalInput" class="bg-transparent border-0 outline-0 text-light w-75" autocomplete="off">
+                            <div class="folder-item folder-expanded">
+                                <div class="folder-header">
+                                    <div class="folder-icon">
+                                        <i class="fas fa-folder-open"></i>
+                                        <i class="fas fa-folder" style="display: none;"></i>
+                                    </div>
+                                    <div class="folder-name">static</div>
                                 </div>
+                                <div class="folder-content">
+                                    <div class="folder-item folder-collapsed">
+                                        <div class="folder-header">
+                                            <div class="folder-icon">
+                                                <i class="fas fa-folder-open" style="display: none;"></i>
+                                                <i class="fas fa-folder"></i>
+                                            </div>
+                                            <div class="folder-name">css</div>
+                                        </div>
+                                        <div class="folder-content">
+                                            <!-- content hidden due to collapsed state -->
+                                        </div>
+                                    </div>
+                                    <div class="folder-item folder-collapsed">
+                                        <div class="folder-header">
+                                            <div class="folder-icon">
+                                                <i class="fas fa-folder-open" style="display: none;"></i>
+                                                <i class="fas fa-folder"></i>
+                                            </div>
+                                            <div class="folder-name">js</div>
+                                        </div>
+                                        <div class="folder-content">
+                                            <!-- content hidden due to collapsed state -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="file-item active">
+                                <div class="file-icon python">
+                                    <i class="fab fa-python"></i>
+                                </div>
+                                <div class="file-name">main.py</div>
+                            </div>
+                            <div class="file-item">
+                                <div class="file-icon python">
+                                    <i class="fab fa-python"></i>
+                                </div>
+                                <div class="file-name">advanced_memory_system.py</div>
+                            </div>
+                            <div class="file-item">
+                                <div class="file-icon python">
+                                    <i class="fab fa-python"></i>
+                                </div>
+                                <div class="file-name">agent_system.py</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        
+        <div class="editor-content">
+            <div class="editor-tabs">
+                <div class="editor-tab active">
+                    <div class="editor-tab-icon">
+                        <i class="fab fa-python"></i>
+                    </div>
+                    <div class="editor-tab-name">main.py</div>
+                    <div class="editor-tab-modified"></div>
+                    <div class="editor-tab-close">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+                <div class="editor-tab">
+                    <div class="editor-tab-icon">
+                        <i class="fab fa-python"></i>
+                    </div>
+                    <div class="editor-tab-name">advanced_memory_system.py</div>
+                    <div class="editor-tab-modified"></div>
+                    <div class="editor-tab-close">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+            </div>
+            <div id="monaco-editor-container"></div>
+        </div>
     </div>
-</div>
-
-<!-- Command Palette -->
-<div class="command-palette" id="commandPalette">
-    <input type="text" id="commandPaletteInput" class="command-input" placeholder="Type a command or search...">
-    <div class="command-results" id="commandResults"></div>
-</div>
-
-<!-- Modals -->
-<!-- Save As Modal -->
-<div class="modal fade" id="saveAsModal" tabindex="-1" aria-labelledby="saveAsModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content bg-dark">
-            <div class="modal-header">
-                <h5 class="modal-title" id="saveAsModalLabel">Save As</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    
+    <div class="editor-terminal">
+        <div class="terminal-header">
+            <div class="terminal-tabs">
+                <div class="terminal-tab active">Terminal</div>
+                <div class="terminal-tab">Output</div>
+                <div class="terminal-tab">Problems</div>
             </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label for="saveAsFilename" class="form-label">File name</label>
-                    <input type="text" class="form-control" id="saveAsFilename">
-                </div>
-                <div class="mb-3">
-                    <label for="saveAsPath" class="form-label">Path</label>
-                    <input type="text" class="form-control" id="saveAsPath" placeholder="/" value="/">
-                </div>
+            <div class="terminal-actions">
+                <button class="btn btn-sm btn-outline-secondary" id="clearTerminalBtn" title="Clear Terminal">
+                    <i class="fas fa-eraser"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" id="closeTerminalBtn" title="Close Terminal">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveAsConfirmBtn">Save</button>
-            </div>
+        </div>
+        <div class="terminal-content" id="terminalContent">
+            <div>Python 3.11.4 (Nov 15 2024, 10:32:15)</div>
+            <div>[GCC 9.4.0] on linux</div>
+            <div>Type "help", "copyright", "credits" or "license" for more information.</div>
+            <div>&gt;&gt;&gt; from app import app</div>
+            <div>&gt;&gt;&gt; app.name</div>
+            <div>'synapse_chamber'</div>
+            <div>&gt;&gt;&gt; _</div>
+        </div>
+    </div>
+    
+    <div class="editor-footer">
+        <div class="editor-info">
+            <div>Python</div>
+            <div>UTF-8</div>
+            <div>LF</div>
+        </div>
+        <div class="editor-status">
+            <div>Ln 1, Col 1</div>
+            <div>Spaces: 4</div>
         </div>
     </div>
 </div>
 
-<!-- New File Modal -->
-<div class="modal fade" id="newFileModal" tabindex="-1" aria-labelledby="newFileModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content bg-dark">
-            <div class="modal-header">
-                <h5 class="modal-title" id="newFileModalLabel">New File</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Context Menu (Hidden by Default) -->
+<div class="context-menu" id="contextMenu" style="display: none;">
+    <div class="context-menu-item" id="contextMenuNewFile">
+        <div class="context-menu-icon"><i class="fas fa-file"></i></div>
+        New File
+    </div>
+    <div class="context-menu-item" id="contextMenuNewFolder">
+        <div class="context-menu-icon"><i class="fas fa-folder-plus"></i></div>
+        New Folder
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" id="contextMenuCopy">
+        <div class="context-menu-icon"><i class="fas fa-copy"></i></div>
+        Copy
+    </div>
+    <div class="context-menu-item" id="contextMenuCut">
+        <div class="context-menu-icon"><i class="fas fa-cut"></i></div>
+        Cut
+    </div>
+    <div class="context-menu-item" id="contextMenuPaste">
+        <div class="context-menu-icon"><i class="fas fa-paste"></i></div>
+        Paste
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" id="contextMenuRename">
+        <div class="context-menu-icon"><i class="fas fa-pen"></i></div>
+        Rename
+    </div>
+    <div class="context-menu-item" id="contextMenuDelete">
+        <div class="context-menu-icon"><i class="fas fa-trash"></i></div>
+        Delete
+    </div>
+</div>
+
+<!-- New File Dialog (Hidden by Default) -->
+<div class="editor-dialog" id="newFileDialog" style="display: none;">
+    <div class="editor-dialog-content">
+        <div class="editor-dialog-header">
+            <h5 class="editor-dialog-title">New File</h5>
+        </div>
+        <div class="editor-dialog-body">
+            <div class="mb-3">
+                <label for="newFileName" class="form-label">File Name</label>
+                <input type="text" class="form-control" id="newFileName" placeholder="Enter file name">
+                <div class="form-text">Enter file name with extension (e.g., script.py)</div>
             </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label for="newFilename" class="form-label">File name</label>
-                    <input type="text" class="form-control" id="newFilename">
-                </div>
-                <div class="mb-3">
-                    <label for="newFilePath" class="form-label">Path</label>
-                    <input type="text" class="form-control" id="newFilePath" placeholder="/" value="/">
-                </div>
-                <div class="mb-3">
-                    <label for="newFileType" class="form-label">File type</label>
-                    <select class="form-select" id="newFileType">
-                        <option value="py">Python (.py)</option>
-                        <option value="js">JavaScript (.js)</option>
-                        <option value="html">HTML (.html)</option>
-                        <option value="css">CSS (.css)</option>
-                        <option value="json">JSON (.json)</option>
-                        <option value="md">Markdown (.md)</option>
-                        <option value="txt">Text (.txt)</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="newFileConfirmBtn">Create</button>
-            </div>
+        </div>
+        <div class="editor-dialog-footer">
+            <button type="button" class="btn btn-secondary" id="cancelNewFileBtn">Cancel</button>
+            <button type="button" class="btn btn-primary" id="createNewFileBtn">Create</button>
         </div>
     </div>
 </div>
@@ -348,663 +780,607 @@
 
 {% block extra_js %}
 <!-- Monaco Editor -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+<script>
+    // This is a dummy loader that will only work when Monaco is loaded externally
+    var require = { paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.js"></script>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
     // Initialize Monaco Editor
-    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
-    require(['vs/editor/editor.main'], function() {
-        // Initialize editor with dark theme
-        monaco.editor.defineTheme('synapseDark', {
-            base: 'vs-dark',
-            inherit: true,
-            rules: [],
-            colors: {
-                'editor.background': '#1e1e1e',
-                'editor.foreground': '#d4d4d4',
-                'editor.lineHighlightBackground': '#2a2d2e',
-                'editorLineNumber.foreground': '#858585',
-                'editor.selectionBackground': '#264f78',
-                'editor.inactiveSelectionBackground': '#3a3d41'
-            }
-        });
-        
-        monaco.editor.setTheme('synapseDark');
-        
-        // Create editor instance
-        const editor = monaco.editor.create(document.getElementById('editor-container'), {
-            value: '# Welcome to Synapse Chamber Code Editor\n\n# Start coding here...',
-            language: 'python',
-            automaticLayout: true,
-            minimap: {
-                enabled: true
-            },
-            scrollBeyondLastLine: false,
-            renderLineHighlight: 'all',
-            fontSize: 14,
-            lineNumbers: 'on',
-            renderIndentGuides: true,
-            matchBrackets: 'always',
-            wordWrap: 'on'
-        });
-        
-        // Get file path from URL parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        const filePath = urlParams.get('file');
-        
-        if (filePath) {
-            loadFile(filePath);
-        }
-        
-        // Update cursor position display
-        editor.onDidChangeCursorPosition(function(e) {
-            document.getElementById('cursorPosition').textContent = `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
-        });
-        
-        // Resize editor on window resize
-        window.addEventListener('resize', function() {
-            editor.layout();
-        });
-        
-        // Toggle terminal visibility
-        document.getElementById('terminalBtn').addEventListener('click', function() {
-            const terminal = document.getElementById('terminalContainer');
-            terminal.style.display = terminal.style.display === 'none' ? 'block' : 'none';
-            
-            // Focus terminal input if visible
-            if (terminal.style.display === 'block') {
-                document.getElementById('terminalInput').focus();
-            } else {
-                editor.focus();
-            }
-        });
-        
-        // Close terminal button
-        document.getElementById('closeTerminalBtn').addEventListener('click', function() {
-            document.getElementById('terminalContainer').style.display = 'none';
-            editor.focus();
-        });
-        
-        // Terminal input handling
-        document.getElementById('terminalInput').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                
-                const command = this.value.trim();
-                this.value = '';
-                
-                // Add command to terminal output
-                const terminal = document.getElementById('terminal');
-                const commandOutput = document.createElement('div');
-                commandOutput.className = 'terminal-output';
-                commandOutput.innerHTML = `<span class="terminal-prompt">synapse@chamber:~$</span> ${command}`;
-                
-                // Insert before the prompt
-                terminal.insertBefore(commandOutput, document.querySelector('.terminal-prompt').parentNode);
-                
-                // Process command
-                processTerminalCommand(command);
-                
-                // Scroll to bottom
-                terminal.scrollTop = terminal.scrollHeight;
-            }
-        });
-        
-        // Process terminal commands
-        function processTerminalCommand(command) {
-            const terminal = document.getElementById('terminal');
-            let output = '';
-            
-            // Basic command processing
-            switch (command.toLowerCase()) {
-                case 'help':
-                    output = `Available commands:
-                        <br>- help: Show this help message
-                        <br>- clear: Clear the terminal
-                        <br>- ls: List files in current directory
-                        <br>- cd: Change directory
-                        <br>- cat: View file contents
-                        <br>- python: Run Python code
-                        <br>- run: Run the current file`;
-                    break;
-                    
-                case 'clear':
-                    // Clear all terminal outputs (except the prompt)
-                    const outputs = terminal.querySelectorAll('.terminal-output');
-                    outputs.forEach(output => output.remove());
-                    return;
-                    
-                case 'ls':
-                    // This would normally fetch from API
-                    output = 'main.py<br>app.py<br>models.py<br>static/<br>templates/';
-                    break;
-                    
-                case 'run':
-                    // This would normally send to API
-                    output = '<span class="terminal-success">Running current file...</span><br>Process completed successfully';
-                    break;
-                    
-                default:
-                    if (command.trim() === '') return;
-                    output = `<span class="terminal-error">Command not found: ${command}</span><br>Type 'help' for available commands`;
-            }
-            
-            // Add output to terminal
-            const outputElement = document.createElement('div');
-            outputElement.className = 'terminal-output';
-            outputElement.innerHTML = output;
-            
-            // Insert before the prompt
-            terminal.insertBefore(outputElement, document.querySelector('.terminal-prompt').parentNode);
-        }
-        
-        // Load a file into the editor
-        function loadFile(path) {
-            // Update status
-            document.getElementById('editorStatus').textContent = 'Loading...';
-            
-            // Fetch file content from API
-            fetch(`/api/files/open?path=${encodeURIComponent(path)}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to load file');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Set editor content
-                        editor.setValue(data.content);
-                        
-                        // Set language based on file extension
-                        const language = data.language || 'plaintext';
-                        monaco.editor.setModelLanguage(editor.getModel(), language);
-                        
-                        // Update UI
-                        document.getElementById('currentFileName').textContent = path;
-                        document.getElementById('editorLanguage').textContent = language;
-                        document.getElementById('editorStatus').textContent = 'Ready';
-                        
-                        // Focus editor
-                        editor.focus();
-                        
-                        // Mark file as active in file tree
-                        const fileElements = document.querySelectorAll('.file-tree-item');
-                        fileElements.forEach(el => {
-                            el.classList.remove('active');
-                            if (el.dataset.path === path) {
-                                el.classList.add('active');
-                            }
-                        });
-                    } else {
-                        document.getElementById('editorStatus').textContent = 'Error loading file';
-                        console.error('Error loading file:', data.message);
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('editorStatus').textContent = 'Error loading file';
-                    console.error('Error loading file:', error);
-                });
-        }
-        
-        // Load file tree
-        function loadFileTree() {
-            const fileTree = document.getElementById('fileTree');
-            fileTree.innerHTML = '<div class="p-3 text-center"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div><div class="small text-muted mt-2">Loading files...</div></div>';
-            
-            // Fetch file list from API
-            fetch('/api/files/list')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to load files');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.status === 'success') {
-                        renderFileTree(data.files, fileTree);
-                    } else {
-                        fileTree.innerHTML = '<div class="p-3 text-center text-danger">Error loading files</div>';
-                        console.error('Error loading files:', data.message);
-                    }
-                })
-                .catch(error => {
-                    fileTree.innerHTML = '<div class="p-3 text-center text-danger">Error loading files</div>';
-                    console.error('Error loading files:', error);
-                    
-                    // In development mode, render a dummy file tree
-                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                        renderDummyFileTree(fileTree);
-                    }
-                });
-        }
-        
-        // Render file tree
-        function renderFileTree(files, container) {
-            container.innerHTML = '';
-            
-            // Sort files (folders first, then alphabetical)
-            files.sort((a, b) => {
-                if (a.type === 'dir' && b.type !== 'dir') return -1;
-                if (a.type !== 'dir' && b.type === 'dir') return 1;
-                return a.name.localeCompare(b.name);
-            });
-            
-            // Create elements for each file
-            files.forEach(file => {
-                const item = document.createElement('div');
-                item.className = 'file-tree-item';
-                item.dataset.path = file.path;
-                item.dataset.type = file.type;
-                
-                // Add appropriate icon
-                if (file.type === 'dir') {
-                    item.innerHTML = `<i class="fas fa-folder file-icon text-warning"></i> ${file.name}`;
-                    
-                    // Add click handler to toggle folder
-                    item.addEventListener('click', function() {
-                        // Toggle folder open/closed
-                        // This would normally fetch children from API
-                    });
-                } else {
-                    // Choose icon based on file extension
-                    const extension = file.name.split('.').pop().toLowerCase();
-                    let iconClass = 'fa-file';
-                    let iconColor = 'text-muted';
-                    
-                    if (['py'].includes(extension)) {
-                        iconClass = 'fa-file-code';
-                        iconColor = 'text-primary';
-                    } else if (['js'].includes(extension)) {
-                        iconClass = 'fa-file-code';
-                        iconColor = 'text-warning';
-                    } else if (['html'].includes(extension)) {
-                        iconClass = 'fa-file-code';
-                        iconColor = 'text-danger';
-                    } else if (['css'].includes(extension)) {
-                        iconClass = 'fa-file-code';
-                        iconColor = 'text-info';
-                    } else if (['json'].includes(extension)) {
-                        iconClass = 'fa-file-code';
-                        iconColor = 'text-success';
-                    } else if (['md', 'txt'].includes(extension)) {
-                        iconClass = 'fa-file-alt';
-                    } else if (['jpg', 'png', 'gif'].includes(extension)) {
-                        iconClass = 'fa-file-image';
-                    }
-                    
-                    item.innerHTML = `<i class="fas ${iconClass} file-icon ${iconColor}"></i> ${file.name}`;
-                    
-                    // Add click handler to open file
-                    item.addEventListener('click', function() {
-                        loadFile(this.dataset.path);
-                    });
-                    
-                    // Mark active if this is the current file
-                    if (file.path === document.getElementById('currentFileName').textContent) {
-                        item.classList.add('active');
-                    }
-                }
-                
-                container.appendChild(item);
-                
-                // If directory, render children
-                if (file.type === 'dir' && file.children) {
-                    const childContainer = document.createElement('div');
-                    childContainer.style.paddingLeft = '15px';
-                    renderFileTree(file.children, childContainer);
-                    container.appendChild(childContainer);
-                }
-            });
-        }
-        
-        // Render a dummy file tree for development
-        function renderDummyFileTree(container) {
-            const dummyFiles = [
-                { name: 'app.py', path: 'app.py', type: 'file' },
-                { name: 'main.py', path: 'main.py', type: 'file' },
-                { name: 'models.py', path: 'models.py', type: 'file' },
-                { name: 'static', path: 'static', type: 'dir', children: [
-                    { name: 'main.css', path: 'static/main.css', type: 'file' },
-                    { name: 'main.js', path: 'static/main.js', type: 'file' }
-                ]},
-                { name: 'templates', path: 'templates', type: 'dir', children: [
-                    { name: 'index.html', path: 'templates/index.html', type: 'file' },
-                    { name: 'layout.html', path: 'templates/layout.html', type: 'file' }
-                ]}
-            ];
-            
-            renderFileTree(dummyFiles, container);
-        }
-        
-        // Initialize file tree
-        loadFileTree();
-        
-        // Save button click handler
-        document.getElementById('saveBtn').addEventListener('click', function() {
-            const path = document.getElementById('currentFileName').textContent;
-            
-            if (path === 'No file selected') {
-                // Show save as modal
-                const saveAsModal = new bootstrap.Modal(document.getElementById('saveAsModal'));
-                saveAsModal.show();
-                return;
-            }
-            
-            // Get content
-            const content = editor.getValue();
-            
-            // Save file
-            saveFile(path, content);
-        });
-        
-        // Save file
-        function saveFile(path, content) {
-            document.getElementById('editorStatus').textContent = 'Saving...';
-            
-            // Send to API
-            fetch('/api/files/save', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    path: path,
-                    content: content
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to save file');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    document.getElementById('editorStatus').textContent = 'Saved';
-                    
-                    // Reset after a while
-                    setTimeout(() => {
-                        document.getElementById('editorStatus').textContent = 'Ready';
-                    }, 2000);
-                } else {
-                    document.getElementById('editorStatus').textContent = 'Error saving file';
-                    console.error('Error saving file:', data.message);
-                }
-            })
-            .catch(error => {
-                document.getElementById('editorStatus').textContent = 'Error saving file';
-                console.error('Error saving file:', error);
-            });
-        }
-        
-        // Run button click handler
-        document.getElementById('runBtn').addEventListener('click', function() {
-            const path = document.getElementById('currentFileName').textContent;
-            
-            if (path === 'No file selected') {
-                alert('Please select a file to run');
-                return;
-            }
-            
-            // Save first, then run
-            const content = editor.getValue();
-            saveFile(path, content);
-            
-            // Show terminal
-            document.getElementById('terminalContainer').style.display = 'block';
-            
-            // Add command to terminal
-            const terminal = document.getElementById('terminal');
-            const commandOutput = document.createElement('div');
-            commandOutput.className = 'terminal-output';
-            commandOutput.innerHTML = `<span class="terminal-prompt">synapse@chamber:~$</span> run ${path}`;
-            
-            // Insert before the prompt
-            terminal.insertBefore(commandOutput, document.querySelector('.terminal-prompt').parentNode);
-            
-            // Add output
-            const outputElement = document.createElement('div');
-            outputElement.className = 'terminal-output';
-            outputElement.innerHTML = `<span class="terminal-success">Running ${path}...</span><br>Process completed successfully`;
-            
-            // Insert before the prompt
-            terminal.insertBefore(outputElement, document.querySelector('.terminal-prompt').parentNode);
-            
-            // Scroll to bottom
-            terminal.scrollTop = terminal.scrollHeight;
-        });
-        
-        // Save As confirmation
-        document.getElementById('saveAsConfirmBtn').addEventListener('click', function() {
-            const filename = document.getElementById('saveAsFilename').value;
-            const path = document.getElementById('saveAsPath').value;
-            
-            if (!filename) {
-                alert('Please enter a filename');
-                return;
-            }
-            
-            // Construct full path
-            let fullPath = path;
-            if (fullPath !== '/' && !fullPath.endsWith('/')) {
-                fullPath += '/';
-            }
-            fullPath += filename;
-            
-            // Get content
-            const content = editor.getValue();
-            
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('saveAsModal')).hide();
-            
-            // Save file
-            saveFile(fullPath, content);
-            
-            // Update UI
-            document.getElementById('currentFileName').textContent = fullPath;
-            
-            // Refresh file tree
-            loadFileTree();
-        });
-        
-        // New File confirmation
-        document.getElementById('newFileConfirmBtn').addEventListener('click', function() {
-            const filename = document.getElementById('newFilename').value;
-            const path = document.getElementById('newFilePath').value;
-            const type = document.getElementById('newFileType').value;
-            
-            if (!filename) {
-                alert('Please enter a filename');
-                return;
-            }
-            
-            // Construct full path
-            let fullPath = path;
-            if (fullPath !== '/' && !fullPath.endsWith('/')) {
-                fullPath += '/';
-            }
-            
-            // Add extension if not present
-            if (!filename.includes('.')) {
-                fullPath += filename + '.' + type;
-            } else {
-                fullPath += filename;
-            }
-            
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('newFileModal')).hide();
-            
-            // Create file on server
-            fetch('/api/files/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    path: fullPath,
-                    content: ''
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to create file');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    // Refresh file tree
-                    loadFileTree();
-                    
-                    // Open the new file
-                    loadFile(fullPath);
-                } else {
-                    console.error('Error creating file:', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error creating file:', error);
-            });
-        });
-        
-        // Initialize command palette
-        // This is just a basic mock-up for now
-        document.addEventListener('keydown', function(e) {
-            // Ctrl+Shift+P or Cmd+Shift+P to toggle command palette
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
-                e.preventDefault();
-                toggleCommandPalette();
-            }
-            
-            // Escape to close command palette
-            if (e.key === 'Escape' && document.getElementById('commandPalette').classList.contains('visible')) {
-                closeCommandPalette();
-            }
-        });
-        
-        // Toggle command palette
-        function toggleCommandPalette() {
-            const palette = document.getElementById('commandPalette');
-            if (palette.classList.contains('visible')) {
-                closeCommandPalette();
-            } else {
-                openCommandPalette();
-            }
-        }
-        
-        // Open command palette
-        function openCommandPalette() {
-            const palette = document.getElementById('commandPalette');
-            palette.classList.add('visible');
-            document.getElementById('commandPaletteInput').focus();
-            
-            // Populate with default commands
-            populateCommandResults([
-                { id: 'open', title: 'Open File', description: 'Open a file from the workspace', icon: 'fa-file-import' },
-                { id: 'save', title: 'Save File', description: 'Save the current file', icon: 'fa-save' },
-                { id: 'run', title: 'Run File', description: 'Run the current file', icon: 'fa-play' },
-                { id: 'terminal', title: 'Toggle Terminal', description: 'Show or hide the terminal', icon: 'fa-terminal' },
-                { id: 'find', title: 'Find in File', description: 'Search within the current file', icon: 'fa-search' },
-                { id: 'replace', title: 'Replace in File', description: 'Find and replace text in current file', icon: 'fa-exchange-alt' },
-                { id: 'format', title: 'Format Document', description: 'Format the current document', icon: 'fa-indent' }
-            ]);
-        }
-        
-        // Close command palette
-        function closeCommandPalette() {
-            const palette = document.getElementById('commandPalette');
-            palette.classList.remove('visible');
-            document.getElementById('commandPaletteInput').value = '';
-        }
-        
-        // Populate command results
-        function populateCommandResults(commands) {
-            const resultsContainer = document.getElementById('commandResults');
-            resultsContainer.innerHTML = '';
-            
-            commands.forEach(command => {
-                const item = document.createElement('div');
-                item.className = 'command-result';
-                item.dataset.id = command.id;
-                
-                item.innerHTML = `
-                    <div class="command-icon"><i class="fas ${command.icon}"></i></div>
-                    <div class="command-details">
-                        <div class="command-title">${command.title}</div>
-                        <div class="command-description">${command.description}</div>
-                    </div>
-                `;
-                
-                // Add click handler
-                item.addEventListener('click', function() {
-                    executeCommand(command.id);
-                });
-                
-                resultsContainer.appendChild(item);
-            });
-        }
-        
-        // Execute a command
-        function executeCommand(id) {
-            closeCommandPalette();
-            
-            // Handle different commands
-            switch (id) {
-                case 'open':
-                    // Show file browser
-                    break;
-                case 'save':
-                    document.getElementById('saveBtn').click();
-                    break;
-                case 'run':
-                    document.getElementById('runBtn').click();
-                    break;
-                case 'terminal':
-                    document.getElementById('terminalBtn').click();
-                    break;
-                case 'find':
-                    editor.getAction('actions.find').run();
-                    break;
-                case 'replace':
-                    editor.getAction('editor.action.startFindReplaceAction').run();
-                    break;
-                case 'format':
-                    editor.getAction('editor.action.formatDocument').run();
-                    break;
-            }
-        }
-        
-        // Command palette input handler
-        document.getElementById('commandPaletteInput').addEventListener('input', function() {
-            const query = this.value.toLowerCase();
-            
-            // Filter commands based on query
-            const commands = [
-                { id: 'open', title: 'Open File', description: 'Open a file from the workspace', icon: 'fa-file-import' },
-                { id: 'save', title: 'Save File', description: 'Save the current file', icon: 'fa-save' },
-                { id: 'run', title: 'Run File', description: 'Run the current file', icon: 'fa-play' },
-                { id: 'terminal', title: 'Toggle Terminal', description: 'Show or hide the terminal', icon: 'fa-terminal' },
-                { id: 'find', title: 'Find in File', description: 'Search within the current file', icon: 'fa-search' },
-                { id: 'replace', title: 'Replace in File', description: 'Find and replace text in current file', icon: 'fa-exchange-alt' },
-                { id: 'format', title: 'Format Document', description: 'Format the current document', icon: 'fa-indent' }
-            ];
-            
-            if (!query) {
-                populateCommandResults(commands);
-                return;
-            }
-            
-            const filtered = commands.filter(cmd => 
-                cmd.title.toLowerCase().includes(query) || 
-                cmd.description.toLowerCase().includes(query)
-            );
-            
-            populateCommandResults(filtered);
-        });
-        
-        // Connect command palette button
-        document.getElementById('commandPaletteBtn').addEventListener('click', toggleCommandPalette);
+    const editorContainer = document.getElementById('monaco-editor-container');
+    
+    // Sample code (python)
+    const sampleCode = `from app import app
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5000)
+`;
+    
+    // Initialize editor
+    const editor = monaco.editor.create(editorContainer, {
+        value: sampleCode,
+        language: 'python',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        minimap: {
+            enabled: true
+        },
+        fontSize: 14,
+        tabSize: 4,
+        insertSpaces: true,
+        lineNumbers: 'on',
+        roundedSelection: true,
+        scrollBeyondLastLine: false,
+        wordWrap: 'on',
+        renderLineHighlight: 'all',
+        folding: true,
+        suggestOnTriggerCharacters: true
     });
+    
+    // Cursor position change event
+    editor.onDidChangeCursorPosition(e => {
+        document.querySelector('.editor-status div:first-child').textContent = `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
+    });
+    
+    // Content change event
+    editor.onDidChangeModelContent(e => {
+        document.querySelector('.editor-tab.active').classList.add('modified');
+        document.querySelector('.editor-container').classList.add('editor-modified');
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        editor.layout();
+    });
+    
+    // Toggle terminal
+    document.getElementById('toggleTerminalBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelector('.editor-terminal').classList.toggle('open');
+        editor.layout();
+    });
+    
+    // Close terminal
+    document.getElementById('closeTerminalBtn').addEventListener('click', function() {
+        document.querySelector('.editor-terminal').classList.remove('open');
+        editor.layout();
+    });
+    
+    // Clear terminal
+    document.getElementById('clearTerminalBtn').addEventListener('click', function() {
+        document.getElementById('terminalContent').innerHTML = '';
+    });
+    
+    // Toggle sidebar
+    document.getElementById('toggleSidebarBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.querySelector('.editor-sidebar').style.display = 
+            document.querySelector('.editor-sidebar').style.display === 'none' ? 'flex' : 'none';
+        editor.layout();
+    });
+    
+    // Format code
+    document.getElementById('formatCodeBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        editor.getAction('editor.action.formatDocument').run();
+    });
+    
+    // Find/Replace
+    document.getElementById('findReplaceBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        editor.getAction('actions.find').run();
+    });
+    
+    // Save file
+    document.getElementById('saveFileBtn').addEventListener('click', function() {
+        // In a real implementation, this would save to the server
+        document.querySelector('.editor-tab.active').classList.remove('modified');
+        document.querySelector('.editor-container').classList.remove('editor-modified');
+        
+        // Show a toast notification
+        showToast('File saved successfully!');
+    });
+    
+    // Run file
+    document.getElementById('runFileBtn').addEventListener('click', function() {
+        // Open terminal if not already open
+        document.querySelector('.editor-terminal').classList.add('open');
+        editor.layout();
+        
+        // Get the active file name
+        const fileName = document.querySelector('.editor-tab.active .editor-tab-name').textContent;
+        
+        // Add the run command to the terminal
+        const terminalContent = document.getElementById('terminalContent');
+        terminalContent.innerHTML += `<div>&gt;&gt;&gt; python ${fileName}</div>`;
+        terminalContent.innerHTML += `<div>Running ${fileName}...</div>`;
+        
+        // Simulate output
+        setTimeout(() => {
+            terminalContent.innerHTML += `<div>Execution completed successfully.</div>`;
+            terminalContent.innerHTML += `<div>&gt;&gt;&gt; _</div>`;
+            terminalContent.scrollTop = terminalContent.scrollHeight;
+        }, 1000);
+        
+        // Scroll to bottom
+        terminalContent.scrollTop = terminalContent.scrollHeight;
+    });
+    
+    // New file dialog
+    document.getElementById('newFileBtn').addEventListener('click', function() {
+        document.getElementById('newFileDialog').style.display = 'flex';
+        document.getElementById('newFileName').focus();
+    });
+    
+    // Cancel new file
+    document.getElementById('cancelNewFileBtn').addEventListener('click', function() {
+        document.getElementById('newFileDialog').style.display = 'none';
+    });
+    
+    // Create new file
+    document.getElementById('createNewFileBtn').addEventListener('click', function() {
+        const fileName = document.getElementById('newFileName').value.trim();
+        if (fileName) {
+            // In a real implementation, this would create a file on the server
+            
+            // Add to file explorer (simplified for demo)
+            const fileExplorer = document.querySelector('.folder-content');
+            
+            // Determine file icon
+            let iconClass = 'file';
+            let iconTag = 'fas fa-file';
+            
+            if (fileName.endsWith('.py')) {
+                iconClass = 'python';
+                iconTag = 'fab fa-python';
+            } else if (fileName.endsWith('.js')) {
+                iconClass = 'javascript';
+                iconTag = 'fab fa-js';
+            } else if (fileName.endsWith('.html')) {
+                iconClass = 'html';
+                iconTag = 'fab fa-html5';
+            } else if (fileName.endsWith('.css')) {
+                iconClass = 'css';
+                iconTag = 'fab fa-css3-alt';
+            } else if (fileName.endsWith('.json')) {
+                iconClass = 'json';
+                iconTag = 'fas fa-code';
+            } else if (fileName.endsWith('.md')) {
+                iconClass = 'markdown';
+                iconTag = 'fab fa-markdown';
+            }
+            
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `
+                <div class="file-icon ${iconClass}">
+                    <i class="${iconTag}"></i>
+                </div>
+                <div class="file-name">${fileName}</div>
+            `;
+            
+            fileExplorer.appendChild(fileItem);
+            
+            // Create a new tab
+            createTab(fileName, iconClass, iconTag);
+            
+            // Close dialog
+            document.getElementById('newFileDialog').style.display = 'none';
+            document.getElementById('newFileName').value = '';
+            
+            // Show a toast notification
+            showToast(`File "${fileName}" created successfully!`);
+        }
+    });
+    
+    // Create a new tab
+    function createTab(fileName, iconClass, iconTag) {
+        const tabsContainer = document.querySelector('.editor-tabs');
+        
+        // Remove active class from all tabs
+        document.querySelectorAll('.editor-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // Create new tab
+        const newTab = document.createElement('div');
+        newTab.className = 'editor-tab active';
+        newTab.innerHTML = `
+            <div class="editor-tab-icon">
+                <i class="${iconTag}"></i>
+            </div>
+            <div class="editor-tab-name">${fileName}</div>
+            <div class="editor-tab-modified"></div>
+            <div class="editor-tab-close">
+                <i class="fas fa-times"></i>
+            </div>
+        `;
+        
+        tabsContainer.appendChild(newTab);
+        
+        // Clear editor content
+        editor.setValue('');
+        
+        // Add tab click handlers
+        addTabEventListeners(newTab);
+    }
+    
+    // Add event listeners to tabs
+    function addTabEventListeners(tab) {
+        // Tab click
+        tab.addEventListener('click', function(e) {
+            if (!e.target.closest('.editor-tab-close')) {
+                document.querySelectorAll('.editor-tab').forEach(t => {
+                    t.classList.remove('active');
+                });
+                tab.classList.add('active');
+                
+                // In a real implementation, this would load the file content
+            }
+        });
+        
+        // Close tab
+        const closeBtn = tab.querySelector('.editor-tab-close');
+        closeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            if (tab.classList.contains('modified')) {
+                if (!confirm('This file has unsaved changes. Are you sure you want to close it?')) {
+                    return;
+                }
+            }
+            
+            // If this is the active tab, activate another one
+            if (tab.classList.contains('active') && document.querySelectorAll('.editor-tab').length > 1) {
+                const nextTab = tab.nextElementSibling || tab.previousElementSibling;
+                if (nextTab) {
+                    nextTab.classList.add('active');
+                }
+            }
+            
+            // Remove the tab
+            tab.remove();
+        });
+    }
+    
+    // Add event listeners to existing tabs
+    document.querySelectorAll('.editor-tab').forEach(tab => {
+        addTabEventListeners(tab);
+    });
+    
+    // Toggle folder expansion
+    document.querySelectorAll('.folder-header').forEach(folderHeader => {
+        folderHeader.addEventListener('click', function() {
+            const folderItem = this.closest('.folder-item');
+            folderItem.classList.toggle('folder-expanded');
+            folderItem.classList.toggle('folder-collapsed');
+        });
+    });
+    
+    // File item click
+    document.querySelectorAll('.file-item').forEach(fileItem => {
+        fileItem.addEventListener('click', function() {
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // Get file name and update tab
+            const fileName = this.querySelector('.file-name').textContent;
+            let iconClass = 'file';
+            let iconTag = 'fas fa-file';
+            
+            const fileIcon = this.querySelector('.file-icon');
+            if (fileIcon.classList.contains('python')) {
+                iconClass = 'python';
+                iconTag = 'fab fa-python';
+            } else if (fileIcon.classList.contains('javascript')) {
+                iconClass = 'javascript';
+                iconTag = 'fab fa-js';
+            } else if (fileIcon.classList.contains('html')) {
+                iconClass = 'html';
+                iconTag = 'fab fa-html5';
+            } else if (fileIcon.classList.contains('css')) {
+                iconClass = 'css';
+                iconTag = 'fab fa-css3-alt';
+            }
+            
+            // Check if tab already exists
+            let existingTab = null;
+            document.querySelectorAll('.editor-tab').forEach(tab => {
+                if (tab.querySelector('.editor-tab-name').textContent === fileName) {
+                    existingTab = tab;
+                }
+            });
+            
+            if (existingTab) {
+                // Activate existing tab
+                document.querySelectorAll('.editor-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                existingTab.classList.add('active');
+            } else {
+                // Create new tab
+                createTab(fileName, iconClass, iconTag);
+            }
+            
+            // In a real implementation, this would load the file content
+            if (fileName === 'main.py') {
+                editor.setValue(`from app import app
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5000)
+`);
+                editor.updateOptions({ language: 'python' });
+            } else if (fileName === 'advanced_memory_system.py') {
+                editor.setValue(`class AdvancedMemorySystem:
+    """
+    Advanced Memory System for Synapse Chamber
+    
+    Implements sophisticated memory storage and retrieval mechanisms including:
+    - Semantic search across stored conversations and threads
+    - Long-term and short-term memory storage
+    - Context-aware memory retrieval
+    - Memory consolidation and knowledge extraction
+    - Distributed storage with PostgreSQL for structured data and vector store for embeddings
+    """
+    
+    def __init__(self, memory_system=None):
+        self.memory_system = memory_system
+        self._init_memory_system()
+        
+    def _init_memory_system(self):
+        """Initialize the memory system components"""
+        self._init_database()
+        self._init_semantic_index()
+        self._load_cached_data()
+        
+    def _init_database(self):
+        """Initialize database connection"""
+        # Implementation details
+        pass
+        
+    def store_memory(self, content, memory_type='general', metadata=None, source=None, importance=0.5, expiry=None):
+        """
+        Store a new memory item
+        
+        Args:
+            content (str): The content of the memory
+            memory_type (str): Type of memory (general, conversation, factual, procedural)
+            metadata (dict): Additional metadata about the memory
+            source (str): Source of the memory (user, system, platform name)
+            importance (float): Importance score (0.0-1.0) for prioritization
+            expiry (datetime): When the memory should expire (None for no expiry)
+            
+        Returns:
+            int: ID of the stored memory item, or None if failed
+        """
+        # Implementation details
+        pass
+        
+    def retrieve_memory(self, query, memory_type=None, limit=5, min_similarity=0.3):
+        """
+        Retrieve memories semantically similar to the query
+        
+        Args:
+            query (str): The query text to match against memories
+            memory_type (str, optional): Filter by memory type
+            limit (int): Maximum number of results to return
+            min_similarity (float): Minimum similarity score (0.0-1.0)
+            
+        Returns:
+            list: Matching memory items with similarity scores
+        """
+        # Implementation details
+        pass`);
+                editor.updateOptions({ language: 'python' });
+            } else if (fileName === 'layout.html') {
+                editor.setValue(`<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Synapse Chamber{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="Synapse Chamber" width="30" height="30" class="d-inline-block align-text-top me-2">
+                Synapse Chamber
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <!-- Navigation Items -->
+                </ul>
+                
+                <div class="d-flex">
+                    <!-- User menu or other actions -->
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="py-4">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>`);
+                editor.updateOptions({ language: 'html' });
+            } else {
+                // Default to empty file for other files
+                editor.setValue('');
+                
+                // Set language based on file extension
+                if (fileName.endsWith('.py')) {
+                    editor.updateOptions({ language: 'python' });
+                } else if (fileName.endsWith('.js')) {
+                    editor.updateOptions({ language: 'javascript' });
+                } else if (fileName.endsWith('.html')) {
+                    editor.updateOptions({ language: 'html' });
+                } else if (fileName.endsWith('.css')) {
+                    editor.updateOptions({ language: 'css' });
+                } else if (fileName.endsWith('.json')) {
+                    editor.updateOptions({ language: 'json' });
+                } else if (fileName.endsWith('.md')) {
+                    editor.updateOptions({ language: 'markdown' });
+                } else {
+                    editor.updateOptions({ language: 'plaintext' });
+                }
+            }
+        });
+    });
+    
+    // Handle context menu
+    const contextMenu = document.getElementById('contextMenu');
+    let contextTarget = null;
+    
+    // Show context menu
+    window.addEventListener('contextmenu', function(e) {
+        if (e.target.closest('.file-explorer')) {
+            e.preventDefault();
+            contextTarget = e.target.closest('.file-item') || e.target.closest('.folder-item') || e.target.closest('.file-explorer');
+            
+            contextMenu.style.display = 'block';
+            contextMenu.style.left = e.pageX + 'px';
+            contextMenu.style.top = e.pageY + 'px';
+            
+            // Ensure context menu doesn't go off screen
+            const rect = contextMenu.getBoundingClientRect();
+            if (rect.right > window.innerWidth) {
+                contextMenu.style.left = (e.pageX - rect.width) + 'px';
+            }
+            if (rect.bottom > window.innerHeight) {
+                contextMenu.style.top = (e.pageY - rect.height) + 'px';
+            }
+        }
+    });
+    
+    // Hide context menu on click outside
+    window.addEventListener('click', function() {
+        contextMenu.style.display = 'none';
+        contextTarget = null;
+    });
+    
+    // Prevent hiding when clicking inside context menu
+    contextMenu.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+    
+    // Context menu actions
+    document.getElementById('contextMenuNewFile').addEventListener('click', function() {
+        document.getElementById('newFileDialog').style.display = 'flex';
+        document.getElementById('newFileName').focus();
+    });
+    
+    document.getElementById('contextMenuDelete').addEventListener('click', function() {
+        if (contextTarget) {
+            if (confirm('Are you sure you want to delete this item?')) {
+                contextTarget.remove();
+                showToast('Item deleted successfully!');
+            }
+        }
+    });
+    
+    // Show toast notification
+    function showToast(message) {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            toastContainer.className = 'position-fixed bottom-0 end-0 p-3';
+            toastContainer.style.zIndex = '1050';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Create toast
+        const toastId = 'toast-' + Date.now();
+        const toast = document.createElement('div');
+        toast.id = toastId;
+        toast.className = 'toast bg-dark';
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        toast.innerHTML = `
+            <div class="toast-header bg-primary text-white">
+                <strong class="me-auto">Editor</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        // Show toast
+        const bsToast = new bootstrap.Toast(toast, {
+            delay: 3000
+        });
+        bsToast.show();
+        
+        // Remove toast from DOM after hiding
+        toast.addEventListener('hidden.bs.toast', function() {
+            toast.remove();
+        });
+    }
+    
+    // Initialize key editor shortcuts
+    window.addEventListener('keydown', function(e) {
+        // Ctrl+S to save
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            document.getElementById('saveFileBtn').click();
+        }
+        
+        // Ctrl+N for new file
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            e.preventDefault();
+            document.getElementById('newFileBtn').click();
+        }
+        
+        // F5 to run
+        if (e.key === 'F5') {
+            e.preventDefault();
+            document.getElementById('runFileBtn').click();
+        }
+        
+        // Ctrl+` to toggle terminal
+        if ((e.ctrlKey || e.metaKey) && e.key === '`') {
+            e.preventDefault();
+            document.getElementById('toggleTerminalBtn').click();
+        }
+    });
+});
 </script>
 {% endblock %}

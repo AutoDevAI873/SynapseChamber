@@ -1,658 +1,1151 @@
 /**
  * Synapse Chamber Command Palette
  * 
- * A powerful command palette that provides quick access to all system functions
- * through keyboard shortcuts and natural language processing.
+ * A powerful, keyboard-driven command palette for quick navigation and actions
+ * within the Synapse Chamber system. Inspired by IDE command palettes like in 
+ * VSCode, JetBrains, and Sublime Text.
  */
 
-class CommandPalette {
-    constructor(options = {}) {
-        this.options = Object.assign({
-            maxResults: 10,
-            shortcutKey: 'p',
-            shortcutModifier: 'ctrl+shift',
-            placeholder: 'Type a command or search...',
-            fuzzyMatchThreshold: 0.3,
-            enableNaturalLanguage: true,
-            animationDuration: 300
-        }, options);
-        
-        // Store commands with descriptions and handlers
+class SynapseCommandPalette {
+    constructor() {
+        this.isOpen = false;
         this.commands = [];
-        
-        // Context for commands
-        this.context = {
-            currentSection: null,
-            selectedFile: null,
-            selectedComponent: null,
-            activeTrainingSession: null,
-            brainVisualization: null
-        };
-        
-        // Initialize the UI
-        this.initUI();
-        
-        // Register keyboard shortcut
-        this.registerShortcut();
-        
-        // Initialize default commands
-        this.registerDefaultCommands();
-    }
+        this.filteredCommands = [];
+        this.selectedIndex = 0;
+        this.searchTerm = '';
+        this.recentCommands = [];
+        this.maxRecentCommands = 5;
+        this.commandHistory = [];
+        this.maxHistory = 50;
 
-    initUI() {
-        // Create command palette element
-        this.element = document.createElement('div');
-        this.element.className = 'command-palette';
+        // Create DOM elements
+        this.createDOMElements();
         
-        // Input field
-        this.inputWrapper = document.createElement('div');
-        this.inputWrapper.className = 'command-input-wrapper';
+        // Initialize command palette
+        this.initializeCommandPalette();
         
-        this.input = document.createElement('input');
-        this.input.type = 'text';
-        this.input.className = 'command-input';
-        this.input.placeholder = this.options.placeholder;
+        // Load user preferences and history
+        this.loadUserPreferences();
+        this.loadCommandHistory();
         
-        this.inputWrapper.appendChild(this.input);
-        this.element.appendChild(this.inputWrapper);
+        // Register global keyboard shortcut
+        document.addEventListener('keydown', this.handleKeyDown.bind(this));
+    }
+    
+    /**
+     * Create the DOM elements for the command palette
+     */
+    createDOMElements() {
+        // Create command palette container
+        this.container = document.createElement('div');
+        this.container.id = 'synapseCommandPalette';
+        this.container.className = 'command-palette-container';
+        this.container.style.display = 'none';
         
-        // Results container
+        // Create overlay
+        this.overlay = document.createElement('div');
+        this.overlay.className = 'command-palette-overlay';
+        this.overlay.addEventListener('click', () => this.hide());
+        
+        // Create palette content
+        this.paletteContent = document.createElement('div');
+        this.paletteContent.className = 'command-palette-content';
+        
+        // Create search input
+        this.searchContainer = document.createElement('div');
+        this.searchContainer.className = 'command-palette-search';
+        
+        this.searchIcon = document.createElement('i');
+        this.searchIcon.className = 'fas fa-search command-palette-search-icon';
+        
+        this.searchInput = document.createElement('input');
+        this.searchInput.type = 'text';
+        this.searchInput.className = 'command-palette-input';
+        this.searchInput.placeholder = 'Type a command or search...';
+        this.searchInput.addEventListener('input', () => this.handleSearch());
+        this.searchInput.addEventListener('keydown', (e) => this.handleInputKeyDown(e));
+        
+        this.searchContainer.appendChild(this.searchIcon);
+        this.searchContainer.appendChild(this.searchInput);
+        
+        // Create results container
         this.resultsContainer = document.createElement('div');
-        this.resultsContainer.className = 'command-results';
-        this.element.appendChild(this.resultsContainer);
+        this.resultsContainer.className = 'command-palette-results';
         
-        // Add to DOM
-        document.body.appendChild(this.element);
+        // Create footer
+        this.footer = document.createElement('div');
+        this.footer.className = 'command-palette-footer';
         
-        // Set up event listeners
-        this.input.addEventListener('input', () => this.updateResults());
-        this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
+        this.footerHints = document.createElement('div');
+        this.footerHints.className = 'command-palette-hints';
+        this.footerHints.innerHTML = `
+            <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+            <span><kbd>Enter</kbd> Execute</span>
+            <span><kbd>Esc</kbd> Dismiss</span>
+        `;
         
-        // Click outside to close
-        document.addEventListener('click', (e) => {
-            if (this.isVisible && !this.element.contains(e.target)) {
-                this.hide();
-            }
-        });
+        this.footer.appendChild(this.footerHints);
         
-        // Prevent clicks inside from propagating
-        this.element.addEventListener('click', (e) => e.stopPropagation());
+        // Assemble palette
+        this.paletteContent.appendChild(this.searchContainer);
+        this.paletteContent.appendChild(this.resultsContainer);
+        this.paletteContent.appendChild(this.footer);
         
-        // Initial state
-        this.isVisible = false;
-        this.selectedIndex = -1;
+        // Add to container
+        this.container.appendChild(this.overlay);
+        this.container.appendChild(this.paletteContent);
+        
+        // Add to document
+        document.body.appendChild(this.container);
+        
+        // Add stylesheet
+        this.addStyles();
     }
-
-    registerShortcut() {
-        document.addEventListener('keydown', (e) => {
-            // Check for shortcut (Ctrl+Shift+P by default)
-            const modifierKey = this.options.shortcutModifier.includes('ctrl') && e.ctrlKey ||
-                               this.options.shortcutModifier.includes('shift') && e.shiftKey ||
-                               this.options.shortcutModifier.includes('alt') && e.altKey ||
-                               this.options.shortcutModifier.includes('meta') && e.metaKey;
-                               
-            const mainKey = e.key.toLowerCase() === this.options.shortcutKey.toLowerCase();
+    
+    /**
+     * Add command palette styles to the document
+     */
+    addStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .command-palette-container {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 10000;
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+            }
             
-            if (modifierKey && mainKey) {
-                e.preventDefault();
-                this.toggle();
+            .command-palette-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                backdrop-filter: blur(3px);
             }
             
-            // ESC to close
-            if (e.key === 'Escape' && this.isVisible) {
-                e.preventDefault();
-                this.hide();
+            .command-palette-content {
+                position: relative;
+                width: 600px;
+                max-width: 90%;
+                margin-top: 80px;
+                background-color: #1e1e1e;
+                border-radius: 8px;
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                animation: commandPaletteSlideDown 0.2s ease-out;
             }
-        });
+            
+            @keyframes commandPaletteSlideDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .command-palette-search {
+                display: flex;
+                align-items: center;
+                padding: 15px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .command-palette-search-icon {
+                color: #6c757d;
+                margin-right: 10px;
+            }
+            
+            .command-palette-input {
+                flex: 1;
+                background: none;
+                border: none;
+                color: #f8f9fa;
+                font-size: 1rem;
+                outline: none;
+            }
+            
+            .command-palette-input::placeholder {
+                color: #6c757d;
+            }
+            
+            .command-palette-results {
+                max-height: 400px;
+                overflow-y: auto;
+            }
+            
+            .command-palette-category {
+                font-size: 0.8rem;
+                color: #6c757d;
+                padding: 5px 15px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-top: 10px;
+            }
+            
+            .command-palette-item {
+                display: flex;
+                align-items: center;
+                padding: 10px 15px;
+                cursor: pointer;
+                transition: background-color 0.1s;
+            }
+            
+            .command-palette-item:hover, .command-palette-item.selected {
+                background-color: rgba(13, 110, 253, 0.15);
+            }
+            
+            .command-palette-item-icon {
+                width: 20px;
+                height: 20px;
+                margin-right: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #adb5bd;
+            }
+            
+            .command-palette-item-text {
+                flex: 1;
+            }
+            
+            .command-palette-item-title {
+                font-size: 0.95rem;
+                color: #f8f9fa;
+                margin: 0;
+            }
+            
+            .command-palette-item-desc {
+                font-size: 0.8rem;
+                color: #adb5bd;
+                margin: 0;
+            }
+            
+            .command-palette-item-shortcut {
+                display: flex;
+                gap: 5px;
+            }
+            
+            .command-palette-item-shortcut kbd {
+                background-color: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 3px;
+                box-shadow: none;
+                color: #adb5bd;
+                font-size: 0.75rem;
+                padding: 2px 5px;
+            }
+            
+            .command-palette-footer {
+                padding: 10px 15px;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .command-palette-hints {
+                display: flex;
+                gap: 15px;
+                color: #6c757d;
+                font-size: 0.85rem;
+            }
+            
+            .command-palette-hints kbd {
+                background-color: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 3px;
+                box-shadow: none;
+                color: #adb5bd;
+                font-size: 0.7rem;
+                padding: 2px 4px;
+                margin: 0 2px;
+            }
+            
+            .command-palette-match {
+                color: #0d6efd;
+                font-weight: bold;
+            }
+            
+            .command-palette-badge {
+                font-size: 0.7rem;
+                padding: 2px 6px;
+                border-radius: 10px;
+                margin-left: 8px;
+                background-color: rgba(25, 135, 84, 0.2);
+                color: #20c997;
+            }
+            
+            .command-palette-badge.warning {
+                background-color: rgba(255, 193, 7, 0.2);
+                color: #ffc107;
+            }
+            
+            .command-palette-badge.danger {
+                background-color: rgba(220, 53, 69, 0.2);
+                color: #dc3545;
+            }
+            
+            .command-palette-no-results {
+                padding: 30px 15px;
+                text-align: center;
+                color: #6c757d;
+            }
+            
+            /* Scrollbar Styles */
+            .command-palette-results::-webkit-scrollbar {
+                width: 6px;
+            }
+            
+            .command-palette-results::-webkit-scrollbar-track {
+                background: rgba(255, 255, 255, 0.05);
+            }
+            
+            .command-palette-results::-webkit-scrollbar-thumb {
+                background-color: rgba(255, 255, 255, 0.15);
+                border-radius: 3px;
+            }
+            
+            .command-palette-results::-webkit-scrollbar-thumb:hover {
+                background-color: rgba(255, 255, 255, 0.25);
+            }
+        `;
+        document.head.appendChild(style);
     }
-
-    registerCommand(command) {
-        if (!command.id || !command.title || !command.handler) {
-            console.error('Command must have id, title, and handler properties');
-            return;
-        }
-        
-        // Add to commands list
-        this.commands.push(command);
-    }
-
-    registerDefaultCommands() {
+    
+    /**
+     * Initialize the command palette with available commands
+     */
+    initializeCommandPalette() {
         // Navigation commands
-        this.registerCommand({
-            id: 'navigate-home',
-            title: 'Navigate to Home',
-            description: 'Go to the home page',
-            icon: 'fas fa-home',
-            shortcut: 'Alt+H',
-            category: 'navigation',
-            handler: () => window.location.href = '/'
-        });
-        
-        this.registerCommand({
-            id: 'navigate-dashboard',
-            title: 'Open Dashboard',
-            description: 'Go to the analytics dashboard',
-            icon: 'fas fa-chart-line',
-            shortcut: 'Alt+D',
-            category: 'navigation',
-            handler: () => window.location.href = '/dashboard'
-        });
-        
-        this.registerCommand({
-            id: 'navigate-training',
-            title: 'Open Training',
-            description: 'Go to the training interface',
-            icon: 'fas fa-graduation-cap',
-            shortcut: 'Alt+T',
-            category: 'navigation',
-            handler: () => window.location.href = '/training'
-        });
-        
-        this.registerCommand({
-            id: 'navigate-memory',
-            title: 'Open Memory Explorer',
-            description: 'Go to the memory exploration interface',
-            icon: 'fas fa-brain',
-            shortcut: 'Alt+M',
-            category: 'navigation',
-            handler: () => window.location.href = '/memory'
-        });
-        
-        // UI commands
-        this.registerCommand({
-            id: 'toggle-dock',
-            title: 'Toggle Dock Panel',
-            description: 'Show or hide the dock panel',
-            icon: 'fas fa-columns',
-            shortcut: 'Alt+1',
-            category: 'ui',
-            handler: () => {
-                const dockBtn = document.getElementById('toggleDockBtn');
-                if (dockBtn) dockBtn.click();
+        this.registerCommands([
+            {
+                id: 'home',
+                title: 'Go to Home',
+                description: 'Navigate to the home page',
+                category: 'Navigation',
+                icon: 'fas fa-home',
+                shortcut: ['g', 'h'],
+                action: () => window.location.href = '/'
+            },
+            {
+                id: 'terminal',
+                title: 'Open Terminal',
+                description: 'Navigate to the terminal interface',
+                category: 'Navigation',
+                icon: 'fas fa-terminal',
+                shortcut: ['g', 't'],
+                action: () => window.location.href = '/terminal'
+            },
+            {
+                id: 'memory',
+                title: 'Open Memory Explorer',
+                description: 'Navigate to the memory explorer',
+                category: 'Navigation',
+                icon: 'fas fa-brain',
+                shortcut: ['g', 'm'],
+                action: () => window.location.href = '/memory'
+            },
+            {
+                id: 'platforms',
+                title: 'Manage AI Platforms',
+                description: 'Navigate to AI platforms configuration',
+                category: 'Navigation',
+                icon: 'fas fa-robot',
+                shortcut: ['g', 'p'],
+                action: () => window.location.href = '/platforms'
+            },
+            {
+                id: 'settings',
+                title: 'Open Settings',
+                description: 'Navigate to system settings',
+                category: 'Navigation',
+                icon: 'fas fa-cog',
+                shortcut: ['g', 's'],
+                action: () => window.location.href = '/settings'
             }
-        });
-        
-        this.registerCommand({
-            id: 'toggle-theme',
-            title: 'Toggle Dark/Light Theme',
-            description: 'Switch between dark and light theme',
-            icon: 'fas fa-moon',
-            shortcut: 'Alt+L',
-            category: 'ui',
-            handler: () => {
-                const theme = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-                document.documentElement.setAttribute('data-bs-theme', theme);
-                // Store preference
-                localStorage.setItem('theme-preference', theme);
-                
-                // Show notification
-                if (window.showNotification) {
-                    window.showNotification('info', `Theme changed to ${theme} mode`);
-                }
-            }
-        });
-        
-        this.registerCommand({
-            id: 'fullscreen-toggle',
-            title: 'Toggle Fullscreen',
-            description: 'Enter or exit fullscreen mode',
-            icon: 'fas fa-expand',
-            shortcut: 'F11',
-            category: 'ui',
-            handler: () => {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen();
-                } else {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    }
-                }
-            }
-        });
+        ]);
         
         // Training commands
-        this.registerCommand({
-            id: 'start-training',
-            title: 'Start New Training Session',
-            description: 'Begin a new AI training session',
-            icon: 'fas fa-play',
-            shortcut: 'Alt+N',
-            category: 'training',
-            handler: () => window.location.href = '/training/new'
-        });
-        
-        this.registerCommand({
-            id: 'view-logs',
-            title: 'View Training Logs',
-            description: 'See logs from previous training sessions',
-            icon: 'fas fa-list',
-            shortcut: 'Alt+L',
-            category: 'training',
-            handler: () => window.location.href = '/logs'
-        });
-        
-        // File operations
-        this.registerCommand({
-            id: 'new-file',
-            title: 'Create New File',
-            description: 'Create a new file in the project',
-            icon: 'fas fa-file-plus',
-            shortcut: 'Alt+F',
-            category: 'file',
-            handler: () => {
-                const newFileBtn = document.getElementById('newFileBtn');
-                if (newFileBtn) newFileBtn.click();
+        this.registerCommands([
+            {
+                id: 'start-training',
+                title: 'Start New Training Session',
+                description: 'Begin a new AI training session',
+                category: 'Training',
+                icon: 'fas fa-play',
+                badge: 'New',
+                action: () => this.startNewTraining()
+            },
+            {
+                id: 'training-status',
+                title: 'View Training Status',
+                description: 'Check the status of current training sessions',
+                category: 'Training',
+                icon: 'fas fa-tasks',
+                action: () => window.location.href = '/training/status'
+            },
+            {
+                id: 'training-insights',
+                title: 'Training Insights',
+                description: 'View analytics and insights from training sessions',
+                category: 'Training',
+                icon: 'fas fa-chart-line',
+                action: () => window.location.href = '/training/insights'
             }
-        });
+        ]);
         
-        this.registerCommand({
-            id: 'new-folder',
-            title: 'Create New Folder',
-            description: 'Create a new folder in the project',
-            icon: 'fas fa-folder-plus',
-            shortcut: 'Alt+G',
-            category: 'file',
-            handler: () => {
-                const newFolderBtn = document.getElementById('newFolderBtn');
-                if (newFolderBtn) newFolderBtn.click();
+        // Memory system commands
+        this.registerCommands([
+            {
+                id: 'search-memory',
+                title: 'Search Memory',
+                description: 'Search across all stored memories',
+                category: 'Memory',
+                icon: 'fas fa-search',
+                action: () => this.openSearchMemory()
+            },
+            {
+                id: 'create-memory',
+                title: 'Create New Memory',
+                description: 'Add a new memory to the system',
+                category: 'Memory',
+                icon: 'fas fa-plus',
+                action: () => window.location.href = '/memory/create'
+            },
+            {
+                id: 'analyze-memory',
+                title: 'Analyze Memory Patterns',
+                description: 'Run pattern analysis on memory system',
+                category: 'Memory',
+                icon: 'fas fa-sitemap',
+                badge: 'AI',
+                action: () => window.location.href = '/memory/analyze'
             }
-        });
+        ]);
         
-        // Brain visualization commands
-        this.registerCommand({
-            id: 'brain-toggle',
-            title: 'Toggle Brain Visualization',
-            description: 'Show or hide the 3D brain visualization',
-            icon: 'fas fa-brain',
-            shortcut: 'Alt+B',
-            category: 'visualization',
-            handler: () => {
-                // This handler will be updated when brain visualization is enabled
-                const brainContainer = document.getElementById('brainVisualizationContainer');
-                if (brainContainer) {
-                    brainContainer.classList.toggle('d-none');
-                    // Show notification
-                    if (window.showNotification) {
-                        const visible = !brainContainer.classList.contains('d-none');
-                        window.showNotification('info', `Brain visualization ${visible ? 'shown' : 'hidden'}`);
-                    }
-                } else {
-                    // Show notification that visualization isn't available
-                    if (window.showNotification) {
-                        window.showNotification('warning', 'Brain visualization not available on this page');
-                    }
-                }
+        // AI commands
+        this.registerCommands([
+            {
+                id: 'chat-with-agent',
+                title: 'Chat with Agent',
+                description: 'Start a conversation with the AI agent',
+                category: 'AI',
+                icon: 'fas fa-comment-alt',
+                action: () => window.location.href = '/chat'
+            },
+            {
+                id: 'api-console',
+                title: 'Open API Console',
+                description: 'Test AI integrations and APIs',
+                category: 'AI',
+                icon: 'fas fa-terminal',
+                action: () => window.location.href = '/api/console'
+            },
+            {
+                id: 'ai-settings',
+                title: 'AI Settings',
+                description: 'Configure AI behavior and preferences',
+                category: 'AI',
+                icon: 'fas fa-sliders-h',
+                action: () => window.location.href = '/ai/settings'
             }
-        });
+        ]);
         
-        // Agent commands
-        this.registerCommand({
-            id: 'agent-new-project',
-            title: 'Create New Agent Project',
-            description: 'Have the agent create a new project',
-            icon: 'fas fa-robot',
-            shortcut: 'Alt+P',
-            category: 'agent',
-            handler: () => {
-                const newProjectBtn = document.getElementById('newProjectBtn');
-                if (newProjectBtn) newProjectBtn.click();
+        // System commands
+        this.registerCommands([
+            {
+                id: 'theme-toggle',
+                title: 'Toggle Dark/Light Theme',
+                description: 'Switch between dark and light themes',
+                category: 'System',
+                icon: 'fas fa-moon',
+                action: () => this.toggleTheme()
+            },
+            {
+                id: 'clear-cache',
+                title: 'Clear System Cache',
+                description: 'Clear cached data and refresh the system',
+                category: 'System',
+                icon: 'fas fa-trash',
+                badge: { text: 'Caution', type: 'warning' },
+                action: () => this.clearCache()
+            },
+            {
+                id: 'system-diagnostics',
+                title: 'Run System Diagnostics',
+                description: 'Check system health and performance',
+                category: 'System',
+                icon: 'fas fa-heartbeat',
+                action: () => window.location.href = '/diagnostics'
+            },
+            {
+                id: 'show-logs',
+                title: 'View System Logs',
+                description: 'View logs for debugging and monitoring',
+                category: 'System',
+                icon: 'fas fa-file-alt',
+                action: () => window.location.href = '/logs'
+            },
+            {
+                id: 'reload-app',
+                title: 'Reload Application',
+                description: 'Refresh the application state',
+                category: 'System',
+                icon: 'fas fa-sync',
+                action: () => window.location.reload()
             }
-        });
+        ]);
         
-        // Run application command
-        this.registerCommand({
-            id: 'run-application',
-            title: 'Run Application',
-            description: 'Start or restart the application',
-            icon: 'fas fa-play',
-            shortcut: 'Alt+R',
-            category: 'development',
-            handler: () => {
-                const runButton = document.getElementById('runButton');
-                if (runButton) runButton.click();
+        // User commands
+        this.registerCommands([
+            {
+                id: 'user-profile',
+                title: 'Edit User Profile',
+                description: 'View and edit your user profile',
+                category: 'User',
+                icon: 'fas fa-user',
+                action: () => window.location.href = '/profile'
+            },
+            {
+                id: 'user-preferences',
+                title: 'User Preferences',
+                description: 'Customize your user experience',
+                category: 'User',
+                icon: 'fas fa-user-cog',
+                action: () => window.location.href = '/preferences'
             }
-        });
+        ]);
         
-        // Help command
-        this.registerCommand({
-            id: 'show-help',
-            title: 'Show Help',
-            description: 'Display help information and keyboard shortcuts',
-            icon: 'fas fa-question-circle',
-            shortcut: 'F1',
-            category: 'help',
-            handler: () => {
-                // Show help modal or navigate to help page
-                const helpModal = new bootstrap.Modal(document.getElementById('helpModal'));
-                if (helpModal) {
-                    helpModal.show();
-                } else {
-                    window.location.href = '/help';
-                }
+        // Development tools
+        this.registerCommands([
+            {
+                id: 'code-editor',
+                title: 'Open Code Editor',
+                description: 'Launch the code editor interface',
+                category: 'Development',
+                icon: 'fas fa-code',
+                badge: 'New',
+                action: () => window.location.href = '/editor'
+            },
+            {
+                id: 'documentation',
+                title: 'View Documentation',
+                description: 'Open the system documentation',
+                category: 'Development',
+                icon: 'fas fa-book',
+                action: () => window.location.href = '/docs'
+            },
+            {
+                id: 'preview-mode',
+                title: 'Toggle Preview Mode',
+                description: 'Enable or disable preview mode',
+                category: 'Development',
+                icon: 'fas fa-eye',
+                action: () => this.togglePreviewMode()
             }
-        });
+        ]);
+        
+        // Meta commands
+        this.registerCommands([
+            {
+                id: 'help',
+                title: 'Help & Documentation',
+                description: 'View help resources and documentation',
+                category: 'Help',
+                icon: 'fas fa-question-circle',
+                action: () => window.location.href = '/help'
+            },
+            {
+                id: 'keyboard-shortcuts',
+                title: 'Keyboard Shortcuts',
+                description: 'View all available keyboard shortcuts',
+                category: 'Help',
+                icon: 'fas fa-keyboard',
+                action: () => window.location.href = '/shortcuts'
+            },
+            {
+                id: 'contact-support',
+                title: 'Contact Support',
+                description: 'Get help from the support team',
+                category: 'Help',
+                icon: 'fas fa-life-ring',
+                action: () => window.location.href = '/support'
+            }
+        ]);
     }
-
-    show() {
-        if (this.isVisible) return;
-        
-        // Show the palette
-        this.element.classList.add('visible');
-        this.isVisible = true;
-        
-        // Clear and focus input
-        this.input.value = '';
-        setTimeout(() => this.input.focus(), 10);
-        
-        // Update results (show all commands initially)
-        this.updateResults();
+    
+    /**
+     * Register a new command or array of commands
+     * @param {Object|Array} commands - Command object or array of command objects
+     */
+    registerCommands(commands) {
+        if (Array.isArray(commands)) {
+            this.commands = [...this.commands, ...commands];
+        } else {
+            this.commands.push(commands);
+        }
     }
-
-    hide() {
-        if (!this.isVisible) return;
-        
-        this.element.classList.remove('visible');
-        this.isVisible = false;
-        
-        // Clear input and results
-        this.input.value = '';
-        this.resultsContainer.innerHTML = '';
-        this.selectedIndex = -1;
-    }
-
+    
+    /**
+     * Toggle the command palette visibility
+     */
     toggle() {
-        if (this.isVisible) {
+        if (this.isOpen) {
             this.hide();
         } else {
             this.show();
         }
     }
-
-    updateResults() {
-        const query = this.input.value.trim().toLowerCase();
-        let results;
+    
+    /**
+     * Show the command palette
+     */
+    show() {
+        if (this.isOpen) return;
         
-        if (!query) {
-            // Show all commands, grouped by category
-            results = this.groupCommandsByCategory(this.commands);
-        } else if (this.options.enableNaturalLanguage && this.isNaturalLanguageQuery(query)) {
-            // Process as natural language
-            results = this.processNaturalLanguage(query);
-        } else {
-            // Regular search
-            results = this.commands.filter(cmd => {
-                // Match against title, description or category
-                return cmd.title.toLowerCase().includes(query) ||
-                       (cmd.description && cmd.description.toLowerCase().includes(query)) ||
-                       (cmd.category && cmd.category.toLowerCase().includes(query));
-            }).slice(0, this.options.maxResults);
+        this.container.style.display = 'flex';
+        this.isOpen = true;
+        
+        // Reset state
+        this.searchTerm = '';
+        this.searchInput.value = '';
+        this.selectedIndex = 0;
+        
+        // Focus the search input
+        setTimeout(() => {
+            this.searchInput.focus();
+            this.handleSearch();
+        }, 50);
+    }
+    
+    /**
+     * Hide the command palette
+     */
+    hide() {
+        this.container.style.display = 'none';
+        this.isOpen = false;
+    }
+    
+    /**
+     * Handle search input changes
+     */
+    handleSearch() {
+        this.searchTerm = this.searchInput.value.trim().toLowerCase();
+        this.filterCommands();
+        this.renderResults();
+    }
+    
+    /**
+     * Filter commands based on search term
+     */
+    filterCommands() {
+        if (!this.searchTerm) {
+            // Show recent commands first, then all commands
+            const recentCommandIds = new Set(this.recentCommands);
+            const recentCommands = this.commands.filter(cmd => recentCommandIds.has(cmd.id));
+            const otherCommands = this.commands.filter(cmd => !recentCommandIds.has(cmd.id));
+            this.filteredCommands = [...recentCommands, ...otherCommands];
+            return;
         }
         
-        this.renderResults(results);
-    }
-
-    groupCommandsByCategory(commands) {
-        // Get unique categories
-        const categories = [...new Set(commands.map(cmd => cmd.category || 'other'))];
+        const searchParts = this.searchTerm.split(' ');
         
-        // Sort categories
-        const categoryOrder = ['navigation', 'ui', 'training', 'file', 'agent', 'development', 'visualization', 'help', 'other'];
-        categories.sort((a, b) => {
-            const indexA = categoryOrder.indexOf(a);
-            const indexB = categoryOrder.indexOf(b);
-            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
+        // Filter commands by search term
+        this.filteredCommands = this.commands.filter(command => {
+            const titleMatch = command.title.toLowerCase().includes(this.searchTerm);
+            const descMatch = command.description.toLowerCase().includes(this.searchTerm);
+            const categoryMatch = command.category.toLowerCase().includes(this.searchTerm);
+            
+            // Check if all parts of the search query match
+            const allPartsMatch = searchParts.every(part => 
+                command.title.toLowerCase().includes(part) || 
+                command.description.toLowerCase().includes(part) ||
+                command.category.toLowerCase().includes(part)
+            );
+            
+            return titleMatch || descMatch || categoryMatch || allPartsMatch;
         });
         
-        // Group commands
-        const grouped = {};
-        categories.forEach(category => {
-            grouped[category] = commands.filter(cmd => (cmd.category || 'other') === category);
+        // Sort by relevance
+        this.filteredCommands.sort((a, b) => {
+            // Exact title matches come first
+            const aExactTitle = a.title.toLowerCase() === this.searchTerm;
+            const bExactTitle = b.title.toLowerCase() === this.searchTerm;
+            
+            if (aExactTitle && !bExactTitle) return -1;
+            if (!aExactTitle && bExactTitle) return 1;
+            
+            // Then title starts with search term
+            const aStartsWithTitle = a.title.toLowerCase().startsWith(this.searchTerm);
+            const bStartsWithTitle = b.title.toLowerCase().startsWith(this.searchTerm);
+            
+            if (aStartsWithTitle && !bStartsWithTitle) return -1;
+            if (!aStartsWithTitle && bStartsWithTitle) return 1;
+            
+            // Then check if in recent commands
+            const aIsRecent = this.recentCommands.includes(a.id);
+            const bIsRecent = this.recentCommands.includes(b.id);
+            
+            if (aIsRecent && !bIsRecent) return -1;
+            if (!aIsRecent && bIsRecent) return 1;
+            
+            // Default to alphabetical
+            return a.title.localeCompare(b.title);
         });
         
-        // Flatten but keep category headers
-        const results = [];
-        categories.forEach(category => {
-            if (grouped[category].length === 0) return;
-            
-            // Add category header
-            results.push({
-                isHeader: true,
-                category: category,
-                title: this.formatCategoryName(category)
-            });
-            
-            // Add commands in this category
-            results.push(...grouped[category]);
-        });
-        
-        return results;
+        this.selectedIndex = 0;
     }
-
-    formatCategoryName(category) {
-        return category.charAt(0).toUpperCase() + category.slice(1);
-    }
-
-    isNaturalLanguageQuery(query) {
-        // Check if query looks like natural language
-        // Simple heuristic: contains a verb or has multiple words with articles
-        const verbs = ['show', 'open', 'go', 'navigate', 'create', 'make', 'start', 'run', 'toggle', 'display'];
-        const hasVerb = verbs.some(verb => query.includes(verb));
-        
-        const hasArticle = ['the', 'a', 'an'].some(article => query.includes(` ${article} `));
-        
-        return hasVerb || hasArticle || query.split(' ').length > 3;
-    }
-
-    processNaturalLanguage(query) {
-        // This is a simplified NLP processor
-        // In a real implementation, you'd use a more sophisticated approach
-        
-        // Extract key terms
-        const words = query.split(/\s+/);
-        
-        // Action words map to command categories
-        const actionMap = {
-            'show': ['ui', 'visualization'],
-            'view': ['ui', 'visualization'],
-            'display': ['ui', 'visualization'],
-            'open': ['navigation', 'file'],
-            'go': ['navigation'],
-            'navigate': ['navigation'],
-            'create': ['file', 'agent'],
-            'new': ['file', 'agent'],
-            'make': ['file', 'agent'],
-            'start': ['training', 'development'],
-            'run': ['development'],
-            'toggle': ['ui'],
-            'switch': ['ui'],
-            'help': ['help'],
-            'file': ['file'],
-            'folder': ['file'],
-            'brain': ['visualization'],
-            'train': ['training'],
-            'agent': ['agent'],
-            'project': ['agent', 'file'],
-            'theme': ['ui']
-        };
-        
-        // Score each command based on term matches
-        const scoredCommands = this.commands.map(cmd => {
-            let score = 0;
-            
-            // Check each word in the query
-            words.forEach(word => {
-                // Direct matches in command properties
-                if (cmd.title.toLowerCase().includes(word)) score += 10;
-                if (cmd.description && cmd.description.toLowerCase().includes(word)) score += 5;
-                if (cmd.category && cmd.category.toLowerCase().includes(word)) score += 3;
-                
-                // Check if word is an action word that maps to this command's category
-                const categories = actionMap[word] || [];
-                if (categories.includes(cmd.category)) score += 7;
-            });
-            
-            return { command: cmd, score };
-        });
-        
-        // Sort by score and get top results
-        const sortedCommands = scoredCommands
-            .filter(item => item.score > 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, this.options.maxResults)
-            .map(item => item.command);
-            
-        // If no results, return empty array
-        if (sortedCommands.length === 0) {
-            return [{
-                isHeader: true,
-                category: 'no-results',
-                title: 'No matching commands found'
-            }];
-        }
-            
-        return sortedCommands;
-    }
-
-    renderResults(results) {
-        // Clear previous results
+    
+    /**
+     * Render filtered results to the UI
+     */
+    renderResults() {
         this.resultsContainer.innerHTML = '';
         
-        // Create and append result elements
-        results.forEach((result, index) => {
-            if (result.isHeader) {
-                // Category header
-                const header = document.createElement('div');
-                header.className = 'command-category-header';
-                header.textContent = result.title;
-                this.resultsContainer.appendChild(header);
-                return;
+        if (this.filteredCommands.length === 0) {
+            const noResults = document.createElement('div');
+            noResults.className = 'command-palette-no-results';
+            noResults.innerHTML = `
+                <i class="fas fa-search-minus mb-3 fa-2x"></i>
+                <div>No commands found matching "${this.searchTerm}"</div>
+            `;
+            this.resultsContainer.appendChild(noResults);
+            return;
+        }
+        
+        // Group commands by category
+        const commandsByCategory = {};
+        
+        if (!this.searchTerm && this.recentCommands.length > 0) {
+            // Add recent commands category if showing all commands
+            commandsByCategory['Recent'] = this.filteredCommands.filter(
+                cmd => this.recentCommands.includes(cmd.id)
+            ).slice(0, this.maxRecentCommands);
+        }
+        
+        // Group remaining commands by their categories
+        this.filteredCommands.forEach(command => {
+            if (
+                !this.searchTerm && 
+                this.recentCommands.includes(command.id) && 
+                commandsByCategory['Recent']?.some(c => c.id === command.id)
+            ) {
+                return; // Skip if already in recent category
             }
             
-            const resultElement = document.createElement('div');
-            resultElement.className = 'command-result';
-            resultElement.dataset.index = index;
-            
-            // Icon
-            const iconElement = document.createElement('div');
-            iconElement.className = 'command-icon';
-            
-            const icon = document.createElement('i');
-            icon.className = result.icon || 'fas fa-terminal';
-            iconElement.appendChild(icon);
-            
-            // Details
-            const detailsElement = document.createElement('div');
-            detailsElement.className = 'command-details';
-            
-            const titleElement = document.createElement('div');
-            titleElement.className = 'command-title';
-            titleElement.textContent = result.title;
-            detailsElement.appendChild(titleElement);
-            
-            if (result.description) {
-                const descriptionElement = document.createElement('div');
-                descriptionElement.className = 'command-description';
-                descriptionElement.textContent = result.description;
-                detailsElement.appendChild(descriptionElement);
+            if (!commandsByCategory[command.category]) {
+                commandsByCategory[command.category] = [];
             }
-            
-            // Shortcut
-            let shortcutElement = null;
-            if (result.shortcut) {
-                shortcutElement = document.createElement('div');
-                shortcutElement.className = 'command-shortcut';
-                shortcutElement.textContent = result.shortcut;
-            }
-            
-            // Assemble
-            resultElement.appendChild(iconElement);
-            resultElement.appendChild(detailsElement);
-            if (shortcutElement) {
-                resultElement.appendChild(shortcutElement);
-            }
-            
-            // Add click handler
-            resultElement.addEventListener('click', () => {
-                this.executeCommand(result);
-            });
-            
-            this.resultsContainer.appendChild(resultElement);
+            commandsByCategory[command.category].push(command);
         });
         
-        // Reset selection
-        this.selectedIndex = -1;
+        // Render each category
+        Object.keys(commandsByCategory).forEach(category => {
+            const commands = commandsByCategory[category];
+            if (commands.length === 0) return;
+            
+            // Create category header
+            const categoryEl = document.createElement('div');
+            categoryEl.className = 'command-palette-category';
+            categoryEl.textContent = category;
+            this.resultsContainer.appendChild(categoryEl);
+            
+            // Create command items
+            commands.forEach(command => {
+                const item = this.createCommandItem(command);
+                this.resultsContainer.appendChild(item);
+            });
+        });
+        
+        // Highlight first item
+        this.highlightItem(this.selectedIndex);
     }
-
-    handleKeydown(e) {
-        if (!this.isVisible) return;
+    
+    /**
+     * Create a command item element
+     * @param {Object} command - Command object
+     * @returns {HTMLElement} Command item element
+     */
+    createCommandItem(command) {
+        const item = document.createElement('div');
+        item.className = 'command-palette-item';
+        item.dataset.id = command.id;
         
-        const resultElements = this.resultsContainer.querySelectorAll('.command-result');
+        // Highlight matching text if search term exists
+        let title = command.title;
+        let description = command.description;
         
-        switch (e.key) {
-            case 'ArrowDown':
-                e.preventDefault();
-                this.selectedIndex = Math.min(this.selectedIndex + 1, resultElements.length - 1);
-                this.updateSelection();
-                break;
-                
-            case 'ArrowUp':
-                e.preventDefault();
-                this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
-                this.updateSelection();
-                break;
-                
-            case 'Enter':
-                e.preventDefault();
-                if (this.selectedIndex >= 0 && this.selectedIndex < resultElements.length) {
-                    const selectedResult = resultElements[this.selectedIndex];
-                    const commandIndex = parseInt(selectedResult.dataset.index, 10);
-                    const command = this.commands[commandIndex];
-                    if (command) {
-                        this.executeCommand(command);
-                    }
-                }
-                break;
+        if (this.searchTerm) {
+            const regex = new RegExp(`(${this.searchTerm.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+            title = command.title.replace(regex, '<span class="command-palette-match">$1</span>');
+            description = command.description.replace(regex, '<span class="command-palette-match">$1</span>');
+        }
+        
+        // Add badge if present
+        let badgeHtml = '';
+        if (command.badge) {
+            if (typeof command.badge === 'string') {
+                badgeHtml = `<span class="command-palette-badge">${command.badge}</span>`;
+            } else {
+                badgeHtml = `<span class="command-palette-badge ${command.badge.type}">${command.badge.text}</span>`;
+            }
+        }
+        
+        // Add shortcut if present
+        let shortcutHtml = '';
+        if (command.shortcut) {
+            shortcutHtml = `
+                <div class="command-palette-item-shortcut">
+                    ${command.shortcut.map(key => `<kbd>${key}</kbd>`).join('')}
+                </div>
+            `;
+        }
+        
+        item.innerHTML = `
+            <div class="command-palette-item-icon">
+                <i class="${command.icon}"></i>
+            </div>
+            <div class="command-palette-item-text">
+                <div class="command-palette-item-title">${title}${badgeHtml}</div>
+                <div class="command-palette-item-desc">${description}</div>
+            </div>
+            ${shortcutHtml}
+        `;
+        
+        // Add click event
+        item.addEventListener('click', () => {
+            this.executeCommand(command);
+        });
+        
+        // Add mouseover event
+        item.addEventListener('mouseover', () => {
+            const newIndex = Array.from(this.resultsContainer.querySelectorAll('.command-palette-item'))
+                .findIndex(el => el === item);
+            if (newIndex !== -1) {
+                this.selectedIndex = newIndex;
+                this.highlightItem(this.selectedIndex);
+            }
+        });
+        
+        return item;
+    }
+    
+    /**
+     * Highlight a command item by index
+     * @param {number} index - Index of the item to highlight
+     */
+    highlightItem(index) {
+        const items = this.resultsContainer.querySelectorAll('.command-palette-item');
+        
+        // Remove highlighting from all items
+        items.forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        // Add highlighting to selected item
+        if (items.length > 0 && index >= 0 && index < items.length) {
+            items[index].classList.add('selected');
+            
+            // Scroll into view if needed
+            const container = this.resultsContainer;
+            const item = items[index];
+            
+            const containerRect = container.getBoundingClientRect();
+            const itemRect = item.getBoundingClientRect();
+            
+            if (itemRect.bottom > containerRect.bottom) {
+                container.scrollTop += itemRect.bottom - containerRect.bottom;
+            } else if (itemRect.top < containerRect.top) {
+                container.scrollTop -= containerRect.top - itemRect.top;
+            }
         }
     }
-
-    updateSelection() {
-        const resultElements = this.resultsContainer.querySelectorAll('.command-result');
-        resultElements.forEach((el, index) => {
-            if (index === this.selectedIndex) {
-                el.classList.add('selected');
-                // Scroll into view if needed
-                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            } else {
-                el.classList.remove('selected');
-            }
-        });
-    }
-
-    executeCommand(command) {
-        // Hide the palette
-        this.hide();
+    
+    /**
+     * Handle keyboard navigation in the command palette
+     * @param {KeyboardEvent} e - Keyboard event
+     */
+    handleInputKeyDown(e) {
+        const items = this.resultsContainer.querySelectorAll('.command-palette-item');
         
-        // Execute the command
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            this.selectedIndex = (this.selectedIndex + 1) % items.length;
+            this.highlightItem(this.selectedIndex);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            this.selectedIndex = (this.selectedIndex - 1 + items.length) % items.length;
+            this.highlightItem(this.selectedIndex);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            
+            if (items.length > 0 && this.selectedIndex >= 0 && this.selectedIndex < items.length) {
+                const selectedItem = items[this.selectedIndex];
+                const commandId = selectedItem.dataset.id;
+                const command = this.filteredCommands.find(cmd => cmd.id === commandId);
+                
+                if (command) {
+                    this.executeCommand(command);
+                }
+            }
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            this.hide();
+        }
+    }
+    
+    /**
+     * Execute a command and handle the result
+     * @param {Object} command - Command object to execute
+     */
+    executeCommand(command) {
         try {
-            command.handler(this.context);
+            // Hide the command palette
+            this.hide();
+            
+            // Add to recent commands
+            this.addToRecentCommands(command.id);
+            
+            // Add to command history
+            this.addToCommandHistory(command);
+            
+            // Execute the command
+            if (typeof command.action === 'function') {
+                command.action();
+            }
         } catch (error) {
             console.error('Error executing command:', error);
-            
-            // Show error notification
-            if (window.showNotification) {
-                window.showNotification('error', `Error executing command: ${error.message}`);
-            }
+            alert(`Error executing command: ${error.message}`);
         }
     }
-
-    // Update context with current system state
-    updateContext(contextUpdates) {
-        this.context = { ...this.context, ...contextUpdates };
+    
+    /**
+     * Add a command to recent commands
+     * @param {string} commandId - ID of the command to add
+     */
+    addToRecentCommands(commandId) {
+        // Remove if already in recent commands
+        this.recentCommands = this.recentCommands.filter(id => id !== commandId);
+        
+        // Add to front
+        this.recentCommands.unshift(commandId);
+        
+        // Limit to max recent commands
+        if (this.recentCommands.length > this.maxRecentCommands) {
+            this.recentCommands = this.recentCommands.slice(0, this.maxRecentCommands);
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('synapseCommandPaletteRecent', JSON.stringify(this.recentCommands));
+    }
+    
+    /**
+     * Add a command to command history
+     * @param {Object} command - Command object to add to history
+     */
+    addToCommandHistory(command) {
+        const timestamp = new Date().toISOString();
+        
+        this.commandHistory.unshift({
+            id: command.id,
+            title: command.title,
+            category: command.category,
+            timestamp
+        });
+        
+        // Limit history size
+        if (this.commandHistory.length > this.maxHistory) {
+            this.commandHistory = this.commandHistory.slice(0, this.maxHistory);
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('synapseCommandPaletteHistory', JSON.stringify(this.commandHistory));
+    }
+    
+    /**
+     * Load user preferences from localStorage
+     */
+    loadUserPreferences() {
+        // Load recent commands
+        try {
+            const recentCommandsJson = localStorage.getItem('synapseCommandPaletteRecent');
+            if (recentCommandsJson) {
+                this.recentCommands = JSON.parse(recentCommandsJson);
+            }
+        } catch (error) {
+            console.error('Error loading recent commands:', error);
+            this.recentCommands = [];
+        }
+    }
+    
+    /**
+     * Load command history from localStorage
+     */
+    loadCommandHistory() {
+        try {
+            const historyJson = localStorage.getItem('synapseCommandPaletteHistory');
+            if (historyJson) {
+                this.commandHistory = JSON.parse(historyJson);
+            }
+        } catch (error) {
+            console.error('Error loading command history:', error);
+            this.commandHistory = [];
+        }
+    }
+    
+    /**
+     * Handle global keyboard shortcut to open command palette
+     * @param {KeyboardEvent} e - Keyboard event
+     */
+    handleKeyDown(e) {
+        // Ctrl+K or Cmd+K to open command palette
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            this.toggle();
+        }
+        
+        // Handle command category shortcuts when palette is closed
+        if (!this.isOpen && e.key === 'g' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            // Start the shortcut sequence
+            this.shortcutTimeout = setTimeout(() => {
+                this.activeShortcut = null;
+            }, 1500);
+            
+            this.activeShortcut = 'g';
+        } else if (this.activeShortcut === 'g') {
+            clearTimeout(this.shortcutTimeout);
+            
+            // Check for valid navigation shortcuts
+            const targetCommands = {
+                'h': 'home',
+                't': 'terminal',
+                'm': 'memory',
+                'p': 'platforms',
+                's': 'settings'
+            };
+            
+            if (targetCommands[e.key]) {
+                const commandId = targetCommands[e.key];
+                const command = this.commands.find(cmd => cmd.id === commandId);
+                
+                if (command) {
+                    this.executeCommand(command);
+                }
+            }
+            
+            this.activeShortcut = null;
+        }
+    }
+    
+    /**
+     * Toggle between light and dark theme
+     */
+    toggleTheme() {
+        const body = document.body;
+        if (body.getAttribute('data-bs-theme') === 'light') {
+            body.setAttribute('data-bs-theme', 'dark');
+            localStorage.setItem('synapseTheme', 'dark');
+        } else {
+            body.setAttribute('data-bs-theme', 'light');
+            localStorage.setItem('synapseTheme', 'light');
+        }
+    }
+    
+    /**
+     * Clear system cache
+     */
+    clearCache() {
+        if (confirm('Are you sure you want to clear the system cache? This will refresh the page.')) {
+            localStorage.removeItem('synapseCommandPaletteRecent');
+            localStorage.removeItem('synapseCommandPaletteHistory');
+            
+            // Clear other cache items
+            const cacheKeys = Object.keys(localStorage).filter(key => 
+                key.startsWith('synapse') && 
+                key !== 'synapseTheme'
+            );
+            
+            cacheKeys.forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            // Reload page
+            window.location.reload();
+        }
+    }
+    
+    /**
+     * Open search memory interface
+     */
+    openSearchMemory() {
+        const searchTerm = prompt('Enter search term to find in memory system:');
+        if (searchTerm) {
+            window.location.href = `/memory/search?q=${encodeURIComponent(searchTerm)}`;
+        }
+    }
+    
+    /**
+     * Start a new training session
+     */
+    startNewTraining() {
+        const confirmed = confirm('Start a new training session? This will open the training configuration interface.');
+        if (confirmed) {
+            window.location.href = '/training/new';
+        }
+    }
+    
+    /**
+     * Toggle preview mode
+     */
+    togglePreviewMode() {
+        const isPreviewMode = localStorage.getItem('synapsePreviewMode') === 'true';
+        localStorage.setItem('synapsePreviewMode', (!isPreviewMode).toString());
+        
+        alert(`Preview mode ${!isPreviewMode ? 'enabled' : 'disabled'}`);
+        window.location.reload();
     }
 }
 
-// Create global command palette instance when document is ready
+// Initialize command palette when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Create command palette instance
-    window.commandPalette = new CommandPalette();
+    window.synapseCommandPalette = new SynapseCommandPalette();
+    
+    // Add UI button for command palette if needed
+    const addCommandButton = () => {
+        const existingButton = document.getElementById('commandPaletteBtn');
+        if (existingButton) return;
+        
+        const button = document.createElement('button');
+        button.id = 'commandPaletteBtn';
+        button.className = 'btn btn-sm btn-dark position-fixed';
+        button.style.bottom = '20px';
+        button.style.right = '20px';
+        button.style.zIndex = '1000';
+        button.style.width = '40px';
+        button.style.height = '40px';
+        button.style.borderRadius = '50%';
+        button.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
+        button.innerHTML = '<i class="fas fa-bolt"></i>';
+        button.title = 'Command Palette (Ctrl+K)';
+        
+        button.addEventListener('click', () => {
+            window.synapseCommandPalette.toggle();
+        });
+        
+        document.body.appendChild(button);
+    };
+    
+    // Wait a bit for other scripts to load
+    setTimeout(addCommandButton, 500);
 });

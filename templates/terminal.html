@@ -1,0 +1,999 @@
+{% extends 'layout.html' %}
+
+{% block title %}Synapse Chamber - Terminal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .terminal-container {
+        background-color: #1e1e1e;
+        color: #f0f0f0;
+        font-family: 'Courier New', monospace;
+        height: 70vh;
+        overflow-y: auto;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .terminal-toolbar {
+        background-color: #333;
+        padding: 8px 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .terminal-toolbar-title {
+        font-size: 0.9rem;
+        color: #ddd;
+    }
+    
+    .terminal-window {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+    }
+    
+    .terminal-prompt {
+        color: #0dcaf0;
+        margin-right: 5px;
+    }
+    
+    .terminal-input-line {
+        display: flex;
+        margin-bottom: 10px;
+    }
+    
+    .terminal-input {
+        background: none;
+        border: none;
+        color: #f0f0f0;
+        font-family: 'Courier New', monospace;
+        font-size: 1rem;
+        flex: 1;
+        outline: none;
+    }
+    
+    .terminal-output {
+        margin-bottom: 10px;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    
+    .terminal-output-success {
+        color: #00ff00;
+    }
+    
+    .terminal-output-error {
+        color: #ff5555;
+    }
+    
+    .terminal-output-warning {
+        color: #ffcc00;
+    }
+    
+    .terminal-history {
+        height: 20vh;
+        overflow-y: auto;
+        background-color: #2c2c2c;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        padding: 10px;
+        margin-top: 15px;
+    }
+    
+    .terminal-history-item {
+        padding: 5px 10px;
+        cursor: pointer;
+        border-radius: 3px;
+    }
+    
+    .terminal-history-item:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .terminal-suggestions {
+        display: none;
+        position: absolute;
+        background-color: #2c2c2c;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+    }
+    
+    .terminal-suggestion-item {
+        padding: 5px 10px;
+        cursor: pointer;
+    }
+    
+    .terminal-suggestion-item:hover,
+    .terminal-suggestion-item.active {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .shortcuts-panel {
+        background-color: #2c2c2c;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        padding: 15px;
+    }
+    
+    .shortcut-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+    
+    .shortcut-keys {
+        display: inline-block;
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3">Synapse Chamber Terminal</h1>
+                <div class="btn-group">
+                    <button id="clearTerminalBtn" class="btn btn-outline-secondary">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                    <button id="saveOutputBtn" class="btn btn-outline-primary">
+                        <i class="fas fa-save"></i> Save Output
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-info dropdown-toggle" type="button" id="terminalOptionsDropdown" data-bs-toggle="dropdown">
+                            <i class="fas fa-cog"></i> Options
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="terminalOptionsDropdown">
+                            <li>
+                                <div class="dropdown-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="enableAutoComplete" checked>
+                                        <label class="form-check-label" for="enableAutoComplete">
+                                            Enable Autocomplete
+                                        </label>
+                                    </div>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="dropdown-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="enableSyntaxHighlighting" checked>
+                                        <label class="form-check-label" for="enableSyntaxHighlighting">
+                                            Enable Syntax Highlighting
+                                        </label>
+                                    </div>
+                                </div>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="#" id="increaseFontSizeBtn">
+                                    <i class="fas fa-plus"></i> Increase Font Size
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#" id="decreaseFontSizeBtn">
+                                    <i class="fas fa-minus"></i> Decrease Font Size
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-md-9">
+            <div class="terminal-container">
+                <div class="terminal-toolbar">
+                    <div class="terminal-toolbar-title">synapse@chamber:~</div>
+                    <div>
+                        <button id="minimizeTerminalBtn" class="btn btn-sm btn-link text-light p-0" title="Minimize">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <button id="maximizeTerminalBtn" class="btn btn-sm btn-link text-light p-0 ms-3" title="Maximize">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button id="closeTerminalBtn" class="btn btn-sm btn-link text-light p-0 ms-3" title="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="terminalWindow" class="terminal-window">
+                    <div class="terminal-output">Welcome to Synapse Chamber Terminal v1.0</div>
+                    <div class="terminal-output">Type 'help' for a list of available commands or 'exit' to close</div>
+                    <div class="terminal-output">-----------------------------------------------------------</div>
+                    <div class="terminal-input-line">
+                        <span class="terminal-prompt">synapse@chamber:~$</span>
+                        <input type="text" id="terminalInput" class="terminal-input" autofocus>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="terminalSuggestions" class="terminal-suggestions"></div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Command History</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="commandHistory" class="terminal-history">
+                        <!-- Command history will be populated here -->
+                        <div class="text-muted text-center py-3">No commands yet</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="shortcuts-panel">
+                <h5>Keyboard Shortcuts</h5>
+                <div class="shortcut-item">
+                    <div>Clear Terminal</div>
+                    <span class="shortcut-keys">Ctrl+L</span>
+                </div>
+                <div class="shortcut-item">
+                    <div>Previous Command</div>
+                    <span class="shortcut-keys">↑</span>
+                </div>
+                <div class="shortcut-item">
+                    <div>Next Command</div>
+                    <span class="shortcut-keys">↓</span>
+                </div>
+                <div class="shortcut-item">
+                    <div>Auto-complete</div>
+                    <span class="shortcut-keys">Tab</span>
+                </div>
+                <div class="shortcut-item">
+                    <div>Cancel Command</div>
+                    <span class="shortcut-keys">Ctrl+C</span>
+                </div>
+                <div class="shortcut-item">
+                    <div>End of File</div>
+                    <span class="shortcut-keys">Ctrl+D</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const terminalWindow = document.getElementById('terminalWindow');
+        const terminalInput = document.getElementById('terminalInput');
+        const suggestionsContainer = document.getElementById('terminalSuggestions');
+        const commandHistoryContainer = document.getElementById('commandHistory');
+        const clearTerminalBtn = document.getElementById('clearTerminalBtn');
+        const saveOutputBtn = document.getElementById('saveOutputBtn');
+        const enableAutocompleteCheckbox = document.getElementById('enableAutoComplete');
+        const enableSyntaxHighlightingCheckbox = document.getElementById('enableSyntaxHighlighting');
+        const increaseFontSizeBtn = document.getElementById('increaseFontSizeBtn');
+        const decreaseFontSizeBtn = document.getElementById('decreaseFontSizeBtn');
+        
+        // Terminal state
+        let commandHistory = [];
+        let historyIndex = -1;
+        let currentDirectory = '~';
+        let fontSize = 16; // Default font size in pixels
+        let fileSystem = {
+            '~': {
+                type: 'directory',
+                content: {
+                    'documents': {
+                        type: 'directory',
+                        content: {
+                            'notes.txt': {
+                                type: 'file',
+                                content: 'Welcome to Synapse Chamber!\nThis is a sample text file.'
+                            },
+                            'training_plan.md': {
+                                type: 'file',
+                                content: '# Training Plan\n\n1. Connect to multiple AI platforms\n2. Set up automated interactions\n3. Analyze and extract patterns\n4. Integrate into agent behavior'
+                            }
+                        }
+                    },
+                    'projects': {
+                        type: 'directory',
+                        content: {
+                            'synapse': {
+                                type: 'directory',
+                                content: {
+                                    'main.py': {
+                                        type: 'file',
+                                        content: 'from app import app\n\nif __name__ == "__main__":\n    app.run(debug=True, host="0.0.0.0", port=5000)'
+                                    },
+                                    'requirements.txt': {
+                                        type: 'file',
+                                        content: 'flask==2.3.2\nrequests==2.28.2\nnumpy==1.24.1\npandas==1.5.3'
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    'README.md': {
+                        type: 'file',
+                        content: '# Synapse Chamber\n\nAn advanced training environment for AI agents.'
+                    }
+                }
+            }
+        };
+        
+        // Available commands
+        const commands = {
+            'help': {
+                description: 'Display help information for available commands',
+                usage: 'help [command]',
+                execute: function(args) {
+                    if (args.length > 0) {
+                        const command = args[0];
+                        if (commands[command]) {
+                            const cmd = commands[command];
+                            return `Command: ${command}\nDescription: ${cmd.description}\nUsage: ${cmd.usage}`;
+                        } else {
+                            return `Unknown command: ${command}. Type 'help' to see all available commands.`;
+                        }
+                    } else {
+                        let result = 'Available commands:\n\n';
+                        for (const [cmd, info] of Object.entries(commands)) {
+                            result += `${cmd.padEnd(10)} - ${info.description}\n`;
+                        }
+                        return result;
+                    }
+                }
+            },
+            'clear': {
+                description: 'Clear the terminal screen',
+                usage: 'clear',
+                execute: function() {
+                    clearTerminal();
+                    return null; // No output needed since we're clearing the terminal
+                }
+            },
+            'echo': {
+                description: 'Display a line of text',
+                usage: 'echo [text]',
+                execute: function(args) {
+                    return args.join(' ');
+                }
+            },
+            'ls': {
+                description: 'List directory contents',
+                usage: 'ls [directory]',
+                execute: function(args) {
+                    const path = args.length > 0 ? resolvePath(args[0]) : currentDirectory;
+                    const dirObj = getPathObject(path);
+                    
+                    if (!dirObj || dirObj.type !== 'directory') {
+                        return `ls: cannot access '${path}': No such directory`;
+                    }
+                    
+                    let result = '';
+                    for (const [name, obj] of Object.entries(dirObj.content)) {
+                        const color = obj.type === 'directory' ? 'terminal-output-warning' : '';
+                        result += `<span class="${color}">${name}${obj.type === 'directory' ? '/' : ''}</span>    `;
+                    }
+                    
+                    return result;
+                }
+            },
+            'cd': {
+                description: 'Change the current directory',
+                usage: 'cd [directory]',
+                execute: function(args) {
+                    if (args.length === 0 || args[0] === '~') {
+                        currentDirectory = '~';
+                        updatePrompt();
+                        return '';
+                    }
+                    
+                    const path = resolvePath(args[0]);
+                    const dirObj = getPathObject(path);
+                    
+                    if (!dirObj) {
+                        return `cd: ${args[0]}: No such directory`;
+                    }
+                    
+                    if (dirObj.type !== 'directory') {
+                        return `cd: ${args[0]}: Not a directory`;
+                    }
+                    
+                    currentDirectory = path;
+                    updatePrompt();
+                    return '';
+                }
+            },
+            'pwd': {
+                description: 'Print the current working directory',
+                usage: 'pwd',
+                execute: function() {
+                    return currentDirectory;
+                }
+            },
+            'cat': {
+                description: 'Display the contents of a file',
+                usage: 'cat [file]',
+                execute: function(args) {
+                    if (args.length === 0) {
+                        return 'cat: missing file operand';
+                    }
+                    
+                    const path = resolvePath(args[0]);
+                    const fileObj = getPathObject(path);
+                    
+                    if (!fileObj) {
+                        return `cat: ${args[0]}: No such file`;
+                    }
+                    
+                    if (fileObj.type !== 'file') {
+                        return `cat: ${args[0]}: Is a directory`;
+                    }
+                    
+                    return fileObj.content;
+                }
+            },
+            'mkdir': {
+                description: 'Create a directory',
+                usage: 'mkdir [directory]',
+                execute: function(args) {
+                    if (args.length === 0) {
+                        return 'mkdir: missing operand';
+                    }
+                    
+                    const dirName = args[0];
+                    const parentPath = currentDirectory;
+                    const parentObj = getPathObject(parentPath);
+                    
+                    if (!parentObj || parentObj.type !== 'directory') {
+                        return `mkdir: cannot create directory '${dirName}': No such directory`;
+                    }
+                    
+                    if (parentObj.content[dirName]) {
+                        return `mkdir: cannot create directory '${dirName}': File exists`;
+                    }
+                    
+                    parentObj.content[dirName] = {
+                        type: 'directory',
+                        content: {}
+                    };
+                    
+                    return `Directory '${dirName}' created`;
+                }
+            },
+            'touch': {
+                description: 'Create a new empty file',
+                usage: 'touch [file]',
+                execute: function(args) {
+                    if (args.length === 0) {
+                        return 'touch: missing file operand';
+                    }
+                    
+                    const fileName = args[0];
+                    const parentPath = currentDirectory;
+                    const parentObj = getPathObject(parentPath);
+                    
+                    if (!parentObj || parentObj.type !== 'directory') {
+                        return `touch: cannot create file '${fileName}': No such directory`;
+                    }
+                    
+                    if (parentObj.content[fileName]) {
+                        return `File '${fileName}' already exists`;
+                    }
+                    
+                    parentObj.content[fileName] = {
+                        type: 'file',
+                        content: ''
+                    };
+                    
+                    return `File '${fileName}' created`;
+                }
+            },
+            'rm': {
+                description: 'Remove files or directories',
+                usage: 'rm [-r] [file/directory]',
+                execute: function(args) {
+                    if (args.length === 0) {
+                        return 'rm: missing operand';
+                    }
+                    
+                    let recursive = false;
+                    let target = args[0];
+                    
+                    if (args[0] === '-r' || args[0] === '-rf') {
+                        if (args.length < 2) {
+                            return 'rm: missing operand';
+                        }
+                        recursive = true;
+                        target = args[1];
+                    }
+                    
+                    const path = resolvePath(target);
+                    const obj = getPathObject(path);
+                    
+                    if (!obj) {
+                        return `rm: cannot remove '${target}': No such file or directory`;
+                    }
+                    
+                    if (obj.type === 'directory' && !recursive) {
+                        return `rm: cannot remove '${target}': Is a directory`;
+                    }
+                    
+                    // Get parent directory
+                    const parts = path.split('/');
+                    const fileName = parts.pop();
+                    const parentPath = parts.join('/') || '~';
+                    const parentObj = getPathObject(parentPath);
+                    
+                    delete parentObj.content[fileName];
+                    
+                    return `'${target}' removed`;
+                }
+            },
+            'python': {
+                description: 'Run a Python script or open Python interpreter',
+                usage: 'python [script.py]',
+                execute: function(args) {
+                    if (args.length === 0) {
+                        return `Python 3.11.4 (Nov 15 2024, 10:32:15) 
+[GCC 9.4.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> # Interactive mode not fully implemented in this demo`;
+                    }
+                    
+                    const script = args[0];
+                    const path = resolvePath(script);
+                    const fileObj = getPathObject(path);
+                    
+                    if (!fileObj) {
+                        return `python: can't open file '${script}': [Errno 2] No such file or directory`;
+                    }
+                    
+                    if (fileObj.type !== 'file') {
+                        return `python: can't open file '${script}': [Errno 21] Is a directory`;
+                    }
+                    
+                    if (!script.endsWith('.py')) {
+                        return `python: can't open file '${script}': [Errno 8] Exec format error`;
+                    }
+                    
+                    // Simulate running Python script
+                    return `Executing ${script}...\n\nScript execution completed.`;
+                }
+            },
+            'exit': {
+                description: 'Exit the terminal',
+                usage: 'exit',
+                execute: function() {
+                    window.location.href = '/';
+                    return 'Exiting terminal...';
+                }
+            },
+            'date': {
+                description: 'Display the current date and time',
+                usage: 'date',
+                execute: function() {
+                    return new Date().toString();
+                }
+            },
+            'whoami': {
+                description: 'Display current user',
+                usage: 'whoami',
+                execute: function() {
+                    return 'synapse';
+                }
+            },
+            'uname': {
+                description: 'Display system information',
+                usage: 'uname [-a]',
+                execute: function(args) {
+                    if (args.length > 0 && args[0] === '-a') {
+                        return 'Synapse OS v1.0 synapse-chamber x86_64 GNU/Linux';
+                    }
+                    return 'Synapse';
+                }
+            },
+            'history': {
+                description: 'Display command history',
+                usage: 'history',
+                execute: function() {
+                    if (commandHistory.length === 0) {
+                        return 'No commands in history';
+                    }
+                    
+                    let result = '';
+                    commandHistory.forEach((cmd, index) => {
+                        result += `${index + 1}  ${cmd}\n`;
+                    });
+                    return result.trim();
+                }
+            }
+        };
+        
+        // Initialize terminal
+        initTerminal();
+        
+        // Initialize command history from localStorage
+        loadCommandHistory();
+        
+        // Event listeners
+        terminalInput.addEventListener('keydown', handleKeydown);
+        clearTerminalBtn.addEventListener('click', clearTerminal);
+        saveOutputBtn.addEventListener('click', saveTerminalOutput);
+        
+        // Font size controls
+        increaseFontSizeBtn.addEventListener('click', () => {
+            fontSize += 2;
+            updateFontSize();
+        });
+        
+        decreaseFontSizeBtn.addEventListener('click', () => {
+            if (fontSize > 8) {
+                fontSize -= 2;
+                updateFontSize();
+            }
+        });
+        
+        // Maximize/minimize terminal
+        document.getElementById('maximizeTerminalBtn').addEventListener('click', () => {
+            document.querySelector('.terminal-container').classList.toggle('fullscreen');
+        });
+        
+        // Initialize
+        function initTerminal() {
+            terminalInput.focus();
+            updatePrompt();
+        }
+        
+        // Update prompt based on current directory
+        function updatePrompt() {
+            const promptElement = document.querySelector('.terminal-prompt');
+            promptElement.textContent = `synapse@chamber:${currentDirectory}$`;
+        }
+        
+        // Handle terminal input
+        function handleKeydown(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                
+                const command = terminalInput.value.trim();
+                if (command) {
+                    executeCommand(command);
+                    terminalInput.value = '';
+                    
+                    // Update command history
+                    addToCommandHistory(command);
+                    historyIndex = -1;
+                } else {
+                    // Just add a new prompt line if command is empty
+                    addEmptyPromptLine();
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                navigateHistory('up');
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                navigateHistory('down');
+            } else if (e.key === 'Tab') {
+                e.preventDefault();
+                if (enableAutocompleteCheckbox.checked) {
+                    autocomplete();
+                }
+            } else if (e.key === 'c' && e.ctrlKey) {
+                // Ctrl+C to cancel
+                e.preventDefault();
+                addOutput('^C', 'terminal-output-error');
+                addEmptyPromptLine();
+                terminalInput.value = '';
+            } else if (e.key === 'l' && e.ctrlKey) {
+                // Ctrl+L to clear terminal
+                e.preventDefault();
+                clearTerminal();
+            }
+        }
+        
+        // Execute command
+        function executeCommand(command) {
+            // Create a new line with the command
+            const inputLine = document.createElement('div');
+            inputLine.className = 'terminal-input-line';
+            inputLine.innerHTML = `<span class="terminal-prompt">synapse@chamber:${currentDirectory}$</span> ${command}`;
+            
+            // Insert before the current input line
+            const currentInputLine = document.querySelector('.terminal-input-line');
+            terminalWindow.insertBefore(inputLine, currentInputLine);
+            
+            // Parse command and arguments
+            const parts = command.split(' ');
+            const cmd = parts[0];
+            const args = parts.slice(1);
+            
+            // Execute command if it exists
+            if (commands[cmd]) {
+                try {
+                    const output = commands[cmd].execute(args);
+                    if (output !== null) {
+                        addOutput(output);
+                    }
+                } catch (error) {
+                    addOutput(`Error executing command: ${error.message}`, 'terminal-output-error');
+                }
+            } else {
+                addOutput(`Command not found: ${cmd}. Type 'help' for available commands.`, 'terminal-output-error');
+            }
+            
+            // Scroll to bottom
+            terminalWindow.scrollTop = terminalWindow.scrollHeight;
+        }
+        
+        // Add output to terminal
+        function addOutput(text, className = '') {
+            const output = document.createElement('div');
+            output.className = `terminal-output ${className}`;
+            output.innerHTML = text;
+            
+            // Insert before the current input line
+            const currentInputLine = document.querySelector('.terminal-input-line');
+            terminalWindow.insertBefore(output, currentInputLine);
+            
+            // Scroll to bottom
+            terminalWindow.scrollTop = terminalWindow.scrollHeight;
+        }
+        
+        // Add empty prompt line
+        function addEmptyPromptLine() {
+            const inputLine = document.createElement('div');
+            inputLine.className = 'terminal-input-line';
+            inputLine.innerHTML = `<span class="terminal-prompt">synapse@chamber:${currentDirectory}$</span> `;
+            
+            // Insert before the current input line
+            const currentInputLine = document.querySelector('.terminal-input-line');
+            terminalWindow.insertBefore(inputLine, currentInputLine);
+            
+            // Scroll to bottom
+            terminalWindow.scrollTop = terminalWindow.scrollHeight;
+        }
+        
+        // Clear terminal
+        function clearTerminal() {
+            // Keep only the current input line
+            const currentInputLine = document.querySelector('.terminal-input-line');
+            terminalWindow.innerHTML = '';
+            terminalWindow.appendChild(currentInputLine);
+            
+            // Focus the input
+            terminalInput.focus();
+        }
+        
+        // Navigate command history
+        function navigateHistory(direction) {
+            if (commandHistory.length === 0) return;
+            
+            if (direction === 'up') {
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                }
+            } else if (direction === 'down') {
+                if (historyIndex > -1) {
+                    historyIndex--;
+                }
+            }
+            
+            if (historyIndex === -1) {
+                terminalInput.value = '';
+            } else {
+                terminalInput.value = commandHistory[commandHistory.length - 1 - historyIndex];
+            }
+            
+            // Place cursor at the end
+            setTimeout(() => {
+                terminalInput.selectionStart = terminalInput.selectionEnd = terminalInput.value.length;
+            }, 0);
+        }
+        
+        // Autocomplete command
+        function autocomplete() {
+            const input = terminalInput.value;
+            const parts = input.split(' ');
+            
+            if (parts.length === 1) {
+                // Autocomplete command
+                const incompleteCmdName = parts[0];
+                const matchingCmds = Object.keys(commands).filter(cmd => cmd.startsWith(incompleteCmdName));
+                
+                if (matchingCmds.length === 1) {
+                    // Single match, autocomplete
+                    terminalInput.value = matchingCmds[0] + ' ';
+                } else if (matchingCmds.length > 1) {
+                    // Multiple matches, show suggestions
+                    addOutput('Possible commands:');
+                    addOutput(matchingCmds.join('    '));
+                }
+            } else if (parts.length > 1 && parts[0] === 'cd' || parts[0] === 'ls' || parts[0] === 'cat') {
+                // Autocomplete file/directory paths
+                const incompletePath = parts[parts.length - 1];
+                autocompletePath(incompletePath, parts);
+            }
+        }
+        
+        // Autocomplete file/directory paths
+        function autocompletePath(incompletePath, parts) {
+            // Get the directory to look in
+            let searchDir = currentDirectory;
+            let searchName = incompletePath;
+            
+            if (incompletePath.includes('/')) {
+                const pathParts = incompletePath.split('/');
+                searchName = pathParts.pop();
+                searchDir = resolvePath(pathParts.join('/'));
+            }
+            
+            const dirObj = getPathObject(searchDir);
+            if (!dirObj || dirObj.type !== 'directory') return;
+            
+            // Find matching entries
+            const matches = Object.keys(dirObj.content)
+                .filter(name => name.startsWith(searchName));
+            
+            if (matches.length === 1) {
+                // Single match, autocomplete
+                const match = matches[0];
+                const isDir = dirObj.content[match].type === 'directory';
+                
+                // Replace the incomplete part
+                let newPath = incompletePath.substr(0, incompletePath.length - searchName.length) + match;
+                if (isDir) newPath += '/';
+                
+                parts[parts.length - 1] = newPath;
+                terminalInput.value = parts.join(' ');
+            } else if (matches.length > 1) {
+                // Multiple matches, show suggestions
+                addOutput('Possible completions:');
+                addOutput(matches.map(m => 
+                    dirObj.content[m].type === 'directory' ? 
+                    `<span class="terminal-output-warning">${m}/</span>` : m
+                ).join('    '));
+            }
+        }
+        
+        // Resolve a path (absolute or relative)
+        function resolvePath(path) {
+            if (!path) return currentDirectory;
+            
+            // Absolute path
+            if (path.startsWith('~')) {
+                return path;
+            }
+            
+            // Relative path
+            if (path.startsWith('./')) {
+                path = path.substring(2);
+            }
+            
+            // Handle parent directory
+            if (path === '..') {
+                const parts = currentDirectory.split('/');
+                if (parts.length > 1) {
+                    parts.pop();
+                    return parts.join('/') || '~';
+                }
+                return '~';
+            }
+            
+            // Build path based on current directory
+            return currentDirectory === '~' ? 
+                `~/${path}` : 
+                `${currentDirectory}/${path}`;
+        }
+        
+        // Get an object from the file system based on path
+        function getPathObject(path) {
+            if (path === '~') return fileSystem['~'];
+            
+            const parts = path.split('/').filter(p => p);
+            let current = fileSystem['~'];
+            
+            for (const part of parts) {
+                if (part === '~') continue;
+                if (!current.content || !current.content[part]) {
+                    return null;
+                }
+                current = current.content[part];
+            }
+            
+            return current;
+        }
+        
+        // Save terminal output
+        function saveTerminalOutput() {
+            // Get all output except the input line
+            const outputs = Array.from(terminalWindow.querySelectorAll('.terminal-output, .terminal-input-line'))
+                .map(el => el.textContent)
+                .join('\n');
+            
+            // Create a blob and download
+            const blob = new Blob([outputs], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'terminal_output.txt';
+            a.click();
+        }
+        
+        // Update font size
+        function updateFontSize() {
+            document.querySelector('.terminal-window').style.fontSize = `${fontSize}px`;
+        }
+        
+        // Add command to history
+        function addToCommandHistory(command) {
+            // Don't add duplicates consecutively
+            if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== command) {
+                commandHistory.push(command);
+                
+                // Limit history size
+                if (commandHistory.length > 50) {
+                    commandHistory.shift();
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('terminalCommandHistory', JSON.stringify(commandHistory));
+                
+                // Update history display
+                updateCommandHistoryDisplay();
+            }
+        }
+        
+        // Load command history from localStorage
+        function loadCommandHistory() {
+            const savedHistory = localStorage.getItem('terminalCommandHistory');
+            if (savedHistory) {
+                try {
+                    commandHistory = JSON.parse(savedHistory);
+                    updateCommandHistoryDisplay();
+                } catch (e) {
+                    console.error('Error loading command history:', e);
+                }
+            }
+        }
+        
+        // Update command history display
+        function updateCommandHistoryDisplay() {
+            commandHistoryContainer.innerHTML = '';
+            
+            if (commandHistory.length === 0) {
+                commandHistoryContainer.innerHTML = '<div class="text-muted text-center py-3">No commands yet</div>';
+                return;
+            }
+            
+            // Create elements for each command
+            commandHistory.slice().reverse().forEach(cmd => {
+                const item = document.createElement('div');
+                item.className = 'terminal-history-item';
+                item.textContent = cmd;
+                
+                // Add click handler to reuse command
+                item.addEventListener('click', () => {
+                    terminalInput.value = cmd;
+                    terminalInput.focus();
+                });
+                
+                commandHistoryContainer.appendChild(item);
+            });
+        }
+    });
+</script>
+{% endblock %}

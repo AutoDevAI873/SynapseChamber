@@ -1,0 +1,1167 @@
+{% extends 'layout.html' %}
+
+{% block title %}Synapse Chamber - AI Platforms{% endblock %}
+
+{% block extra_css %}
+<style>
+    .platform-card {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .platform-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        border-color: rgba(13, 110, 253, 0.3);
+    }
+    
+    .platform-header {
+        padding: 1.5rem;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .platform-logo {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 15px;
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+    }
+    
+    .platform-logo.openai {
+        color: #10a37f;
+    }
+    
+    .platform-logo.anthropic {
+        color: #a33a33;
+    }
+    
+    .platform-logo.google {
+        color: #4285f4;
+    }
+    
+    .platform-logo.deepseek {
+        color: #6f42c1;
+    }
+    
+    .platform-logo.grok {
+        color: #e03c31;
+    }
+    
+    .platform-status {
+        display: inline-block;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        margin-top: 10px;
+    }
+    
+    .platform-status.connected {
+        background-color: rgba(25, 135, 84, 0.1);
+        border: 1px solid rgba(25, 135, 84, 0.3);
+        color: #20c997;
+    }
+    
+    .platform-status.disconnected {
+        background-color: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        color: #dc3545;
+    }
+    
+    .platform-status.limited {
+        background-color: rgba(255, 193, 7, 0.1);
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        color: #ffc107;
+    }
+    
+    .platform-body {
+        padding: 1.5rem;
+    }
+    
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    
+    .stat-label {
+        color: #adb5bd;
+    }
+    
+    .platform-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 1rem 1.5rem;
+    }
+    
+    .usage-bar {
+        height: 5px;
+        border-radius: 5px;
+        margin-top: 5px;
+        background-color: rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+    }
+    
+    .usage-progress {
+        height: 100%;
+        background-color: #0d6efd;
+        width: 0;
+        transition: width 0.6s ease;
+    }
+    
+    .models-list {
+        margin-top: 15px;
+    }
+    
+    .model-item {
+        padding: 8px 12px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 5px;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .model-badge {
+        float: right;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        background-color: rgba(13, 110, 253, 0.1);
+        color: #0d6efd;
+    }
+    
+    .prompt-templates {
+        margin-top: 15px;
+    }
+    
+    .prompt-template {
+        padding: 10px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 5px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .prompt-template:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .prompt-template-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .prompt-template-description {
+        font-size: 0.85rem;
+        color: #adb5bd;
+    }
+    
+    .platform-settings-btn {
+        padding: 5px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .context-chart {
+        position: relative;
+        max-width: 100%;
+        height: 60px;
+        margin-top: 10px;
+    }
+    
+    .activity-chart {
+        height: 50px;
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h3 mb-0">AI Platforms Management</h1>
+            <p class="text-muted">Connect and manage AI platforms for training and interaction</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addPlatformModal">
+                <i class="fas fa-plus"></i> Add Platform
+            </button>
+            <button class="btn btn-outline-secondary" id="refreshStatusBtn">
+                <i class="fas fa-sync"></i> Refresh Status
+            </button>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info d-flex align-items-center">
+                <i class="fas fa-info-circle me-3 fa-lg"></i>
+                <div>
+                    <strong>Training with multiple AI platforms</strong> - Synapse Chamber can train AutoDev using multiple AI platforms simultaneously. 
+                    Configure each platform below or use browser automation for platforms without API access.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-4">
+        <!-- OpenAI (GPT) -->
+        <div class="col-md-6 col-lg-4">
+            <div class="platform-card">
+                <div class="platform-header">
+                    <i class="fas fa-robot platform-logo openai fa-3x"></i>
+                    <h5>OpenAI (GPT)</h5>
+                    <div class="platform-status connected">
+                        <i class="fas fa-check-circle me-1"></i> Connected
+                    </div>
+                </div>
+                <div class="platform-body">
+                    <div class="stat-row">
+                        <span class="stat-label">Usage</span>
+                        <span><strong>68%</strong> of quota</span>
+                    </div>
+                    <div class="usage-bar">
+                        <div class="usage-progress" style="width: 68%; background-color: #198754;"></div>
+                    </div>
+                    
+                    <div class="stat-row mt-3">
+                        <span class="stat-label">API Rate</span>
+                        <span>3500 tokens/min</span>
+                    </div>
+                    
+                    <div class="stat-row">
+                        <span class="stat-label">API Type</span>
+                        <span>Direct API</span>
+                    </div>
+                    
+                    <div class="models-list">
+                        <div class="model-item">
+                            <span>gpt-4o</span>
+                            <span class="model-badge">128K ctx</span>
+                        </div>
+                        <div class="model-item">
+                            <span>gpt-4-turbo</span>
+                            <span class="model-badge">128K ctx</span>
+                        </div>
+                        <div class="model-item">
+                            <span>gpt-3.5-turbo</span>
+                            <span class="model-badge">16K ctx</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="platform-footer">
+                    <button class="btn btn-sm btn-outline-primary platform-settings-btn" data-platform="openai">
+                        <i class="fas fa-cog"></i> Configure
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger platform-settings-btn float-end">
+                        <i class="fas fa-power-off"></i> Disconnect
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Anthropic (Claude) -->
+        <div class="col-md-6 col-lg-4">
+            <div class="platform-card">
+                <div class="platform-header">
+                    <i class="fas fa-brain platform-logo anthropic fa-3x"></i>
+                    <h5>Anthropic (Claude)</h5>
+                    <div class="platform-status disconnected">
+                        <i class="fas fa-times-circle me-1"></i> No API Key
+                    </div>
+                </div>
+                <div class="platform-body">
+                    <div class="stat-row">
+                        <span class="stat-label">Usage</span>
+                        <span><strong>0%</strong> of quota</span>
+                    </div>
+                    <div class="usage-bar">
+                        <div class="usage-progress" style="width: 0%;"></div>
+                    </div>
+                    
+                    <div class="stat-row mt-3">
+                        <span class="stat-label">API Rate</span>
+                        <span>100 req/min</span>
+                    </div>
+                    
+                    <div class="stat-row">
+                        <span class="stat-label">API Type</span>
+                        <span>Direct API</span>
+                    </div>
+                    
+                    <div class="models-list">
+                        <div class="model-item">
+                            <span>claude-3-5-sonnet</span>
+                            <span class="model-badge">200K ctx</span>
+                        </div>
+                        <div class="model-item">
+                            <span>claude-3-opus</span>
+                            <span class="model-badge">200K ctx</span>
+                        </div>
+                        <div class="model-item">
+                            <span>claude-3-haiku</span>
+                            <span class="model-badge">200K ctx</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="platform-footer">
+                    <button class="btn btn-sm btn-success platform-settings-btn" data-platform="anthropic" data-bs-toggle="modal" data-bs-target="#apiKeyModal" data-platform-name="Anthropic (Claude)">
+                        <i class="fas fa-key"></i> Add API Key
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary platform-settings-btn float-end" disabled>
+                        <i class="fas fa-cog"></i> Configure
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Google (Gemini) -->
+        <div class="col-md-6 col-lg-4">
+            <div class="platform-card">
+                <div class="platform-header">
+                    <i class="fab fa-google platform-logo google fa-3x"></i>
+                    <h5>Google (Gemini)</h5>
+                    <div class="platform-status connected">
+                        <i class="fas fa-check-circle me-1"></i> Connected
+                    </div>
+                </div>
+                <div class="platform-body">
+                    <div class="stat-row">
+                        <span class="stat-label">Usage</span>
+                        <span><strong>12%</strong> of quota</span>
+                    </div>
+                    <div class="usage-bar">
+                        <div class="usage-progress" style="width: 12%; background-color: #198754;"></div>
+                    </div>
+                    
+                    <div class="stat-row mt-3">
+                        <span class="stat-label">API Rate</span>
+                        <span>60 req/min (free)</span>
+                    </div>
+                    
+                    <div class="stat-row">
+                        <span class="stat-label">API Type</span>
+                        <span>Direct API</span>
+                    </div>
+                    
+                    <div class="models-list">
+                        <div class="model-item">
+                            <span>gemini-1.5-pro</span>
+                            <span class="model-badge">1M ctx</span>
+                        </div>
+                        <div class="model-item">
+                            <span>gemini-1.5-flash</span>
+                            <span class="model-badge">1M ctx</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="platform-footer">
+                    <button class="btn btn-sm btn-outline-primary platform-settings-btn" data-platform="gemini">
+                        <i class="fas fa-cog"></i> Configure
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger platform-settings-btn float-end">
+                        <i class="fas fa-power-off"></i> Disconnect
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- DeepSeek -->
+        <div class="col-md-6 col-lg-4">
+            <div class="platform-card">
+                <div class="platform-header">
+                    <i class="fas fa-search platform-logo deepseek fa-3x"></i>
+                    <h5>DeepSeek</h5>
+                    <div class="platform-status limited">
+                        <i class="fas fa-exclamation-circle me-1"></i> Rate Limited
+                    </div>
+                </div>
+                <div class="platform-body">
+                    <div class="stat-row">
+                        <span class="stat-label">Usage</span>
+                        <span><strong>95%</strong> of quota</span>
+                    </div>
+                    <div class="usage-bar">
+                        <div class="usage-progress" style="width: 95%; background-color: #dc3545;"></div>
+                    </div>
+                    
+                    <div class="stat-row mt-3">
+                        <span class="stat-label">API Rate</span>
+                        <span>10 req/min (free)</span>
+                    </div>
+                    
+                    <div class="stat-row">
+                        <span class="stat-label">API Type</span>
+                        <span>Direct API</span>
+                    </div>
+                    
+                    <div class="models-list">
+                        <div class="model-item">
+                            <span>deepseek-coder</span>
+                            <span class="model-badge">32K ctx</span>
+                        </div>
+                        <div class="model-item">
+                            <span>deepseek-chat</span>
+                            <span class="model-badge">32K ctx</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="platform-footer">
+                    <button class="btn btn-sm btn-outline-primary platform-settings-btn" data-platform="deepseek">
+                        <i class="fas fa-cog"></i> Configure
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger platform-settings-btn float-end">
+                        <i class="fas fa-power-off"></i> Disconnect
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Grok -->
+        <div class="col-md-6 col-lg-4">
+            <div class="platform-card">
+                <div class="platform-header">
+                    <i class="fas fa-rocket platform-logo grok fa-3x"></i>
+                    <h5>Grok</h5>
+                    <div class="platform-status connected">
+                        <i class="fas fa-check-circle me-1"></i> Browser Mode
+                    </div>
+                </div>
+                <div class="platform-body">
+                    <div class="stat-row">
+                        <span class="stat-label">Usage</span>
+                        <span><strong>45%</strong> of quota</span>
+                    </div>
+                    <div class="usage-bar">
+                        <div class="usage-progress" style="width: 45%; background-color: #198754;"></div>
+                    </div>
+                    
+                    <div class="stat-row mt-3">
+                        <span class="stat-label">Automation</span>
+                        <span>Browser-based</span>
+                    </div>
+                    
+                    <div class="stat-row">
+                        <span class="stat-label">Rate Limit</span>
+                        <span>~20 req/hour</span>
+                    </div>
+                    
+                    <div class="stat-row">
+                        <span class="stat-label">CAPTCHA Solver</span>
+                        <span class="text-success">Enabled</span>
+                    </div>
+                    
+                    <div class="stat-row">
+                        <span class="stat-label">User Session</span>
+                        <span class="text-success">Active</span>
+                    </div>
+                </div>
+                <div class="platform-footer">
+                    <button class="btn btn-sm btn-outline-primary platform-settings-btn" data-platform="grok">
+                        <i class="fas fa-cog"></i> Configure
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary platform-settings-btn float-end">
+                        <i class="fas fa-sync"></i> Refresh Session
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Add New Platform -->
+        <div class="col-md-6 col-lg-4">
+            <div class="platform-card h-100 d-flex flex-column justify-content-center align-items-center" style="background-color: rgba(255, 255, 255, 0.05); cursor: pointer;" data-bs-toggle="modal" data-bs-target="#addPlatformModal">
+                <div class="text-center p-5">
+                    <i class="fas fa-plus-circle fa-3x mb-3" style="color: #adb5bd;"></i>
+                    <h5 class="text-muted">Add New Platform</h5>
+                    <p class="small text-muted mt-2">Configure a new AI platform for training</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Prompt Templates</h5>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#newPromptModal">
+                        <i class="fas fa-plus"></i> New Template
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="prompt-templates">
+                        <div class="prompt-template" data-bs-toggle="modal" data-bs-target="#promptDetailModal">
+                            <div class="prompt-template-title">Entity Extraction Training</div>
+                            <div class="prompt-template-description">Prompt for training AI on regex-based entity extraction techniques</div>
+                        </div>
+                        <div class="prompt-template" data-bs-toggle="modal" data-bs-target="#promptDetailModal">
+                            <div class="prompt-template-title">Web Scraping Pattern Recognition</div>
+                            <div class="prompt-template-description">Template for training on automated web scraping patterns and techniques</div>
+                        </div>
+                        <div class="prompt-template" data-bs-toggle="modal" data-bs-target="#promptDetailModal">
+                            <div class="prompt-template-title">Algorithmic Problem Solving</div>
+                            <div class="prompt-template-description">Advanced algorithmic challenges for training AI problem-solving capabilities</div>
+                        </div>
+                        <div class="prompt-template" data-bs-toggle="modal" data-bs-target="#promptDetailModal">
+                            <div class="prompt-template-title">API Design Best Practices</div>
+                            <div class="prompt-template-description">Templates for training on RESTful API design patterns and best practices</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Usage Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Usage statistics are based on the last 30 days of AI platform interactions.
+                    </div>
+                    <canvas id="usageChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Platform Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Performance metrics measure response quality, speed, and token efficiency.
+                    </div>
+                    <canvas id="performanceChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<!-- API Key Modal -->
+<div class="modal fade" id="apiKeyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="apiKeyModalTitle">Add API Key</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-primary" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    You need an API key to connect to <span id="platformName">this platform</span>. Your API key will be securely stored.
+                </div>
+                <div class="mb-3">
+                    <label for="apiKey" class="form-label">API Key</label>
+                    <input type="password" class="form-control" id="apiKey" placeholder="Enter API key">
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="saveKeyCheck" checked>
+                        <label class="form-check-label" for="saveKeyCheck">
+                            Save API key securely
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="saveApiKeyBtn">Save API Key</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Platform Modal -->
+<div class="modal fade" id="addPlatformModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Platform</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="platformTypeSelect" class="form-label">Platform Type</label>
+                    <select class="form-select" id="platformTypeSelect">
+                        <option value="">Select platform type</option>
+                        <option value="custom-api">Custom API Endpoint</option>
+                        <option value="browser-automation">Browser Automation</option>
+                        <option value="mistral">Mistral AI</option>
+                        <option value="cohere">Cohere</option>
+                        <option value="other">Other AI Platform</option>
+                    </select>
+                </div>
+                
+                <div id="customApiFields" style="display: none;">
+                    <div class="mb-3">
+                        <label for="platformName" class="form-label">Platform Name</label>
+                        <input type="text" class="form-control" id="platformName" placeholder="e.g., Mistral AI">
+                    </div>
+                    <div class="mb-3">
+                        <label for="apiEndpoint" class="form-label">API Endpoint</label>
+                        <input type="text" class="form-control" id="apiEndpoint" placeholder="https://api.example.com/v1/chat/completions">
+                    </div>
+                    <div class="mb-3">
+                        <label for="apiKeyInput" class="form-label">API Key</label>
+                        <input type="password" class="form-control" id="apiKeyInput" placeholder="Enter API key">
+                    </div>
+                    <div class="mb-3">
+                        <label for="apiModel" class="form-label">Model Name</label>
+                        <input type="text" class="form-control" id="apiModel" placeholder="e.g., mistral-large">
+                    </div>
+                </div>
+                
+                <div id="browserFields" style="display: none;">
+                    <div class="mb-3">
+                        <label for="platformUrl" class="form-label">Platform URL</label>
+                        <input type="text" class="form-control" id="platformUrl" placeholder="https://chat.example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label for="platformName" class="form-label">Platform Name</label>
+                        <input type="text" class="form-control" id="platformNameBrowser" placeholder="e.g., Grok AI">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="captchaSolverCheck" checked>
+                            <label class="form-check-label" for="captchaSolverCheck">
+                                Enable CAPTCHA solver
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="loginRequiredCheck">
+                            <label class="form-check-label" for="loginRequiredCheck">
+                                Login required
+                            </label>
+                        </div>
+                    </div>
+                    <div id="loginFields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="loginUsername" class="form-label">Username/Email</label>
+                            <input type="text" class="form-control" id="loginUsername">
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="addPlatformBtn">Add Platform</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Prompt Template Detail Modal -->
+<div class="modal fade" id="promptDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Entity Extraction Training</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Template Description</label>
+                    <p>Prompt for training AI on regex-based entity extraction techniques. This template includes examples and challenges to improve pattern recognition.</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Prompt Template</label>
+                    <div class="bg-black p-3 rounded" style="white-space: pre-wrap;">You are an expert in pattern recognition and entity extraction.
+
+I need you to design a robust regex-based system for extracting the following entities from text:
+- Phone numbers (various formats)
+- Email addresses
+- Physical addresses
+- URLs
+- Dates (various formats)
+
+For each entity type:
+1. Provide a regex pattern that handles common variations
+2. Explain how the pattern works and what edge cases it covers
+3. Provide examples of text it would match
+4. Discuss any limitations or potential false positives/negatives
+
+Then, create a plan for implementing a complete entity extraction system that:
+- Validates matches after extraction
+- Handles overlapping matches
+- Prioritizes certain entity types when there's ambiguity
+- Formats extracted entities consistently</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Compatible Platforms</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="badge bg-primary">OpenAI (GPT)</span>
+                            <span class="badge bg-danger">Anthropic (Claude)</span>
+                            <span class="badge bg-info">Google (Gemini)</span>
+                            <span class="badge bg-secondary">DeepSeek</span>
+                            <span class="badge bg-warning text-dark">Grok</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Training Focus</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="badge bg-success">Pattern Recognition</span>
+                            <span class="badge bg-success">Regex</span>
+                            <span class="badge bg-success">Data Extraction</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Last Used</label>
+                    <p>2025-05-05 14:22:31</p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Success Rate</label>
+                    <div class="progress">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 85%">85%</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-info">
+                    <i class="fas fa-edit"></i> Edit Template
+                </button>
+                <button type="button" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Use Template
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Prompt Template Modal -->
+<div class="modal fade" id="newPromptModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Prompt Template</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="promptTitle" class="form-label">Template Title</label>
+                    <input type="text" class="form-control" id="promptTitle" placeholder="E.g., API Design Training">
+                </div>
+                <div class="mb-3">
+                    <label for="promptDescription" class="form-label">Description</label>
+                    <input type="text" class="form-control" id="promptDescription" placeholder="Brief description of what this template is for">
+                </div>
+                <div class="mb-3">
+                    <label for="promptText" class="form-label">Prompt Template</label>
+                    <textarea class="form-control" id="promptText" rows="10" placeholder="Enter your prompt template text here..."></textarea>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Compatible Platforms</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="platformOpenAI" checked>
+                                <label class="form-check-label" for="platformOpenAI">
+                                    OpenAI (GPT)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="platformAnthropic" checked>
+                                <label class="form-check-label" for="platformAnthropic">
+                                    Anthropic (Claude)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="platformGoogle" checked>
+                                <label class="form-check-label" for="platformGoogle">
+                                    Google (Gemini)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="platformDeepSeek" checked>
+                                <label class="form-check-label" for="platformDeepSeek">
+                                    DeepSeek
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="platformGrok" checked>
+                                <label class="form-check-label" for="platformGrok">
+                                    Grok
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Training Focus (Tags)</label>
+                        <input type="text" class="form-control" id="promptTags" placeholder="E.g., regex, extraction, patterns">
+                        <small class="text-muted">Comma-separated tags</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="savePromptBtn">Save Template</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set up platform usage chart
+        const usageCtx = document.getElementById('usageChart').getContext('2d');
+        const usageChart = new Chart(usageCtx, {
+            type: 'bar',
+            data: {
+                labels: ['OpenAI (GPT)', 'Anthropic (Claude)', 'Google (Gemini)', 'DeepSeek', 'Grok'],
+                datasets: [{
+                    label: 'API Calls',
+                    data: [230, 0, 120, 85, 65],
+                    backgroundColor: [
+                        'rgba(16, 163, 127, 0.6)',
+                        'rgba(163, 58, 51, 0.6)',
+                        'rgba(66, 133, 244, 0.6)',
+                        'rgba(111, 66, 193, 0.6)',
+                        'rgba(224, 60, 49, 0.6)'
+                    ],
+                    borderColor: [
+                        'rgba(16, 163, 127, 1)',
+                        'rgba(163, 58, 51, 1)',
+                        'rgba(66, 133, 244, 1)',
+                        'rgba(111, 66, 193, 1)',
+                        'rgba(224, 60, 49, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of API Calls'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+        
+        // Set up performance chart
+        const perfCtx = document.getElementById('performanceChart').getContext('2d');
+        const performanceChart = new Chart(perfCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Response Quality', 'Speed', 'Token Efficiency', 'Context Handling', 'Instruction Following'],
+                datasets: [
+                    {
+                        label: 'OpenAI (GPT)',
+                        data: [90, 85, 80, 95, 92],
+                        backgroundColor: 'rgba(16, 163, 127, 0.2)',
+                        borderColor: 'rgba(16, 163, 127, 1)',
+                        pointBackgroundColor: 'rgba(16, 163, 127, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(16, 163, 127, 1)'
+                    },
+                    {
+                        label: 'Google (Gemini)',
+                        data: [92, 80, 85, 90, 88],
+                        backgroundColor: 'rgba(66, 133, 244, 0.2)',
+                        borderColor: 'rgba(66, 133, 244, 1)',
+                        pointBackgroundColor: 'rgba(66, 133, 244, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(66, 133, 244, 1)'
+                    },
+                    {
+                        label: 'DeepSeek',
+                        data: [82, 78, 75, 88, 80],
+                        backgroundColor: 'rgba(111, 66, 193, 0.2)',
+                        borderColor: 'rgba(111, 66, 193, 1)',
+                        pointBackgroundColor: 'rgba(111, 66, 193, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(111, 66, 193, 1)'
+                    },
+                    {
+                        label: 'Grok',
+                        data: [85, 82, 78, 84, 86],
+                        backgroundColor: 'rgba(224, 60, 49, 0.2)',
+                        borderColor: 'rgba(224, 60, 49, 1)',
+                        pointBackgroundColor: 'rgba(224, 60, 49, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(224, 60, 49, 1)'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    r: {
+                        angleLines: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        pointLabels: {
+                            color: '#adb5bd'
+                        },
+                        ticks: {
+                            backdropColor: 'transparent',
+                            color: '#adb5bd'
+                        },
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+        
+        // Initialize usage progress bars animation
+        document.querySelectorAll('.usage-progress').forEach(progressBar => {
+            const width = progressBar.style.width;
+            progressBar.style.width = '0%';
+            setTimeout(() => {
+                progressBar.style.width = width;
+            }, 300);
+        });
+        
+        // Refresh status button
+        document.getElementById('refreshStatusBtn').addEventListener('click', function() {
+            const button = this;
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            
+            // Simulate API call
+            setTimeout(() => {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-sync"></i> Refresh Status';
+                
+                // Show success notification
+                showNotification('success', 'Platform status refreshed successfully');
+            }, 2000);
+        });
+        
+        // API Key Modal
+        const apiKeyModal = document.getElementById('apiKeyModal');
+        apiKeyModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const platformName = button.getAttribute('data-platform-name');
+            document.getElementById('platformName').textContent = platformName;
+            document.getElementById('apiKeyModalTitle').textContent = `Add API Key for ${platformName}`;
+        });
+        
+        // Save API Key
+        document.getElementById('saveApiKeyBtn').addEventListener('click', function() {
+            const apiKey = document.getElementById('apiKey').value;
+            const saveKey = document.getElementById('saveKeyCheck').checked;
+            
+            if (!apiKey) {
+                showNotification('error', 'Please enter an API key');
+                return;
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(apiKeyModal);
+            modal.hide();
+            
+            // Show success message
+            showNotification('success', 'API key saved successfully');
+            
+            // Reset form
+            document.getElementById('apiKey').value = '';
+            
+            // Refresh page after 1 second
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        });
+        
+        // Platform Type Select
+        document.getElementById('platformTypeSelect').addEventListener('change', function() {
+            const value = this.value;
+            document.getElementById('customApiFields').style.display = 'none';
+            document.getElementById('browserFields').style.display = 'none';
+            
+            if (value === 'custom-api' || value === 'mistral' || value === 'cohere' || value === 'other') {
+                document.getElementById('customApiFields').style.display = 'block';
+            } else if (value === 'browser-automation') {
+                document.getElementById('browserFields').style.display = 'block';
+            }
+        });
+        
+        // Login Required Checkbox
+        document.getElementById('loginRequiredCheck').addEventListener('change', function() {
+            document.getElementById('loginFields').style.display = this.checked ? 'block' : 'none';
+        });
+        
+        // Add Platform Button
+        document.getElementById('addPlatformBtn').addEventListener('click', function() {
+            const platformType = document.getElementById('platformTypeSelect').value;
+            
+            if (!platformType) {
+                showNotification('error', 'Please select a platform type');
+                return;
+            }
+            
+            // Validate fields based on platform type
+            if (platformType === 'custom-api' || platformType === 'mistral' || platformType === 'cohere' || platformType === 'other') {
+                const platformName = document.getElementById('platformName').value;
+                const apiEndpoint = document.getElementById('apiEndpoint').value;
+                const apiKey = document.getElementById('apiKeyInput').value;
+                
+                if (!platformName || !apiEndpoint || !apiKey) {
+                    showNotification('error', 'Please fill in all required fields');
+                    return;
+                }
+            } else if (platformType === 'browser-automation') {
+                const platformUrl = document.getElementById('platformUrl').value;
+                const platformName = document.getElementById('platformNameBrowser').value;
+                
+                if (!platformUrl || !platformName) {
+                    showNotification('error', 'Please fill in all required fields');
+                    return;
+                }
+                
+                const loginRequired = document.getElementById('loginRequiredCheck').checked;
+                if (loginRequired) {
+                    const username = document.getElementById('loginUsername').value;
+                    const password = document.getElementById('loginPassword').value;
+                    
+                    if (!username || !password) {
+                        showNotification('error', 'Please fill in login credentials');
+                        return;
+                    }
+                }
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addPlatformModal'));
+            modal.hide();
+            
+            // Show success message
+            showNotification('success', 'Platform added successfully');
+            
+            // Reset form
+            document.getElementById('platformTypeSelect').value = '';
+            document.getElementById('customApiFields').style.display = 'none';
+            document.getElementById('browserFields').style.display = 'none';
+            
+            // Refresh page after 1 second
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        });
+        
+        // Save Prompt Template
+        document.getElementById('savePromptBtn').addEventListener('click', function() {
+            const title = document.getElementById('promptTitle').value;
+            const description = document.getElementById('promptDescription').value;
+            const promptText = document.getElementById('promptText').value;
+            
+            if (!title || !description || !promptText) {
+                showNotification('error', 'Please fill in all required fields');
+                return;
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('newPromptModal'));
+            modal.hide();
+            
+            // Show success message
+            showNotification('success', 'Prompt template saved successfully');
+            
+            // Reset form
+            document.getElementById('promptTitle').value = '';
+            document.getElementById('promptDescription').value = '';
+            document.getElementById('promptText').value = '';
+            document.getElementById('promptTags').value = '';
+        });
+        
+        // Platform Settings Buttons
+        document.querySelectorAll('.platform-settings-btn[data-platform]').forEach(button => {
+            button.addEventListener('click', function() {
+                const platform = this.getAttribute('data-platform');
+                showNotification('info', `Opening configuration for ${platform}`);
+            });
+        });
+        
+        // Show notification
+        function showNotification(type, message) {
+            // Check if notification container exists
+            let container = document.getElementById('notificationContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'notificationContainer';
+                container.style.position = 'fixed';
+                container.style.top = '20px';
+                container.style.right = '20px';
+                container.style.zIndex = '9999';
+                document.body.appendChild(container);
+            }
+            
+            // Create notification
+            const notification = document.createElement('div');
+            notification.className = 'toast show';
+            notification.role = 'alert';
+            
+            // Style based on type
+            let bgClass = 'bg-primary';
+            if (type === 'success') bgClass = 'bg-success';
+            if (type === 'error') bgClass = 'bg-danger';
+            if (type === 'warning') bgClass = 'bg-warning text-dark';
+            if (type === 'info') bgClass = 'bg-info text-dark';
+            
+            notification.innerHTML = `
+                <div class="toast-header ${bgClass} text-white">
+                    <strong class="me-auto">AI Platforms</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body bg-dark text-white">
+                    ${message}
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Initialize Bootstrap toast
+            const toast = new bootstrap.Toast(notification, {
+                autohide: true,
+                delay: 5000
+            });
+            
+            // Remove from DOM when hidden
+            notification.addEventListener('hidden.bs.toast', function() {
+                container.removeChild(notification);
+            });
+        }
+    });
+</script>
+{% endblock %}

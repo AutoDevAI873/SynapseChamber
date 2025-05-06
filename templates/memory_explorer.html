@@ -1,0 +1,1294 @@
+{% extends 'layout.html' %}
+
+{% block title %}Synapse Chamber - Memory Explorer{% endblock %}
+
+{% block extra_css %}
+<style>
+    .memory-item {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 15px;
+        background-color: #212529;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    
+    .memory-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        border-color: rgba(13, 110, 253, 0.3);
+    }
+    
+    .memory-item.active {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .memory-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 10px;
+    }
+    
+    .memory-title {
+        font-weight: 600;
+        margin-right: 15px;
+    }
+    
+    .memory-meta {
+        font-size: 0.8rem;
+        color: #adb5bd;
+    }
+    
+    .memory-meta span {
+        margin-right: 10px;
+    }
+    
+    .memory-content {
+        margin-bottom: 10px;
+        white-space: pre-wrap;
+    }
+    
+    .memory-content.collapsed {
+        max-height: 100px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .memory-content.collapsed::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 40px;
+        background: linear-gradient(transparent, #212529);
+    }
+    
+    .memory-expand-btn {
+        font-size: 0.8rem;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border: none;
+        cursor: pointer;
+        color: #adb5bd;
+        transition: all 0.2s ease;
+    }
+    
+    .memory-expand-btn:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: #f8f9fa;
+    }
+    
+    .memory-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+        font-size: 0.8rem;
+    }
+    
+    .memory-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .memory-tag {
+        padding: 2px 8px;
+        border-radius: 10px;
+        background-color: rgba(13, 110, 253, 0.1);
+        color: #0d6efd;
+    }
+    
+    .memory-actions {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .memory-action-btn {
+        background: none;
+        border: none;
+        color: #adb5bd;
+        cursor: pointer;
+    }
+    
+    .memory-action-btn:hover {
+        color: #f8f9fa;
+    }
+    
+    .memory-type-general {
+        border-left: 3px solid #0d6efd;
+    }
+    
+    .memory-type-conversation {
+        border-left: 3px solid #6f42c1;
+    }
+    
+    .memory-type-factual {
+        border-left: 3px solid #20c997;
+    }
+    
+    .memory-type-procedural {
+        border-left: 3px solid #fd7e14;
+    }
+    
+    .memory-importance-high {
+        position: relative;
+    }
+    
+    .memory-importance-high::before {
+        content: "★";
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        color: #ffc107;
+        font-size: 1.2rem;
+    }
+    
+    .memory-similarity {
+        font-size: 0.8rem;
+        padding: 2px 10px;
+        border-radius: 20px;
+        background-color: rgba(25, 135, 84, 0.1);
+        color: #20c997;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+    
+    .memory-search-form {
+        background-color: #2c3137;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .memory-visual-graph {
+        height: 400px;
+        background-color: #212529;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        position: relative;
+    }
+    
+    .memory-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .memory-filter {
+        padding: 5px 15px;
+        border-radius: 20px;
+        background-color: #2c3137;
+        color: #f8f9fa;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .memory-filter:hover,
+    .memory-filter.active {
+        background-color: #0d6efd;
+    }
+    
+    .memory-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .memory-stat {
+        flex: 1;
+        min-width: 200px;
+        background-color: #2c3137;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+    }
+    
+    .memory-stat-value {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    
+    .memory-stat-label {
+        font-size: 0.9rem;
+        color: #adb5bd;
+    }
+    
+    /* Knowledge graph styles */
+    .node {
+        cursor: pointer;
+    }
+    
+    .node circle {
+        fill: #0d6efd;
+        stroke: #fff;
+        stroke-width: 1.5px;
+    }
+    
+    .node text {
+        font-size: 12px;
+        fill: #f8f9fa;
+    }
+    
+    .link {
+        fill: none;
+        stroke: rgba(255, 255, 255, 0.2);
+        stroke-width: 1.5px;
+    }
+    
+    /* Loading indicator */
+    .memory-loading {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(33, 37, 41, 0.8);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        z-index: 10;
+    }
+    
+    .memory-loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #0d6efd;
+        animation: spin 1s ease-in-out infinite;
+        margin-bottom: 10px;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-4">Memory Explorer</h1>
+            
+            <!-- Memory stats -->
+            <div class="memory-stats">
+                <div class="memory-stat">
+                    <div class="memory-stat-value" id="totalMemoryCount">127</div>
+                    <div class="memory-stat-label">Total Memories</div>
+                </div>
+                <div class="memory-stat">
+                    <div class="memory-stat-value" id="recentMemoryCount">12</div>
+                    <div class="memory-stat-label">Recent (24h)</div>
+                </div>
+                <div class="memory-stat">
+                    <div class="memory-stat-value" id="importantMemoryCount">8</div>
+                    <div class="memory-stat-label">High Importance</div>
+                </div>
+                <div class="memory-stat">
+                    <div class="memory-stat-value" id="consolidatedMemoryCount">32</div>
+                    <div class="memory-stat-label">Consolidated</div>
+                </div>
+            </div>
+            
+            <!-- Memory search -->
+            <div class="memory-search-form">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="memorySearchInput" placeholder="Search memories...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="memoryTypeFilter">
+                            <option value="">All Types</option>
+                            <option value="general">General</option>
+                            <option value="conversation">Conversation</option>
+                            <option value="factual">Factual</option>
+                            <option value="procedural">Procedural</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-grid">
+                            <button class="btn btn-primary" id="searchMemoryBtn">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="includeArchivedCheck">
+                                <label class="form-check-label" for="includeArchivedCheck">
+                                    Include archived memories
+                                </label>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-secondary" id="advancedSearchBtn">
+                                    Advanced Search <i class="fas fa-chevron-down ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3" id="advancedSearchOptions" style="display: none;">
+                    <div class="col-md-4">
+                        <label class="form-label">Importance</label>
+                        <select class="form-select form-select-sm" id="importanceFilter">
+                            <option value="">Any</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Date Range</label>
+                        <select class="form-select form-select-sm" id="dateRangeFilter">
+                            <option value="">Any time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This week</option>
+                            <option value="month">This month</option>
+                            <option value="custom">Custom range</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Source</label>
+                        <select class="form-select form-select-sm" id="sourceFilter">
+                            <option value="">All sources</option>
+                            <option value="user">User</option>
+                            <option value="system">System</option>
+                            <option value="gpt">GPT</option>
+                            <option value="claude">Claude</option>
+                            <option value="gemini">Gemini</option>
+                            <option value="grok">Grok</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Memory filters -->
+            <div class="memory-filters">
+                <div class="memory-filter active" data-filter="all">All</div>
+                <div class="memory-filter" data-filter="recent">Recent</div>
+                <div class="memory-filter" data-filter="important">Important</div>
+                <div class="memory-filter" data-filter="conversations">Conversations</div>
+                <div class="memory-filter" data-filter="facts">Facts</div>
+                <div class="memory-filter" data-filter="procedures">Procedures</div>
+                <div class="memory-filter" data-filter="consolidated">Consolidated</div>
+            </div>
+            
+            <!-- Toggle view -->
+            <div class="btn-group mb-4">
+                <button class="btn btn-outline-secondary active" id="listViewBtn">
+                    <i class="fas fa-list"></i> List View
+                </button>
+                <button class="btn btn-outline-secondary" id="graphViewBtn">
+                    <i class="fas fa-project-diagram"></i> Graph View
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <!-- List view -->
+            <div id="memoryListView">
+                <div class="memory-item memory-type-general memory-importance-high">
+                    <div class="memory-similarity">96% match</div>
+                    <div class="memory-header">
+                        <div class="memory-title">Core system architecture design decisions</div>
+                        <div class="memory-meta">
+                            <span><i class="fas fa-clock"></i> 2025-05-03 14:32</span>
+                            <span><i class="fas fa-tag"></i> General</span>
+                        </div>
+                    </div>
+                    <div class="memory-content collapsed">
+                        The Synapse Chamber should be designed with a modular architecture to allow for independent development and testing of components. The core components identified are:
+
+1. Browser Automation - Handles interaction with AI platforms
+2. Memory System - Stores and retrieves conversations and knowledge
+3. Training Engine - Manages training workflows and sessions
+4. AI Controller - Coordinates interactions with AI models
+5. Analytics - Tracks performance and generates insights
+
+Each component should expose a clear API contract to allow for isolation during development and testing. The system should be stateful but fault-tolerant, using PostgreSQL for persistent storage.
+
+For the memory system specifically, we should implement both semantic and structured storage, with a PostgreSQL backbone for structured data and a vector embedding approach for semantic search capabilities.
+                    </div>
+                    <button class="memory-expand-btn">Show more</button>
+                    <div class="memory-footer">
+                        <div class="memory-tags">
+                            <div class="memory-tag">architecture</div>
+                            <div class="memory-tag">design</div>
+                            <div class="memory-tag">system</div>
+                        </div>
+                        <div class="memory-actions">
+                            <button class="memory-action-btn" title="Link to other memories">
+                                <i class="fas fa-link"></i>
+                            </button>
+                            <button class="memory-action-btn" title="Archive memory">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="memory-action-btn" title="Delete memory">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="memory-item memory-type-conversation">
+                    <div class="memory-header">
+                        <div class="memory-title">Training session with Claude on entity extraction</div>
+                        <div class="memory-meta">
+                            <span><i class="fas fa-clock"></i> 2025-05-06 10:15</span>
+                            <span><i class="fas fa-tag"></i> Conversation</span>
+                        </div>
+                    </div>
+                    <div class="memory-content collapsed">
+                        Human: How would you design a regex-based entity extraction system for finding phone numbers, emails, and addresses in text?
+
+AI: For a regex-based entity extraction system to find phone numbers, emails, and addresses, I'd recommend this approach:
+
+1. Phone Numbers:
+   - Pattern: `\b(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b`
+   - This handles formats like: (123) 456-7890, +1 123-456-7890, 123.456.7890
+
+2. Email Addresses:
+   - Pattern: `\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`
+   - Captures standard email formats while avoiding most false positives
+
+3. Addresses:
+   - This is more complex due to variations, but a basic approach:
+   - Street: `\b\d+\s+[A-Za-z0-9\s,.-]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Court|Ct|Way|Parkway|Pkwy)\b`
+   - City/State/Zip: `\b[A-Za-z\s]+,\s*[A-Z]{2}\s*\d{5}(-\d{4})?\b`
+
+Implementation steps:
+1. Compile these regex patterns with appropriate flags (case insensitive where needed)
+2. Apply patterns to text and extract matches
+3. Validate matches (e.g., check email domains, validate phone number length)
+4. Post-process to handle edge cases (e.g., line breaks in addresses)
+5. Remove duplicates and return structured results
+
+For better accuracy, consider:
+- Using named capture groups to structure the extracted information
+- Implementing validation rules specific to each entity type
+- Creating a confidence score system for ambiguous matches
+
+Would you like me to provide code examples or elaborate on any specific aspect?
+                    </div>
+                    <button class="memory-expand-btn">Show more</button>
+                    <div class="memory-footer">
+                        <div class="memory-tags">
+                            <div class="memory-tag">regex</div>
+                            <div class="memory-tag">entity-extraction</div>
+                            <div class="memory-tag">claude</div>
+                        </div>
+                        <div class="memory-actions">
+                            <button class="memory-action-btn" title="Link to other memories">
+                                <i class="fas fa-link"></i>
+                            </button>
+                            <button class="memory-action-btn" title="Archive memory">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="memory-action-btn" title="Delete memory">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="memory-item memory-type-factual">
+                    <div class="memory-header">
+                        <div class="memory-title">AI platform API rate limits and quotas</div>
+                        <div class="memory-meta">
+                            <span><i class="fas fa-clock"></i> 2025-05-04 09:22</span>
+                            <span><i class="fas fa-tag"></i> Factual</span>
+                        </div>
+                    </div>
+                    <div class="memory-content collapsed">
+                        Current API rate limits for supported AI platforms:
+
+1. OpenAI (GPT)
+   - Free tier: 3 requests per minute
+   - Paid tier: 3500 tokens per minute (roughly 60-80 requests)
+   - Models: gpt-4o, gpt-4-turbo, gpt-3.5-turbo
+   - Context window: 128K tokens for gpt-4o
+
+2. Anthropic (Claude)
+   - No free tier
+   - Paid tier: 100 requests per minute 
+   - Models: claude-3-5-sonnet, claude-3-haiku, claude-3-opus
+   - Context window: 200K tokens for claude-3-opus
+
+3. Google (Gemini)
+   - Free tier: 60 requests per minute
+   - Paid tier: 300 requests per minute
+   - Models: gemini-1.5-pro, gemini-1.5-flash
+   - Context window: 1M tokens for gemini-1.5-pro
+
+4. DeepSeek
+   - Free tier: 10 requests per minute
+   - Paid tier: 50 requests per minute
+   - Models: deepseek-coder, deepseek-chat
+   - Context window: 32K tokens
+
+5. Grok
+   - Access via website only
+   - No direct API access
+   - Estimated 20 requests per hour through browser automation
+                    </div>
+                    <button class="memory-expand-btn">Show more</button>
+                    <div class="memory-footer">
+                        <div class="memory-tags">
+                            <div class="memory-tag">api</div>
+                            <div class="memory-tag">rate-limits</div>
+                            <div class="memory-tag">platforms</div>
+                        </div>
+                        <div class="memory-actions">
+                            <button class="memory-action-btn" title="Link to other memories">
+                                <i class="fas fa-link"></i>
+                            </button>
+                            <button class="memory-action-btn" title="Archive memory">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="memory-action-btn" title="Delete memory">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="memory-item memory-type-procedural">
+                    <div class="memory-header">
+                        <div class="memory-title">CAPTCHA solving procedure</div>
+                        <div class="memory-meta">
+                            <span><i class="fas fa-clock"></i> 2025-05-05 16:47</span>
+                            <span><i class="fas fa-tag"></i> Procedural</span>
+                        </div>
+                    </div>
+                    <div class="memory-content collapsed">
+                        Step-by-step procedure for solving CAPTCHAs during browser automation:
+
+1. Detect CAPTCHA presence
+   - Look for iframe elements with specific src patterns
+   - Check for known CAPTCHA text or image elements
+   - Identify reCAPTCHA checkboxes
+
+2. Simple checkbox CAPTCHAs
+   - Locate the checkbox element
+   - Add random delay (1-3 seconds)
+   - Use realistic mouse movement patterns
+   - Click checkbox
+
+3. Image recognition CAPTCHAs
+   - Take screenshot of CAPTCHA area
+   - Use OCR to process text portions
+   - For image selection, implement basic object recognition
+   - If multiple images, process each one individually
+
+4. Audio CAPTCHAs (fallback)
+   - Click audio challenge button
+   - Download or record audio
+   - Convert to text using speech recognition
+   - Submit transcribed text
+
+5. Advanced techniques
+   - Implement humanlike behavior patterns
+   - Randomize timing between actions
+   - Simulate realistic mouse movements
+   - Maintain cookies and session data
+
+6. Fallback to human assistance
+   - If automatic solving fails after 3 attempts
+   - Save screenshot and context information
+   - Prompt for manual intervention
+   - Log the occurrence for future training
+                    </div>
+                    <button class="memory-expand-btn">Show more</button>
+                    <div class="memory-footer">
+                        <div class="memory-tags">
+                            <div class="memory-tag">captcha</div>
+                            <div class="memory-tag">browser-automation</div>
+                            <div class="memory-tag">procedure</div>
+                        </div>
+                        <div class="memory-actions">
+                            <button class="memory-action-btn" title="Link to other memories">
+                                <i class="fas fa-link"></i>
+                            </button>
+                            <button class="memory-action-btn" title="Archive memory">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                            <button class="memory-action-btn" title="Delete memory">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Graph view -->
+            <div id="memoryGraphView" style="display: none;">
+                <div class="memory-visual-graph">
+                    <div class="memory-loading">
+                        <div class="memory-loading-spinner"></div>
+                        <div>Loading knowledge graph...</div>
+                    </div>
+                    <svg width="100%" height="100%" id="memoryGraph"></svg>
+                </div>
+                <div class="mt-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-dark">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Graph Controls</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Link Distance</label>
+                                        <input type="range" class="form-range" id="linkDistanceRange" min="30" max="200" value="100">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Node Charge</label>
+                                        <input type="range" class="form-range" id="nodeChargeRange" min="-500" max="-10" value="-100">
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="showLabelsCheck" checked>
+                                            <label class="form-check-label" for="showLabelsCheck">Show Labels</label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-secondary" id="resetGraphBtn">
+                                            <i class="fas fa-redo"></i> Reset Graph
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-primary" id="exportGraphBtn">
+                                            <i class="fas fa-download"></i> Export as SVG
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-dark">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Selected Node</h5>
+                                </div>
+                                <div class="card-body" id="selectedNodeInfo">
+                                    <div class="text-muted text-center">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Click on a node to see details
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Memory Detail Modal -->
+<div class="modal fade" id="memoryDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title" id="memoryDetailTitle">Memory Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="memoryDetailContent">
+                <!-- Memory detail content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="editMemoryBtn">Edit Memory</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- D3.js for the knowledge graph visualization -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elements
+        const memoryListView = document.getElementById('memoryListView');
+        const memoryGraphView = document.getElementById('memoryGraphView');
+        const listViewBtn = document.getElementById('listViewBtn');
+        const graphViewBtn = document.getElementById('graphViewBtn');
+        const searchMemoryBtn = document.getElementById('searchMemoryBtn');
+        const memorySearchInput = document.getElementById('memorySearchInput');
+        const memoryTypeFilter = document.getElementById('memoryTypeFilter');
+        const advancedSearchBtn = document.getElementById('advancedSearchBtn');
+        const advancedSearchOptions = document.getElementById('advancedSearchOptions');
+        const memoryFilters = document.querySelectorAll('.memory-filter');
+        
+        // Initialize
+        initializeMemoryItems();
+        initializeKnowledgeGraph();
+        
+        // View toggle
+        listViewBtn.addEventListener('click', function() {
+            memoryListView.style.display = 'block';
+            memoryGraphView.style.display = 'none';
+            listViewBtn.classList.add('active');
+            graphViewBtn.classList.remove('active');
+        });
+        
+        graphViewBtn.addEventListener('click', function() {
+            memoryListView.style.display = 'none';
+            memoryGraphView.style.display = 'block';
+            listViewBtn.classList.remove('active');
+            graphViewBtn.classList.add('active');
+            
+            // Simulate loading completed
+            setTimeout(function() {
+                document.querySelector('.memory-loading').style.display = 'none';
+            }, 1500);
+        });
+        
+        // Advanced search toggle
+        advancedSearchBtn.addEventListener('click', function() {
+            advancedSearchOptions.style.display = advancedSearchOptions.style.display === 'none' ? 'flex' : 'none';
+            // Toggle icon
+            const icon = advancedSearchBtn.querySelector('i');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        });
+        
+        // Memory filters
+        memoryFilters.forEach(filter => {
+            filter.addEventListener('click', function() {
+                // Toggle active class
+                memoryFilters.forEach(f => f.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Apply filter
+                const filterType = this.dataset.filter;
+                applyMemoryFilter(filterType);
+            });
+        });
+        
+        // Search functionality
+        searchMemoryBtn.addEventListener('click', function() {
+            const query = memorySearchInput.value.trim();
+            const type = memoryTypeFilter.value;
+            
+            // Additional filters
+            const includeArchived = document.getElementById('includeArchivedCheck').checked;
+            const importance = document.getElementById('importanceFilter')?.value || '';
+            const dateRange = document.getElementById('dateRangeFilter')?.value || '';
+            const source = document.getElementById('sourceFilter')?.value || '';
+            
+            searchMemories(query, type, {
+                includeArchived,
+                importance,
+                dateRange,
+                source
+            });
+        });
+        
+        // Memory item interactions
+        function initializeMemoryItems() {
+            // Expand/collapse memory content
+            document.querySelectorAll('.memory-expand-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const content = this.previousElementSibling;
+                    content.classList.toggle('collapsed');
+                    this.textContent = content.classList.contains('collapsed') ? 'Show more' : 'Show less';
+                });
+            });
+            
+            // Memory item selection
+            document.querySelectorAll('.memory-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    // Ignore clicks on actions
+                    if (e.target.closest('.memory-actions')) return;
+                    
+                    // Toggle selection
+                    document.querySelectorAll('.memory-item').forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show memory details
+                    showMemoryDetails(this);
+                });
+            });
+            
+            // Memory actions
+            document.querySelectorAll('.memory-action-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    
+                    const action = this.getAttribute('title');
+                    const memoryItem = this.closest('.memory-item');
+                    
+                    if (action === 'Link to other memories') {
+                        // TODO: Implement linking functionality
+                        alert('Linking functionality to be implemented');
+                    } else if (action === 'Archive memory') {
+                        if (confirm('Are you sure you want to archive this memory?')) {
+                            memoryItem.style.opacity = '0.5';
+                            setTimeout(() => {
+                                memoryItem.remove();
+                                updateStats();
+                            }, 500);
+                        }
+                    } else if (action === 'Delete memory') {
+                        if (confirm('Are you sure you want to delete this memory? This action cannot be undone.')) {
+                            memoryItem.style.opacity = '0';
+                            setTimeout(() => {
+                                memoryItem.remove();
+                                updateStats();
+                            }, 500);
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Apply filter to memory items
+        function applyMemoryFilter(filterType) {
+            const items = document.querySelectorAll('.memory-item');
+            
+            items.forEach(item => {
+                if (filterType === 'all') {
+                    item.style.display = 'block';
+                } else if (filterType === 'recent') {
+                    // Show items from the last 24 hours
+                    // This is just a simulation for the demo
+                    item.style.display = item.querySelector('.memory-meta').textContent.includes('2025-05-06') ? 'block' : 'none';
+                } else if (filterType === 'important') {
+                    item.style.display = item.classList.contains('memory-importance-high') ? 'block' : 'none';
+                } else if (filterType === 'conversations') {
+                    item.style.display = item.classList.contains('memory-type-conversation') ? 'block' : 'none';
+                } else if (filterType === 'facts') {
+                    item.style.display = item.classList.contains('memory-type-factual') ? 'block' : 'none';
+                } else if (filterType === 'procedures') {
+                    item.style.display = item.classList.contains('memory-type-procedural') ? 'block' : 'none';
+                } else if (filterType === 'consolidated') {
+                    // Just a simulation for demo
+                    item.style.display = Math.random() > 0.5 ? 'block' : 'none';
+                }
+            });
+        }
+        
+        // Search memories
+        function searchMemories(query, type, filters) {
+            // This would normally call an API endpoint
+            // For demo purposes, we'll just filter the existing items
+            
+            const items = document.querySelectorAll('.memory-item');
+            let visibleCount = 0;
+            
+            items.forEach(item => {
+                const title = item.querySelector('.memory-title').textContent.toLowerCase();
+                const content = item.querySelector('.memory-content').textContent.toLowerCase();
+                const tags = Array.from(item.querySelectorAll('.memory-tag'))
+                    .map(tag => tag.textContent.toLowerCase());
+                
+                const matchesQuery = !query || 
+                    title.includes(query.toLowerCase()) || 
+                    content.includes(query.toLowerCase()) ||
+                    tags.some(tag => tag.includes(query.toLowerCase()));
+                
+                const matchesType = !type || 
+                    item.classList.contains(`memory-type-${type}`);
+                
+                // Additional filters
+                const matchesImportance = !filters.importance || 
+                    (filters.importance === 'high' && item.classList.contains('memory-importance-high'));
+                
+                // Show/hide based on matches
+                const shouldShow = matchesQuery && matchesType && matchesImportance;
+                item.style.display = shouldShow ? 'block' : 'none';
+                
+                if (shouldShow) visibleCount++;
+            });
+            
+            // Update UI with results count
+            if (query) {
+                const resultText = `Found ${visibleCount} ${visibleCount === 1 ? 'memory' : 'memories'} matching "${query}"`;
+                showNotification('info', resultText);
+            }
+        }
+        
+        // Show memory details
+        function showMemoryDetails(memoryItem) {
+            const title = memoryItem.querySelector('.memory-title').textContent;
+            const content = memoryItem.querySelector('.memory-content').innerHTML;
+            const meta = memoryItem.querySelector('.memory-meta').innerHTML;
+            const tags = Array.from(memoryItem.querySelectorAll('.memory-tag'))
+                .map(tag => tag.textContent)
+                .join(', ');
+            
+            // Create modal content
+            const detailContent = `
+                <div class="memory-detail">
+                    <div class="memory-meta mb-3">${meta}</div>
+                    <div class="memory-content-full mb-4">${content}</div>
+                    <div class="memory-detail-section">
+                        <h6>Tags</h6>
+                        <div class="memory-tags mb-3">
+                            ${tags.split(', ').map(tag => `<div class="memory-tag">${tag}</div>`).join('')}
+                        </div>
+                    </div>
+                    <div class="memory-detail-section">
+                        <h6>Linked Memories</h6>
+                        <div class="mb-3">
+                            <div class="text-muted">No linked memories</div>
+                        </div>
+                    </div>
+                    <div class="memory-detail-section">
+                        <h6>Metadata</h6>
+                        <table class="table table-sm table-dark">
+                            <tr>
+                                <th>Created</th>
+                                <td>2025-05-06 10:15:32</td>
+                            </tr>
+                            <tr>
+                                <th>Last Modified</th>
+                                <td>2025-05-06 10:15:32</td>
+                            </tr>
+                            <tr>
+                                <th>Importance</th>
+                                <td>${memoryItem.classList.contains('memory-importance-high') ? 'High' : 'Medium'}</td>
+                            </tr>
+                            <tr>
+                                <th>Source</th>
+                                <td>Claude</td>
+                            </tr>
+                            <tr>
+                                <th>Memory ID</th>
+                                <td>mem_${Math.random().toString(36).substring(2, 10)}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            // Update modal
+            document.getElementById('memoryDetailTitle').textContent = title;
+            document.getElementById('memoryDetailContent').innerHTML = detailContent;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('memoryDetailModal'));
+            modal.show();
+        }
+        
+        // Initialize knowledge graph visualization
+        function initializeKnowledgeGraph() {
+            // This would normally load from API
+            // For demo, we'll create a sample knowledge graph
+            
+            const graphData = {
+                nodes: [
+                    { id: 'architecture', name: 'System Architecture', type: 'concept', size: 20 },
+                    { id: 'browser-automation', name: 'Browser Automation', type: 'component', size: 15 },
+                    { id: 'memory-system', name: 'Memory System', type: 'component', size: 15 },
+                    { id: 'training-engine', name: 'Training Engine', type: 'component', size: 15 },
+                    { id: 'ai-controller', name: 'AI Controller', type: 'component', size: 15 },
+                    { id: 'analytics', name: 'Analytics System', type: 'component', size: 15 },
+                    { id: 'captcha', name: 'CAPTCHA Solving', type: 'procedure', size: 12 },
+                    { id: 'entity-extraction', name: 'Entity Extraction', type: 'technique', size: 12 },
+                    { id: 'platform-apis', name: 'AI Platform APIs', type: 'reference', size: 12 },
+                    { id: 'database', name: 'PostgreSQL', type: 'technology', size: 10 },
+                    { id: 'vectors', name: 'Vector Embeddings', type: 'technology', size: 10 },
+                    { id: 'selenium', name: 'Selenium', type: 'technology', size: 10 },
+                    { id: 'flask', name: 'Flask', type: 'technology', size: 10 },
+                    { id: 'openai', name: 'OpenAI', type: 'platform', size: 12 },
+                    { id: 'anthropic', name: 'Anthropic', type: 'platform', size: 12 },
+                    { id: 'google', name: 'Google', type: 'platform', size: 12 },
+                    { id: 'grok', name: 'Grok', type: 'platform', size: 12 }
+                ],
+                links: [
+                    { source: 'architecture', target: 'browser-automation', value: 1 },
+                    { source: 'architecture', target: 'memory-system', value: 1 },
+                    { source: 'architecture', target: 'training-engine', value: 1 },
+                    { source: 'architecture', target: 'ai-controller', value: 1 },
+                    { source: 'architecture', target: 'analytics', value: 1 },
+                    { source: 'browser-automation', target: 'captcha', value: 2 },
+                    { source: 'browser-automation', target: 'selenium', value: 2 },
+                    { source: 'memory-system', target: 'database', value: 2 },
+                    { source: 'memory-system', target: 'vectors', value: 2 },
+                    { source: 'training-engine', target: 'ai-controller', value: 3 },
+                    { source: 'training-engine', target: 'entity-extraction', value: 1 },
+                    { source: 'ai-controller', target: 'platform-apis', value: 2 },
+                    { source: 'ai-controller', target: 'openai', value: 1 },
+                    { source: 'ai-controller', target: 'anthropic', value: 1 },
+                    { source: 'ai-controller', target: 'google', value: 1 },
+                    { source: 'ai-controller', target: 'grok', value: 1 },
+                    { source: 'analytics', target: 'database', value: 1 },
+                    { source: 'flask', target: 'architecture', value: 1 }
+                ]
+            };
+            
+            // Set up SVG dimensions
+            const width = document.getElementById('memoryGraph').clientWidth;
+            const height = document.getElementById('memoryGraph').clientHeight;
+            
+            // Create the SVG
+            const svg = d3.select('#memoryGraph');
+            
+            // Create node type color scale
+            const colorScale = d3.scaleOrdinal()
+                .domain(['concept', 'component', 'procedure', 'technique', 'reference', 'technology', 'platform'])
+                .range(['#0d6efd', '#6f42c1', '#fd7e14', '#20c997', '#6c757d', '#0dcaf0', '#dc3545']);
+            
+            // Create the force simulation
+            const simulation = d3.forceSimulation(graphData.nodes)
+                .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-100))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(d => d.size + 5));
+            
+            // Create graph elements
+            const link = svg.append('g')
+                .attr('class', 'links')
+                .selectAll('line')
+                .data(graphData.links)
+                .enter().append('line')
+                .attr('class', 'link')
+                .attr('stroke-width', d => Math.sqrt(d.value));
+            
+            const node = svg.append('g')
+                .attr('class', 'nodes')
+                .selectAll('.node')
+                .data(graphData.nodes)
+                .enter().append('g')
+                .attr('class', 'node')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+            
+            node.append('circle')
+                .attr('r', d => d.size)
+                .attr('fill', d => colorScale(d.type))
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 1.5);
+            
+            node.append('text')
+                .attr('dx', d => d.size + 5)
+                .attr('dy', '.35em')
+                .text(d => d.name)
+                .style('font-size', '12px')
+                .style('fill', '#f8f9fa');
+            
+            // Add titles for accessibility
+            node.append('title')
+                .text(d => d.name);
+            
+            // Handle node selection
+            node.on('click', function(event, d) {
+                // Update selected node info
+                document.getElementById('selectedNodeInfo').innerHTML = `
+                    <h6>${d.name}</h6>
+                    <div class="mb-2">Type: ${d.type.charAt(0).toUpperCase() + d.type.slice(1)}</div>
+                    <div class="mb-2">Connections: ${graphData.links.filter(link => 
+                        link.source.id === d.id || link.target.id === d.id
+                    ).length}</div>
+                    <div class="mb-3">
+                        <div class="memory-tag">${d.id}</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary">View Related Memories</button>
+                `;
+                
+                // Highlight this node and its connections
+                d3.selectAll('.link')
+                    .style('stroke-opacity', 0.2);
+                    
+                d3.selectAll('.node circle')
+                    .style('fill-opacity', 0.2);
+                    
+                // Highlight connected links
+                d3.selectAll('.link')
+                    .filter(link => link.source.id === d.id || link.target.id === d.id)
+                    .style('stroke-opacity', 1)
+                    .style('stroke', '#fff');
+                    
+                // Highlight this node and connected nodes
+                d3.select(this).select('circle')
+                    .style('fill-opacity', 1)
+                    .style('stroke', '#ffc107')
+                    .style('stroke-width', 3);
+                    
+                d3.selectAll('.node')
+                    .filter(node => {
+                        return graphData.links.some(link => 
+                            (link.source.id === d.id && link.target.id === node.id) ||
+                            (link.target.id === d.id && link.source.id === node.id)
+                        );
+                    })
+                    .select('circle')
+                    .style('fill-opacity', 0.8);
+            });
+            
+            // Double-click to reset highlights
+            svg.on('dblclick', function() {
+                d3.selectAll('.link')
+                    .style('stroke-opacity', 1)
+                    .style('stroke', 'rgba(255, 255, 255, 0.2)');
+                    
+                d3.selectAll('.node circle')
+                    .style('fill-opacity', 1)
+                    .style('stroke', '#fff')
+                    .style('stroke-width', 1.5);
+                    
+                document.getElementById('selectedNodeInfo').innerHTML = `
+                    <div class="text-muted text-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Click on a node to see details
+                    </div>
+                `;
+            });
+            
+            // Update positions on each tick
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+                
+                node
+                    .attr('transform', d => `translate(${d.x}, ${d.y})`);
+            });
+            
+            // Graph control event listeners
+            document.getElementById('linkDistanceRange').addEventListener('input', function() {
+                const distance = parseInt(this.value);
+                simulation.force('link').distance(distance);
+                simulation.alpha(0.5).restart();
+            });
+            
+            document.getElementById('nodeChargeRange').addEventListener('input', function() {
+                const charge = parseInt(this.value);
+                simulation.force('charge').strength(charge);
+                simulation.alpha(0.5).restart();
+            });
+            
+            document.getElementById('showLabelsCheck').addEventListener('change', function() {
+                d3.selectAll('.node text')
+                    .style('display', this.checked ? 'block' : 'none');
+            });
+            
+            document.getElementById('resetGraphBtn').addEventListener('click', function() {
+                simulation.force('link').distance(100);
+                simulation.force('charge').strength(-100);
+                simulation.alpha(0.5).restart();
+                document.getElementById('linkDistanceRange').value = 100;
+                document.getElementById('nodeChargeRange').value = -100;
+            });
+            
+            document.getElementById('exportGraphBtn').addEventListener('click', function() {
+                const svgData = new XMLSerializer().serializeToString(svg.node());
+                const blob = new Blob([svgData], { type: 'image/svg+xml' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'knowledge_graph.svg';
+                a.click();
+                
+                URL.revokeObjectURL(url);
+            });
+            
+            // Drag functions
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+        
+        // Update stats counters
+        function updateStats() {
+            const totalItems = document.querySelectorAll('.memory-item').length;
+            document.getElementById('totalMemoryCount').textContent = totalItems;
+            
+            // Just update other stats proportionally for the demo
+            document.getElementById('recentMemoryCount').textContent = Math.max(1, Math.floor(totalItems * 0.1));
+            document.getElementById('importantMemoryCount').textContent = Math.max(1, Math.floor(totalItems * 0.07));
+            document.getElementById('consolidatedMemoryCount').textContent = Math.max(1, Math.floor(totalItems * 0.25));
+        }
+        
+        // Show notification
+        function showNotification(type, message) {
+            // Check if notification container exists
+            let container = document.getElementById('notificationContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'notificationContainer';
+                container.style.position = 'fixed';
+                container.style.top = '20px';
+                container.style.right = '20px';
+                container.style.zIndex = '9999';
+                document.body.appendChild(container);
+            }
+            
+            // Create notification
+            const notification = document.createElement('div');
+            notification.className = 'toast show';
+            notification.role = 'alert';
+            
+            // Style based on type
+            let bgClass = 'bg-primary';
+            if (type === 'success') bgClass = 'bg-success';
+            if (type === 'error') bgClass = 'bg-danger';
+            if (type === 'warning') bgClass = 'bg-warning text-dark';
+            if (type === 'info') bgClass = 'bg-info text-dark';
+            
+            notification.innerHTML = `
+                <div class="toast-header ${bgClass} text-white">
+                    <strong class="me-auto">Memory Explorer</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body bg-dark text-white">
+                    ${message}
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Initialize Bootstrap toast
+            const toast = new bootstrap.Toast(notification, {
+                autohide: true,
+                delay: 5000
+            });
+            
+            // Remove from DOM when hidden
+            notification.addEventListener('hidden.bs.toast', function() {
+                container.removeChild(notification);
+            });
+        }
+    });
+</script>
+{% endblock %}
