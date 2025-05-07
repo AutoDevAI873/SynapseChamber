@@ -17,7 +17,10 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dock.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tooltips.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/spinners.css') }}">
     
+    {% block styles %}{% endblock %}
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -53,6 +56,7 @@
                             <li><a class="dropdown-item" href="/logs"><i class="fas fa-list"></i> Logs</a></li>
                             <li><a class="dropdown-item" href="/memory"><i class="fas fa-database"></i> Memory</a></li>
                             <li><a class="dropdown-item" href="/platforms"><i class="fas fa-project-diagram"></i> AI Platforms</a></li>
+                            <li><a class="dropdown-item" href="/system-health"><i class="fas fa-heartbeat"></i> System Health</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog"></i> Settings</a></li>
                         </ul>
@@ -95,6 +99,10 @@
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dock.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/error_handler.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tooltips.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/spinners.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/onboarding_wizard.js') }}"></script>
     
     <!-- Run Button Functionality -->
     <script>

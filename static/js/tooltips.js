@@ -1,423 +1,587 @@
 /**
- * Synapse Chamber - Contextual Tooltips System
- * Provides intelligent context-aware tooltips throughout the UI
- * Part of the Synapse Chamber UI/UX enhancement project
+ * Synapse Chamber - Contextual Tooltips
+ * Provides rich, context-aware tooltips for UI elements
+ * Part of the Synapse Chamber UX enhancement project
  */
 
 class SynapseTooltips {
-    constructor() {
-        // Configuration for various tooltip categories
-        this.tooltipConfig = {
-            // AI Platform specific tooltips
-            platforms: {
-                "gpt": {
-                    title: "ChatGPT",
-                    description: "OpenAI's large language model optimized for chat conversations.",
-                    footer: "Good for: Creative writing, sophisticated reasoning",
-                    shortcut: "Alt+G"
-                },
-                "claude": {
-                    title: "Claude",
-                    description: "Anthropic's AI assistant known for longer context and nuanced responses.",
-                    footer: "Good for: Detailed analysis, understanding complex text",
-                    shortcut: "Alt+C"
-                },
-                "gemini": {
-                    title: "Gemini",
-                    description: "Google's multimodal AI model that can process text and images.",
-                    footer: "Good for: Visual reasoning, analytical tasks",
-                    shortcut: "Alt+M"
-                },
-                "grok": {
-                    title: "Grok",
-                    description: "X's conversational AI with real-time data access.",
-                    footer: "Good for: Current events, conversational responses",
-                    shortcut: "Alt+K"
-                },
-                "deepseek": {
-                    title: "DeepSeek",
-                    description: "Specialized AI with strong coding and technical capabilities.",
-                    footer: "Good for: Programming tasks, technical documentation",
-                    shortcut: "Alt+D"
-                }
-            },
-            
-            // Training module tooltips
-            training: {
-                "topic_selection": {
-                    title: "Topic Selection",
-                    description: "Choose a training area to focus on. Different topics expose the agent to diverse knowledge domains.",
-                    footer: "Pro tip: Regularly rotate topics for well-rounded training"
-                },
-                "platform_selection": {
-                    title: "Platform Selection",
-                    description: "Choose which AI platforms to use for training. Each platform has different strengths and weaknesses.",
-                    footer: "Best practice: Train across multiple platforms for diverse perspectives"
-                },
-                "prompt_input": {
-                    title: "Training Prompt",
-                    description: "The question or task you want the AIs to respond to. Make it clear, specific, and challenging.",
-                    footer: "Effective prompts are precise and test specific capabilities"
-                },
-                "training_mode": {
-                    title: "Training Mode",
-                    description: "Controls how the system processes AI responses and updates agent knowledge.",
-                    footer: "See documentation for details on each mode"
-                },
-                "history_view": {
-                    title: "Training History",
-                    description: "View past training sessions, responses, and analysis results.",
-                    footer: "Analyze trends to identify knowledge gaps"
-                }
-            },
-            
-            // Memory system tooltips
-            memory: {
-                "conversation_browser": {
-                    title: "Conversation Browser",
-                    description: "Browse and search through stored conversations across all platforms.",
-                    footer: "Use filters to find specific knowledge areas"
-                },
-                "memory_search": {
-                    title: "Semantic Search",
-                    description: "Search for memories using natural language. The system will find semantically similar content.",
-                    footer: "Try describing concepts rather than just keywords"
-                },
-                "memory_item": {
-                    title: "Memory Item",
-                    description: "Individual knowledge unit stored in the system. Contains source, importance, and context metadata.",
-                    footer: "Click to view associated memory connections"
-                },
-                "memory_graph": {
-                    title: "Knowledge Graph",
-                    description: "Visual representation of how memories and concepts are connected in the agent's knowledge base.",
-                    footer: "Dense clusters indicate well-learned concepts"
-                }
-            },
-            
-            // Development environment tooltips
-            development: {
-                "file_explorer": {
-                    title: "File Explorer",
-                    description: "Browse and manage files in the agent's workspace.",
-                    footer: "Right-click for additional actions"
-                },
-                "code_editor": {
-                    title: "Code Editor",
-                    description: "Edit code with syntax highlighting and intelligent assistance.",
-                    footer: "Keyboard shortcut: Ctrl+S to save"
-                },
-                "terminal": {
-                    title: "Terminal",
-                    description: "Execute commands in a shell environment for development and testing.",
-                    footer: "Type 'help' for available commands"
-                },
-                "command_palette": {
-                    title: "Command Palette",
-                    description: "Quick access to commands and actions throughout the interface.",
-                    footer: "Keyboard shortcut: Ctrl+Shift+P"
-                }
-            },
-            
-            // System health indicators
-            system: {
-                "health_indicator": {
-                    title: "System Health",
-                    description: "Shows the overall health status of the Synapse Chamber components.",
-                    footer: "Click for detailed diagnostics"
-                },
-                "memory_usage": {
-                    title: "Memory Usage",
-                    description: "Shows how much of the allocated memory is currently being used.",
-                    footer: "Approaching capacity may require optimization"
-                },
-                "driver_status": {
-                    title: "Browser Driver Status",
-                    description: "Indicates whether the browser automation system is functioning properly.",
-                    footer: "Green: Healthy, Yellow: Warning, Red: Error"
-                },
-                "api_status": {
-                    title: "API Connection Status",
-                    description: "Shows the health of connections to various external APIs and services.",
-                    footer: "Click to view detailed connection logs"
-                }
-            }
-        };
+    constructor(options = {}) {
+        this.options = Object.assign({
+            selector: '[data-tooltip]',
+            containerClass: 'synapse-tooltip-container',
+            tooltipClass: 'synapse-tooltip',
+            arrowClass: 'synapse-tooltip-arrow',
+            animationDuration: 200,
+            showDelay: 300,
+            hideDelay: 200,
+            offset: 10,
+            followMouse: false,
+            maxWidth: 250,
+            zIndex: 9000,
+            allowHTML: false
+        }, options);
         
-        // Initialize tooltips
-        this.init();
+        this.activeTooltips = [];
+        this.tooltipContainer = null;
+        this.hoverTimeoutId = null;
+        this.leaveTimeoutId = null;
     }
     
     /**
-     * Initialize tooltip system
+     * Initialize tooltips
      */
     init() {
-        // Initialize on document ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.setupTooltips());
-        } else {
-            this.setupTooltips();
-        }
+        this.createStyles();
+        this.createTooltipContainer();
+        this.bindEvents();
         
-        // Set up mutation observer to handle dynamically added elements
-        this.setupMutationObserver();
+        console.log('Synapse Tooltips initialized');
     }
     
     /**
-     * Set up initial tooltips
+     * Create CSS styles for tooltips
      */
-    setupTooltips() {
-        // Find elements with data-tooltip attributes
-        const tooltipElements = document.querySelectorAll('[data-tooltip]');
-        
-        // Process each tooltip element
-        tooltipElements.forEach(element => {
-            this.processTooltipElement(element);
-        });
-        
-        // Add special context-sensitive tooltips
-        this.addPlatformTooltips();
-        this.addTrainingTooltips();
-        this.addMemoryTooltips();
-        this.addDevelopmentTooltips();
-        this.addSystemTooltips();
-    }
-    
-    /**
-     * Process a single tooltip element
-     */
-    processTooltipElement(element) {
-        const tooltipType = element.getAttribute('data-tooltip');
-        const tooltipCategory = element.getAttribute('data-tooltip-category') || 'general';
-        const tooltipId = element.getAttribute('data-tooltip-id');
-        
-        // Get tooltip content
-        let tooltipContent = {
-            title: element.getAttribute('data-tooltip-title') || '',
-            description: element.getAttribute('data-tooltip-description') || '',
-            footer: element.getAttribute('data-tooltip-footer') || '',
-            shortcut: element.getAttribute('data-tooltip-shortcut') || ''
-        };
-        
-        // If we have configuration for this tooltip, use it
-        if (tooltipCategory && tooltipId && this.tooltipConfig[tooltipCategory] && this.tooltipConfig[tooltipCategory][tooltipId]) {
-            tooltipContent = this.tooltipConfig[tooltipCategory][tooltipId];
+    createStyles() {
+        if (document.getElementById('synapse-tooltip-styles')) {
+            return;
         }
         
-        // Create tooltip HTML
-        const tooltipHTML = this.createTooltipHTML(tooltipContent);
-        
-        // Wrap element in tooltip wrapper if not already wrapped
-        if (!element.parentElement.classList.contains('tooltip-wrapper')) {
-            const wrapper = document.createElement('div');
-            wrapper.className = `tooltip-wrapper tooltip-${tooltipType}`;
-            element.parentNode.insertBefore(wrapper, element);
-            wrapper.appendChild(element);
-            
-            // Add tooltip content to wrapper
-            const tooltipContentElement = document.createElement('div');
-            tooltipContentElement.className = 'tooltip-content';
-            tooltipContentElement.innerHTML = tooltipHTML;
-            wrapper.appendChild(tooltipContentElement);
-            
-            // Add tooltip trigger class to element
-            element.classList.add('tooltip-trigger');
-        }
-    }
-    
-    /**
-     * Create HTML for tooltip content
-     */
-    createTooltipHTML(content) {
-        let html = '';
-        
-        if (content.title) {
-            html += `<div class="tooltip-title">${content.title}</div>`;
-        }
-        
-        if (content.description) {
-            html += `<div class="tooltip-description">${content.description}</div>`;
-        }
-        
-        if (content.footer) {
-            html += `<div class="tooltip-footer">${content.footer}`;
-            
-            if (content.shortcut) {
-                html += ` <span class="tooltip-shortcut">${content.shortcut}</span>`;
+        const styleEl = document.createElement('style');
+        styleEl.id = 'synapse-tooltip-styles';
+        styleEl.textContent = `
+            .${this.options.containerClass} {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 0;
+                pointer-events: none;
+                z-index: ${this.options.zIndex};
             }
             
-            html += `</div>`;
-        } else if (content.shortcut) {
-            html += `<div class="tooltip-footer">Shortcut: <span class="tooltip-shortcut">${content.shortcut}</span></div>`;
-        }
+            .${this.options.tooltipClass} {
+                position: absolute;
+                background-color: var(--bs-dark);
+                color: white;
+                border-radius: 4px;
+                padding: 8px 12px;
+                font-size: 0.875rem;
+                max-width: ${this.options.maxWidth}px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+                pointer-events: none;
+                transition: opacity ${this.options.animationDuration}ms ease, 
+                            transform ${this.options.animationDuration}ms ease;
+                opacity: 0;
+                transform: translateY(5px);
+                z-index: ${this.options.zIndex};
+            }
+            
+            .${this.options.tooltipClass}--visible {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            
+            .${this.options.tooltipClass}--info {
+                border-left: 3px solid var(--bs-info);
+            }
+            
+            .${this.options.tooltipClass}--warning {
+                border-left: 3px solid var(--bs-warning);
+            }
+            
+            .${this.options.tooltipClass}--error {
+                border-left: 3px solid var(--bs-danger);
+            }
+            
+            .${this.options.tooltipClass}--success {
+                border-left: 3px solid var(--bs-success);
+            }
+            
+            .${this.options.tooltipClass}--critical {
+                border-left: 3px solid var(--bs-danger);
+                background-color: rgba(var(--bs-danger-rgb), 0.9);
+                font-weight: bold;
+            }
+            
+            .${this.options.arrowClass} {
+                position: absolute;
+                width: 0;
+                height: 0;
+                border-style: solid;
+                border-width: 6px;
+            }
+            
+            .${this.options.arrowClass}--top {
+                bottom: 100%;
+                border-color: transparent transparent var(--bs-dark) transparent;
+            }
+            
+            .${this.options.arrowClass}--bottom {
+                top: 100%;
+                border-color: var(--bs-dark) transparent transparent transparent;
+            }
+            
+            .${this.options.arrowClass}--left {
+                right: 100%;
+                border-color: transparent var(--bs-dark) transparent transparent;
+            }
+            
+            .${this.options.arrowClass}--right {
+                left: 100%;
+                border-color: transparent transparent transparent var(--bs-dark);
+            }
+            
+            .${this.options.tooltipClass}--info .${this.options.arrowClass}--top {
+                border-bottom-color: var(--bs-info);
+            }
+            
+            .${this.options.tooltipClass}--warning .${this.options.arrowClass}--top {
+                border-bottom-color: var(--bs-warning);
+            }
+            
+            .${this.options.tooltipClass}--error .${this.options.arrowClass}--top {
+                border-bottom-color: var(--bs-danger);
+            }
+            
+            .${this.options.tooltipClass}--success .${this.options.arrowClass}--top {
+                border-bottom-color: var(--bs-success);
+            }
+            
+            .${this.options.tooltipClass}--critical .${this.options.arrowClass}--top {
+                border-bottom-color: var(--bs-danger);
+            }
+            
+            .${this.options.tooltipClass}--info .${this.options.arrowClass}--bottom {
+                border-top-color: var(--bs-info);
+            }
+            
+            .${this.options.tooltipClass}--warning .${this.options.arrowClass}--bottom {
+                border-top-color: var(--bs-warning);
+            }
+            
+            .${this.options.tooltipClass}--error .${this.options.arrowClass}--bottom {
+                border-top-color: var(--bs-danger);
+            }
+            
+            .${this.options.tooltipClass}--success .${this.options.arrowClass}--bottom {
+                border-top-color: var(--bs-success);
+            }
+            
+            .${this.options.tooltipClass}--critical .${this.options.arrowClass}--bottom {
+                border-top-color: var(--bs-danger);
+            }
+            
+            .${this.options.tooltipClass}--has-title .tooltip-title {
+                display: block;
+                font-weight: bold;
+                margin-bottom: 5px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                padding-bottom: 5px;
+            }
+        `;
         
-        return html;
+        document.head.appendChild(styleEl);
     }
     
     /**
-     * Set up a mutation observer to process dynamically added elements
+     * Create tooltip container
      */
-    setupMutationObserver() {
-        // Create mutation observer
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                // Check for added nodes with tooltip attributes
-                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                    mutation.addedNodes.forEach((node) => {
-                        // Check if node is an element
-                        if (node.nodeType === Node.ELEMENT_NODE) {
-                            // Process if it has a tooltip attribute
-                            if (node.hasAttribute && node.hasAttribute('data-tooltip')) {
-                                this.processTooltipElement(node);
-                            }
-                            
-                            // Check children for tooltip attributes
-                            const childTooltips = node.querySelectorAll('[data-tooltip]');
-                            childTooltips.forEach(element => {
-                                this.processTooltipElement(element);
-                            });
-                        }
-                    });
+    createTooltipContainer() {
+        this.tooltipContainer = document.createElement('div');
+        this.tooltipContainer.className = this.options.containerClass;
+        document.body.appendChild(this.tooltipContainer);
+    }
+    
+    /**
+     * Bind events
+     */
+    bindEvents() {
+        // Define the element event handlers
+        const handleMouseEnter = (e) => {
+            clearTimeout(this.leaveTimeoutId);
+            
+            const target = e.currentTarget;
+            
+            this.hoverTimeoutId = setTimeout(() => {
+                this.showTooltip(target, e);
+            }, this.options.showDelay);
+        };
+        
+        const handleMouseLeave = () => {
+            clearTimeout(this.hoverTimeoutId);
+            
+            this.leaveTimeoutId = setTimeout(() => {
+                this.hideAllTooltips();
+            }, this.options.hideDelay);
+        };
+        
+        const handleMouseMove = (e) => {
+            if (this.options.followMouse && this.activeTooltips.length > 0) {
+                // Get the last created tooltip
+                const activeTooltip = this.activeTooltips[this.activeTooltips.length - 1];
+                
+                if (activeTooltip && activeTooltip.target === e.currentTarget) {
+                    this.positionTooltipForMouse(activeTooltip.element, e);
                 }
-            });
-        });
+            }
+        };
         
-        // Start observing
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    }
-    
-    // Helper methods for specific tooltip categories
-    
-    /**
-     * Add platform-specific tooltips
-     */
-    addPlatformTooltips() {
-        // Find platform selection elements
-        const platformElements = document.querySelectorAll('.platform-item, [data-platform]');
-        
-        platformElements.forEach(element => {
-            const platformId = element.getAttribute('data-platform') || 
-                              element.classList.contains('platform-item') ? 
-                              element.querySelector('.platform-name')?.textContent.toLowerCase() : null;
+        // Add event listeners to all matching elements
+        const tooltipElements = document.querySelectorAll(this.options.selector);
+        tooltipElements.forEach(el => {
+            el.addEventListener('mouseenter', handleMouseEnter);
+            el.addEventListener('mouseleave', handleMouseLeave);
+            if (this.options.followMouse) {
+                el.addEventListener('mousemove', handleMouseMove);
+            }
             
-            if (platformId && this.tooltipConfig.platforms[platformId]) {
-                element.setAttribute('data-tooltip', 'top');
-                element.setAttribute('data-tooltip-category', 'platforms');
-                element.setAttribute('data-tooltip-id', platformId);
-                this.processTooltipElement(element);
+            // For mobile/touch devices
+            el.addEventListener('touchstart', handleMouseEnter, { passive: true });
+            document.addEventListener('touchend', handleMouseLeave, { passive: true });
+        });
+        
+        // Handle dynamic elements with a global delegated event
+        document.addEventListener('mouseover', (e) => {
+            // Check if the target or any parent matches the selector
+            const matchingElement = e.target.closest(this.options.selector);
+            
+            if (matchingElement && !matchingElement._tooltipInitialized) {
+                matchingElement._tooltipInitialized = true;
+                matchingElement.addEventListener('mouseenter', handleMouseEnter);
+                matchingElement.addEventListener('mouseleave', handleMouseLeave);
+                if (this.options.followMouse) {
+                    matchingElement.addEventListener('mousemove', handleMouseMove);
+                }
+                
+                // For mobile/touch devices
+                matchingElement.addEventListener('touchstart', handleMouseEnter, { passive: true });
             }
         });
+        
+        // Handle tooltip container mouseover/mouseout to prevent flicker
+        this.tooltipContainer.addEventListener('mouseenter', () => {
+            clearTimeout(this.leaveTimeoutId);
+        });
+        
+        this.tooltipContainer.addEventListener('mouseleave', () => {
+            this.leaveTimeoutId = setTimeout(() => {
+                this.hideAllTooltips();
+            }, this.options.hideDelay);
+        });
+        
+        // Handle scroll and resize events
+        window.addEventListener('scroll', () => {
+            this.updateTooltipPositions();
+        }, { passive: true });
+        
+        window.addEventListener('resize', () => {
+            this.updateTooltipPositions();
+        });
     }
     
     /**
-     * Add training-related tooltips
+     * Show tooltip for an element
      */
-    addTrainingTooltips() {
-        // Map of selectors to tooltip IDs
-        const trainingSelectors = {
-            '#topic-selector, .topic-selector': 'topic_selection',
-            '#platform-selector, .platform-selector': 'platform_selection',
-            '#prompt-input, .prompt-input': 'prompt_input',
-            '#training-mode, .training-mode': 'training_mode',
-            '#history-container, .training-history': 'history_view'
-        };
+    showTooltip(target, event) {
+        // Get tooltip content
+        const content = target.getAttribute('data-tooltip');
+        if (!content) return;
         
-        // Process each selector
-        for (const [selector, tooltipId] of Object.entries(trainingSelectors)) {
-            const elements = document.querySelectorAll(selector);
+        // Check if there's already a tooltip for this target
+        const existingTooltip = this.activeTooltips.find(tooltip => tooltip.target === target);
+        if (existingTooltip) return;
+        
+        // Create tooltip element
+        const tooltipEl = document.createElement('div');
+        tooltipEl.className = this.options.tooltipClass;
+        
+        // Get tooltip type if specified
+        const tooltipType = target.getAttribute('data-tooltip-type');
+        if (tooltipType) {
+            tooltipEl.classList.add(`${this.options.tooltipClass}--${tooltipType}`);
+        }
+        
+        // Get tooltip title if specified
+        const tooltipTitle = target.getAttribute('data-tooltip-title');
+        if (tooltipTitle) {
+            tooltipEl.classList.add(`${this.options.tooltipClass}--has-title`);
+            tooltipEl.innerHTML = `<span class="tooltip-title">${tooltipTitle}</span>`;
+        }
+        
+        // Add content
+        if (this.options.allowHTML || target.hasAttribute('data-tooltip-html')) {
+            tooltipEl.innerHTML += content;
+        } else {
+            tooltipEl.innerHTML += content;
+        }
+        
+        // Create arrow element
+        const arrowEl = document.createElement('div');
+        arrowEl.className = this.options.arrowClass;
+        tooltipEl.appendChild(arrowEl);
+        
+        // Append to container
+        this.tooltipContainer.appendChild(tooltipEl);
+        
+        // Position the tooltip
+        const position = target.getAttribute('data-tooltip-position') || 'top';
+        
+        if (this.options.followMouse) {
+            this.positionTooltipForMouse(tooltipEl, event);
+        } else {
+            this.positionTooltip(tooltipEl, target, position, arrowEl);
+        }
+        
+        // Store reference to active tooltip
+        this.activeTooltips.push({
+            target: target,
+            element: tooltipEl,
+            position: position
+        });
+        
+        // Show the tooltip
+        setTimeout(() => {
+            tooltipEl.classList.add(`${this.options.tooltipClass}--visible`);
+        }, 10);
+    }
+    
+    /**
+     * Hide all tooltips
+     */
+    hideAllTooltips() {
+        this.activeTooltips.forEach(tooltip => {
+            tooltip.element.classList.remove(`${this.options.tooltipClass}--visible`);
             
-            elements.forEach(element => {
-                element.setAttribute('data-tooltip', 'top');
-                element.setAttribute('data-tooltip-category', 'training');
-                element.setAttribute('data-tooltip-id', tooltipId);
-                this.processTooltipElement(element);
-            });
+            setTimeout(() => {
+                if (tooltip.element.parentNode) {
+                    tooltip.element.parentNode.removeChild(tooltip.element);
+                }
+            }, this.options.animationDuration);
+        });
+        
+        this.activeTooltips = [];
+    }
+    
+    /**
+     * Position tooltip relative to target element
+     */
+    positionTooltip(tooltipEl, targetEl, position, arrowEl) {
+        const targetRect = targetEl.getBoundingClientRect();
+        const tooltipRect = tooltipEl.getBoundingClientRect();
+        
+        // Reset any previous positioning
+        tooltipEl.style.top = '';
+        tooltipEl.style.left = '';
+        tooltipEl.style.right = '';
+        tooltipEl.style.bottom = '';
+        tooltipEl.style.transform = '';
+        
+        // Clear existing arrow classes
+        arrowEl.className = this.options.arrowClass;
+        
+        // Position based on specified position
+        switch (position) {
+            case 'top':
+                tooltipEl.style.left = `${window.scrollX + targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2)}px`;
+                tooltipEl.style.top = `${window.scrollY + targetRect.top - tooltipRect.height - this.options.offset}px`;
+                arrowEl.classList.add(`${this.options.arrowClass}--bottom`);
+                arrowEl.style.left = '50%';
+                arrowEl.style.marginLeft = '-6px';
+                arrowEl.style.top = '100%';
+                break;
+                
+            case 'bottom':
+                tooltipEl.style.left = `${window.scrollX + targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2)}px`;
+                tooltipEl.style.top = `${window.scrollY + targetRect.bottom + this.options.offset}px`;
+                arrowEl.classList.add(`${this.options.arrowClass}--top`);
+                arrowEl.style.left = '50%';
+                arrowEl.style.marginLeft = '-6px';
+                arrowEl.style.bottom = '100%';
+                break;
+                
+            case 'left':
+                tooltipEl.style.left = `${window.scrollX + targetRect.left - tooltipRect.width - this.options.offset}px`;
+                tooltipEl.style.top = `${window.scrollY + targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2)}px`;
+                arrowEl.classList.add(`${this.options.arrowClass}--right`);
+                arrowEl.style.top = '50%';
+                arrowEl.style.marginTop = '-6px';
+                arrowEl.style.left = '100%';
+                break;
+                
+            case 'right':
+                tooltipEl.style.left = `${window.scrollX + targetRect.right + this.options.offset}px`;
+                tooltipEl.style.top = `${window.scrollY + targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2)}px`;
+                arrowEl.classList.add(`${this.options.arrowClass}--left`);
+                arrowEl.style.top = '50%';
+                arrowEl.style.marginTop = '-6px';
+                arrowEl.style.right = '100%';
+                break;
+        }
+        
+        // Adjust if the tooltip is outside viewport
+        this.adjustTooltipPosition(tooltipEl, position, arrowEl);
+    }
+    
+    /**
+     * Position tooltip following mouse cursor
+     */
+    positionTooltipForMouse(tooltipEl, event) {
+        const tooltipRect = tooltipEl.getBoundingClientRect();
+        
+        // Position the tooltip near the cursor
+        tooltipEl.style.left = `${window.scrollX + event.clientX - (tooltipRect.width / 2)}px`;
+        tooltipEl.style.top = `${window.scrollY + event.clientY - tooltipRect.height - 20}px`;
+        
+        // Hide the arrow for mouse-following tooltips
+        const arrowEl = tooltipEl.querySelector(`.${this.options.arrowClass}`);
+        if (arrowEl) {
+            arrowEl.style.display = 'none';
+        }
+        
+        // Adjust if the tooltip is outside viewport
+        this.adjustTooltipPosition(tooltipEl, 'mouse');
+    }
+    
+    /**
+     * Adjust tooltip position to keep it within viewport
+     */
+    adjustTooltipPosition(tooltipEl, position, arrowEl) {
+        const tooltipRect = tooltipEl.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        // Horizontal adjustment
+        if (tooltipRect.left < 0) {
+            tooltipEl.style.left = `${window.scrollX + this.options.offset}px`;
+            
+            if (position === 'top' || position === 'bottom') {
+                // Move arrow to match the original center of the target
+                if (arrowEl) {
+                    arrowEl.style.left = `${Math.max(6, tooltipRect.width / 2 + tooltipRect.left - this.options.offset)}px`;
+                    arrowEl.style.marginLeft = '0';
+                }
+            }
+        } else if (tooltipRect.right > viewportWidth) {
+            tooltipEl.style.left = `${window.scrollX + viewportWidth - tooltipRect.width - this.options.offset}px`;
+            
+            if (position === 'top' || position === 'bottom') {
+                // Move arrow to match the original center of the target
+                if (arrowEl) {
+                    arrowEl.style.left = `${Math.min(tooltipRect.width - 6, tooltipRect.width / 2 - (viewportWidth - tooltipRect.right) + this.options.offset)}px`;
+                    arrowEl.style.marginLeft = '0';
+                }
+            }
+        }
+        
+        // Vertical adjustment
+        if (tooltipRect.top < 0) {
+            if (position === 'top') {
+                // Flip to bottom if needed
+                const targetForTop = this.activeTooltips.find(t => t.element === tooltipEl)?.target;
+                if (targetForTop) {
+                    const targetRect = targetForTop.getBoundingClientRect();
+                    tooltipEl.style.top = `${window.scrollY + targetRect.bottom + this.options.offset}px`;
+                    
+                    if (arrowEl) {
+                        arrowEl.className = `${this.options.arrowClass} ${this.options.arrowClass}--top`;
+                        arrowEl.style.top = 'auto';
+                        arrowEl.style.bottom = '100%';
+                    }
+                } else {
+                    tooltipEl.style.top = `${window.scrollY + this.options.offset}px`;
+                }
+            } else {
+                tooltipEl.style.top = `${window.scrollY + this.options.offset}px`;
+            }
+        } else if (tooltipRect.bottom > viewportHeight) {
+            if (position === 'bottom') {
+                // Flip to top if needed
+                const targetForBottom = this.activeTooltips.find(t => t.element === tooltipEl)?.target;
+                if (targetForBottom) {
+                    const targetRect = targetForBottom.getBoundingClientRect();
+                    tooltipEl.style.top = `${window.scrollY + targetRect.top - tooltipRect.height - this.options.offset}px`;
+                    
+                    if (arrowEl) {
+                        arrowEl.className = `${this.options.arrowClass} ${this.options.arrowClass}--bottom`;
+                        arrowEl.style.bottom = 'auto';
+                        arrowEl.style.top = '100%';
+                    }
+                } else {
+                    tooltipEl.style.top = `${window.scrollY + viewportHeight - tooltipRect.height - this.options.offset}px`;
+                }
+            } else {
+                tooltipEl.style.top = `${window.scrollY + viewportHeight - tooltipRect.height - this.options.offset}px`;
+            }
         }
     }
     
     /**
-     * Add memory system tooltips
+     * Update positions of all active tooltips
      */
-    addMemoryTooltips() {
-        // Map of selectors to tooltip IDs
-        const memorySelectors = {
-            '#conversation-browser, .conversation-browser': 'conversation_browser',
-            '#memory-search, .memory-search': 'memory_search',
-            '.memory-item': 'memory_item',
-            '#memory-graph, .memory-graph': 'memory_graph'
-        };
-        
-        // Process each selector
-        for (const [selector, tooltipId] of Object.entries(memorySelectors)) {
-            const elements = document.querySelectorAll(selector);
-            
-            elements.forEach(element => {
-                element.setAttribute('data-tooltip', 'top');
-                element.setAttribute('data-tooltip-category', 'memory');
-                element.setAttribute('data-tooltip-id', tooltipId);
-                this.processTooltipElement(element);
-            });
-        }
+    updateTooltipPositions() {
+        this.activeTooltips.forEach(tooltip => {
+            const arrowEl = tooltip.element.querySelector(`.${this.options.arrowClass}`);
+            this.positionTooltip(tooltip.element, tooltip.target, tooltip.position, arrowEl);
+        });
     }
     
     /**
-     * Add development environment tooltips
+     * Show a tooltip programmatically
      */
-    addDevelopmentTooltips() {
-        // Map of selectors to tooltip IDs
-        const devSelectors = {
-            '#file-explorer, .file-explorer': 'file_explorer',
-            '#code-editor, .code-editor': 'code_editor',
-            '#terminal, .terminal': 'terminal',
-            '#command-palette, .command-palette': 'command_palette'
-        };
+    showTooltipFor(selector, content, options = {}) {
+        const targetEl = document.querySelector(selector);
+        if (!targetEl) return;
         
-        // Process each selector
-        for (const [selector, tooltipId] of Object.entries(devSelectors)) {
-            const elements = document.querySelectorAll(selector);
-            
-            elements.forEach(element => {
-                element.setAttribute('data-tooltip', 'top');
-                element.setAttribute('data-tooltip-category', 'development');
-                element.setAttribute('data-tooltip-id', tooltipId);
-                this.processTooltipElement(element);
-            });
-        }
-    }
-    
-    /**
-     * Add system health tooltips
-     */
-    addSystemTooltips() {
-        // Map of selectors to tooltip IDs
-        const systemSelectors = {
-            '#health-indicator, .health-indicator': 'health_indicator',
-            '#memory-usage, .memory-usage': 'memory_usage',
-            '#driver-status, .driver-status': 'driver_status',
-            '#api-status, .api-status': 'api_status'
-        };
+        // Set content attribute
+        targetEl.setAttribute('data-tooltip', content);
         
-        // Process each selector
-        for (const [selector, tooltipId] of Object.entries(systemSelectors)) {
-            const elements = document.querySelectorAll(selector);
-            
-            elements.forEach(element => {
-                element.setAttribute('data-tooltip', 'top');
-                element.setAttribute('data-tooltip-category', 'system');
-                element.setAttribute('data-tooltip-id', tooltipId);
-                this.processTooltipElement(element);
-            });
+        // Set optional attributes
+        if (options.title) {
+            targetEl.setAttribute('data-tooltip-title', options.title);
         }
+        
+        if (options.type) {
+            targetEl.setAttribute('data-tooltip-type', options.type);
+        }
+        
+        if (options.position) {
+            targetEl.setAttribute('data-tooltip-position', options.position);
+        }
+        
+        if (options.html) {
+            targetEl.setAttribute('data-tooltip-html', 'true');
+        }
+        
+        // Show the tooltip
+        this.showTooltip(targetEl);
+        
+        // Return a function to hide this specific tooltip
+        return () => {
+            const index = this.activeTooltips.findIndex(t => t.target === targetEl);
+            if (index !== -1) {
+                const tooltip = this.activeTooltips[index];
+                tooltip.element.classList.remove(`${this.options.tooltipClass}--visible`);
+                
+                setTimeout(() => {
+                    if (tooltip.element.parentNode) {
+                        tooltip.element.parentNode.removeChild(tooltip.element);
+                    }
+                    this.activeTooltips.splice(index, 1);
+                }, this.options.animationDuration);
+            }
+        };
     }
 }
 
-// Initialize tooltips system
-const synapseTooltips = new SynapseTooltips();
-
-// Export for module usage if needed
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = SynapseTooltips;
+// Initialize the tooltips if script is loaded after DOM is ready
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(() => {
+        window.synapseTooltips = new SynapseTooltips();
+        window.synapseTooltips.init();
+    }, 0);
+} else {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.synapseTooltips = new SynapseTooltips();
+        window.synapseTooltips.init();
+    });
 }

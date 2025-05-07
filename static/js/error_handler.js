@@ -6,701 +6,454 @@
 
 class SynapseErrorHandler {
     constructor(options = {}) {
-        // Configuration
-        this.config = {
-            container: options.container || document.body,
-            errorContainerClass: options.errorContainerClass || 'error-container',
-            errorToastClass: options.errorToastClass || 'error-toast',
-            errorBannerClass: options.errorBannerClass || 'error-banner',
-            autoHide: options.autoHide !== undefined ? options.autoHide : true,
-            autoHideDelay: options.autoHideDelay || 5000,
-            dismissible: options.dismissible !== undefined ? options.dismissible : true,
-            animateIn: options.animateIn !== undefined ? options.animateIn : true,
-            animateOut: options.animateOut !== undefined ? options.animateOut : true,
-            logToConsole: options.logToConsole !== undefined ? options.logToConsole : true,
-            maxErrors: options.maxErrors || 5,
-            groupSimilarErrors: options.groupSimilarErrors !== undefined ? options.groupSimilarErrors : true,
-            fallbackMessages: {
-                default: "An unexpected error occurred. Please try again later.",
-                network: "Network error. Please check your connection and try again.",
-                auth: "Authentication error. Please log in again.",
-                permission: "You don't have permission to perform this action.",
-                validation: "Please check your input and try again.",
-                server: "Server error. Our team has been notified.",
-                timeout: "The request timed out. Please try again.",
-                browser: "Browser error. Please try refreshing the page.",
-                component: "A component failed to load properly. Please refresh the page."
-            },
-            errorCategories: {
-                network: ["network error", "failed to fetch", "cannot connect", "offline", "timeout"],
-                auth: ["unauthorized", "unauthenticated", "not logged in", "login required", "session expired"],
-                permission: ["forbidden", "access denied", "not allowed", "permission denied"],
-                validation: ["invalid", "required field", "validation failed", "constraint violation"],
-                server: ["server error", "internal error", "500", "503", "502"],
-                timeout: ["timeout", "timed out", "too long", "slow response"],
-                browser: ["browser", "javascript error", "rendering error", "layout error"],
-                component: ["component", "failed to load", "module error", "initialization failed"]
-            }
-        };
+        this.options = Object.assign({
+            containerSelector: 'body',
+            defaultErrorTitle: 'An error occurred',
+            defaultErrorMessage: 'We encountered a problem while processing your request. Please try again.',
+            errorTimeout: 10000,
+            groupSimilarErrors: true,
+            maxErrors: 3,
+            enableAutoHiding: true,
+            errorIdPrefix: 'error-',
+            errorClass: 'synapse-error',
+            errorToastClass: 'synapse-error-toast',
+            errorBannerClass: 'synapse-error-banner',
+            errorPageClass: 'synapse-error-page'
+        }, options);
         
-        // State
-        this.activeErrors = []; // Currently displayed errors
-        this.errorCounter = {}; // Count similar errors
-        
-        // Initialize
-        this.init();
+        this.activeErrors = [];
+        this.errorCounter = 0;
     }
     
     /**
      * Initialize error handler
      */
     init() {
-        // Add CSS styles
         this.addStyles();
-        
-        // Create error container if it doesn't exist
         this.ensureErrorContainer();
-        
-        // Set up global error handlers
         this.setupGlobalHandlers();
+        
+        // Make the class accessible statically
+        SynapseErrorHandler.instance = this;
+        SynapseErrorHandler.showError = this.showError.bind(this);
+        
+        console.log("Synapse Error Handler initialized");
     }
     
     /**
      * Add CSS styles for error displays
      */
     addStyles() {
-        const style = document.createElement('style');
-        style.textContent = `
-            /* Error container for toast notifications */
-            .error-container {
+        if (document.getElementById('synapse-error-styles')) {
+            return;
+        }
+        
+        const styleElement = document.createElement('style');
+        styleElement.id = 'synapse-error-styles';
+        styleElement.textContent = `
+            .synapse-error-container {
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                max-width: 400px;
                 z-index: 9999;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            /* Error toast notification */
-            .error-toast {
-                background-color: #fff;
-                color: #721c24;
-                border-left: 4px solid #dc3545;
-                border-radius: 4px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                padding: 16px;
-                margin-bottom: 10px;
-                font-size: 14px;
-                display: flex;
-                align-items: flex-start;
-                justify-content: space-between;
                 max-width: 100%;
-                min-width: 300px;
-                position: relative;
-                transition: all 0.3s ease;
+                box-sizing: border-box;
+                padding: 0 10px;
+            }
+            
+            .synapse-error {
+                margin-bottom: 10px;
+                border-radius: 6px;
                 overflow: hidden;
-            }
-            
-            .error-toast.animate-in {
-                animation: slideInRight 0.3s forwards;
-            }
-            
-            .error-toast.animate-out {
-                animation: slideOutRight 0.3s forwards;
-            }
-            
-            .error-toast-icon {
-                color: #dc3545;
-                font-size: 20px;
-                margin-right: 12px;
-                flex-shrink: 0;
-            }
-            
-            .error-toast-content {
-                flex-grow: 1;
-            }
-            
-            .error-toast-title {
-                font-weight: bold;
-                margin-bottom: 5px;
-                display: flex;
-                align-items: center;
-            }
-            
-            .error-toast-message {
-                margin-bottom: 5px;
-            }
-            
-            .error-toast-details {
-                font-size: 12px;
-                color: #6c757d;
-                cursor: pointer;
-            }
-            
-            .error-toast-detail-text {
-                display: none;
-                background-color: rgba(0, 0, 0, 0.05);
-                padding: 8px;
-                border-radius: 4px;
-                margin-top: 8px;
-                overflow-x: auto;
-                font-family: monospace;
-                font-size: 11px;
-                white-space: pre-wrap;
-                word-break: break-all;
-            }
-            
-            .error-toast-actions {
-                margin-top: 10px;
-                display: flex;
-                gap: 8px;
-            }
-            
-            .error-toast-action {
-                padding: 4px 8px;
-                background-color: rgba(220, 53, 69, 0.1);
-                border: none;
-                border-radius: 4px;
-                color: #dc3545;
-                font-size: 12px;
-                cursor: pointer;
-                transition: background-color 0.2s;
-            }
-            
-            .error-toast-action:hover {
-                background-color: rgba(220, 53, 69, 0.2);
-            }
-            
-            .error-toast-close {
-                color: #6c757d;
-                background: none;
-                border: none;
-                font-size: 16px;
-                cursor: pointer;
-                padding: 0 4px;
-                margin-left: 8px;
-                flex-shrink: 0;
-            }
-            
-            .error-toast-close:hover {
-                color: #343a40;
-            }
-            
-            .error-toast-counter {
-                background-color: #dc3545;
-                color: white;
-                border-radius: 12px;
-                padding: 1px 6px;
-                font-size: 11px;
-                margin-left: 8px;
-            }
-            
-            .error-toast-progress {
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                height: 3px;
-                background-color: #dc3545;
-                opacity: 0.7;
-            }
-            
-            /* Error banner for critical errors */
-            .error-banner {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                background-color: #dc3545;
-                color: white;
-                padding: 12px 16px;
-                z-index: 10000;
-                text-align: center;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                gap: 10px;
-                transform: translateY(-100%);
-                transition: transform 0.3s ease;
+                transition: all 0.3s ease;
             }
             
-            .error-banner.active {
-                transform: translateY(0);
+            .synapse-error-toast {
+                width: 350px;
+                max-width: 100%;
+                background-color: var(--bs-dark);
+                border-left: 4px solid var(--bs-danger);
+                opacity: 0;
+                transform: translateX(40px);
+                animation: slideInError 0.3s forwards;
             }
             
-            .error-banner-icon {
-                font-size: 20px;
-            }
-            
-            .error-banner-content {
-                flex-grow: 1;
-            }
-            
-            .error-banner-message {
-                margin-bottom: 0;
-            }
-            
-            .error-banner-close {
-                background: none;
-                border: none;
+            .synapse-error-banner {
+                width: 100%;
+                background-color: var(--bs-danger);
                 color: white;
-                opacity: 0.8;
-                cursor: pointer;
-                font-size: 20px;
-                line-height: 1;
-                padding: 0 4px;
-            }
-            
-            .error-banner-close:hover {
-                opacity: 1;
-            }
-            
-            .error-banner-action {
-                background-color: rgba(255, 255, 255, 0.2);
-                border: none;
-                color: white;
-                border-radius: 4px;
-                padding: 4px 10px;
-                font-size: 13px;
-                cursor: pointer;
-                transition: background-color 0.2s;
-            }
-            
-            .error-banner-action:hover {
-                background-color: rgba(255, 255, 255, 0.3);
-            }
-            
-            /* Error page for fatal errors */
-            .error-page {
+                text-align: center;
+                padding: 10px 15px;
                 position: fixed;
                 top: 0;
                 left: 0;
-                right: 0;
-                bottom: 0;
-                background-color: #f8f9fa;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                z-index: 10001;
-                padding: 20px;
-                text-align: center;
+                z-index: 9999;
+                opacity: 0;
+                transform: translateY(-100%);
+                animation: slideDownError 0.3s forwards;
             }
             
-            .error-page-icon {
-                font-size: 64px;
-                color: #dc3545;
+            .synapse-error-inline {
+                border-radius: 4px;
+                background-color: rgba(var(--bs-danger-rgb), 0.1);
+                border: 1px solid var(--bs-danger);
+                padding: 10px 15px;
+                margin: 10px 0;
+                color: var(--bs-danger);
+            }
+            
+            .synapse-error-page {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: var(--bs-dark);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                text-align: center;
+                padding: 20px;
+                opacity: 0;
+                animation: fadeInError 0.5s forwards;
+            }
+            
+            .synapse-error-icon {
+                font-size: 50px;
+                color: var(--bs-danger);
                 margin-bottom: 20px;
             }
             
-            .error-page-title {
+            .synapse-error-title {
                 font-size: 24px;
-                margin-bottom: 16px;
-                color: #343a40;
+                font-weight: bold;
+                margin-bottom: 10px;
             }
             
-            .error-page-message {
+            .synapse-error-message {
                 font-size: 16px;
                 margin-bottom: 20px;
                 max-width: 600px;
-                color: #6c757d;
             }
             
-            .error-page-actions {
-                display: flex;
-                gap: 10px;
-                margin-top: 20px;
-            }
-            
-            .error-page-action {
-                padding: 8px 16px;
-                background-color: #dc3545;
-                color: white;
-                border: none;
+            .synapse-error-details {
+                background-color: rgba(0, 0, 0, 0.1);
+                padding: 10px;
                 border-radius: 4px;
-                cursor: pointer;
-                transition: background-color 0.2s;
-            }
-            
-            .error-page-action:hover {
-                background-color: #c82333;
-            }
-            
-            .error-page-action.secondary {
-                background-color: #6c757d;
-            }
-            
-            .error-page-action.secondary:hover {
-                background-color: #5a6268;
-            }
-            
-            .error-page-details {
-                margin-top: 30px;
-                padding: 16px;
-                background-color: rgba(0, 0, 0, 0.05);
-                border-radius: 4px;
-                max-width: 800px;
-                width: 100%;
-                text-align: left;
-                overflow: auto;
-                max-height: 200px;
-            }
-            
-            .error-page-detail-text {
-                font-family: monospace;
+                max-width: 100%;
+                overflow-x: auto;
                 font-size: 12px;
-                white-space: pre-wrap;
+                margin-top: 10px;
+                text-align: left;
+                color: rgba(255, 255, 255, 0.7);
             }
             
-            .error-inline {
+            .synapse-error-close {
+                color: white;
+                background: none;
+                border: none;
+                font-size: 20px;
+                cursor: pointer;
+                padding: 5px;
+                margin-left: 10px;
+                opacity: 0.7;
+                transition: opacity 0.2s;
+            }
+            
+            .synapse-error-close:hover {
+                opacity: 1;
+            }
+            
+            .synapse-error-header {
                 display: flex;
                 align-items: center;
-                gap: 8px;
-                padding: 8px 12px;
-                background-color: rgba(220, 53, 69, 0.1);
-                border-left: 3px solid #dc3545;
-                border-radius: 4px;
-                margin: 10px 0;
-                font-size: 14px;
-                color: #721c24;
+                justify-content: space-between;
+                padding: 10px 15px;
+                background-color: rgba(0, 0, 0, 0.1);
             }
             
-            .error-inline-icon {
-                color: #dc3545;
-                font-size: 16px;
+            .synapse-error-body {
+                padding: 10px 15px;
             }
             
-            @keyframes slideInRight {
-                from {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
+            .synapse-error-actions {
+                margin-top: 15px;
+            }
+            
+            @keyframes slideInError {
                 to {
+                    opacity: 1;
                     transform: translateX(0);
+                }
+            }
+            
+            @keyframes slideDownError {
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            @keyframes fadeInError {
+                to {
                     opacity: 1;
                 }
             }
             
-            @keyframes slideOutRight {
-                from {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-                to {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
+            .synapse-error-help-link {
+                color: var(--bs-primary);
+                cursor: pointer;
+                text-decoration: underline;
             }
             
-            @media (max-width: 768px) {
-                .error-container {
-                    top: 10px;
-                    right: 10px;
-                    left: 10px;
-                    max-width: 100%;
-                }
-                
-                .error-toast {
-                    min-width: auto;
-                    width: 100%;
-                    font-size: 13px;
-                }
+            .synapse-error-count {
+                display: inline-block;
+                background-color: rgba(0, 0, 0, 0.2);
+                color: white;
+                border-radius: 10px;
+                padding: 0 8px;
+                font-size: 12px;
+                margin-left: 5px;
             }
         `;
-        document.head.appendChild(style);
+        
+        document.head.appendChild(styleElement);
     }
     
     /**
      * Ensure error container exists
      */
     ensureErrorContainer() {
-        if (!document.querySelector(`.${this.config.errorContainerClass}`)) {
+        if (!document.getElementById('synapse-error-container')) {
             const container = document.createElement('div');
-            container.className = this.config.errorContainerClass;
-            this.config.container.appendChild(container);
+            container.id = 'synapse-error-container';
+            container.className = 'synapse-error-container';
+            document.body.appendChild(container);
         }
     }
     
     /**
-     * Set up global error handlers
+     * Set up global handlers
      */
     setupGlobalHandlers() {
         // Handle unhandled promise rejections
         window.addEventListener('unhandledrejection', (event) => {
-            const error = event.reason;
-            const message = error?.message || 'Unhandled Promise Rejection';
-            const stack = error?.stack || '';
-            
+            console.error('Unhandled Promise Rejection:', event.reason);
             this.showError({
-                title: 'Promise Error',
-                message: message,
                 type: 'error',
-                details: stack,
-                category: this.categorizeError(message)
+                title: 'Promise Error',
+                message: 'An async operation failed unexpectedly',
+                details: event.reason.stack || event.reason.message || String(event.reason),
+                display: 'toast'
             });
             
-            // Log to console
-            if (this.config.logToConsole) {
-                console.error('Unhandled Promise Rejection:', error);
-            }
+            event.preventDefault();
         });
         
         // Handle global errors
         window.addEventListener('error', (event) => {
-            // Don't handle script and resource loading errors here
-            if (event.target && (event.target.tagName === 'SCRIPT' || event.target.tagName === 'LINK' || event.target.tagName === 'IMG')) {
-                return;
+            console.error('Global Error:', event.error);
+            
+            // Avoid showing errors for script and resource loading issues
+            if (event.filename && (event.filename.includes('.js') || event.filename.includes('.css'))) {
+                // Only show resource errors if they're from our domain
+                if (event.filename.includes(window.location.hostname)) {
+                    this.showError({
+                        type: 'warning',
+                        title: 'Resource Error',
+                        message: `Failed to load ${event.filename.split('/').pop()}`,
+                        details: `${event.message} at line ${event.lineno}:${event.colno}`,
+                        display: 'toast'
+                    });
+                }
+            } else {
+                this.showError({
+                    type: 'error',
+                    title: 'Runtime Error',
+                    message: event.message,
+                    details: event.error ? (event.error.stack || String(event.error)) : `at ${event.filename}:${event.lineno}:${event.colno}`,
+                    display: 'toast'
+                });
             }
             
-            const error = event.error;
-            const message = error?.message || event.message || 'JavaScript Error';
-            const stack = error?.stack || `${event.filename || 'unknown'}: ${event.lineno || 0}:${event.colno || 0}`;
-            
-            this.showError({
-                title: 'JavaScript Error',
-                message: message,
-                type: 'error',
-                details: stack,
-                category: this.categorizeError(message)
-            });
-            
-            // Log to console
-            if (this.config.logToConsole) {
-                console.error('Global Error:', error || event);
-            }
+            event.preventDefault();
         });
         
-        // Handle resource errors (scripts, stylesheets, images)
-        document.addEventListener('error', (event) => {
-            const target = event.target;
-            
-            // Only handle resource loading errors
-            if (target.tagName === 'SCRIPT' || target.tagName === 'LINK' || target.tagName === 'IMG') {
-                const resource = target.src || target.href || 'unknown resource';
-                const tagName = target.tagName.toLowerCase();
-                
-                this.showError({
-                    title: `Failed to Load ${tagName}`,
-                    message: `Could not load ${tagName}: ${resource}`,
-                    type: 'warning',
-                    category: 'network'
-                });
-                
-                // Log to console
-                if (this.config.logToConsole) {
-                    console.warn(`Resource Error: Failed to load ${tagName}`, resource);
-                }
-            }
-        }, true); // Use capture phase
-        
-        // Add custom fetch error handling
-        if (window.fetch) {
-            const originalFetch = window.fetch;
-            window.fetch = async (input, init) => {
-                try {
-                    const response = await originalFetch(input, init);
-                    
-                    // Handle HTTP error status
+        // Intercept fetch errors
+        const originalFetch = window.fetch;
+        window.fetch = (...args) => {
+            return originalFetch(...args)
+                .then(response => {
                     if (!response.ok) {
-                        const errorInfo = {
-                            url: typeof input === 'string' ? input : input.url,
+                        this.handleFetchError({
+                            url: args[0],
                             status: response.status,
-                            statusText: response.statusText
-                        };
-                        
-                        // Try to parse response as JSON
-                        try {
-                            const clonedResponse = response.clone();
-                            const data = await clonedResponse.json();
-                            errorInfo.data = data;
-                        } catch (e) {
-                            // Ignore parsing errors
-                        }
-                        
-                        // Don't show error UI for 401/403 responses - they might be handled by the app
-                        if (response.status !== 401 && response.status !== 403) {
-                            this.handleFetchError(errorInfo);
-                        }
+                            statusText: response.statusText,
+                            response: response.clone()
+                        });
                     }
-                    
                     return response;
-                } catch (error) {
-                    // Network or other fetch errors
+                })
+                .catch(error => {
                     this.handleFetchError({
-                        error: error,
-                        url: typeof input === 'string' ? input : input.url
+                        url: args[0],
+                        error: error
                     });
-                    
-                    throw error; // Re-throw to allow caller to handle
-                }
-            };
-        }
+                    throw error;
+                });
+        };
     }
     
     /**
      * Handle fetch errors
      */
     handleFetchError(errorInfo) {
-        const { url, status, statusText, error, data } = errorInfo;
+        let errorMessage = 'Failed to connect to the server';
+        let errorTitle = 'Connection Error';
+        let errorType = 'error';
+        let errorDisplay = 'toast';
+        let errorDetails = '';
         
-        // Get error message
-        let message = '';
-        let category = 'network';
-        
-        if (error) {
-            // Network error
-            message = error.message || 'Network error occurred';
-        } else {
-            // HTTP error
-            message = `${status}: ${statusText}`;
+        if (errorInfo.status) {
+            switch (errorInfo.status) {
+                case 401:
+                case 403:
+                    errorTitle = 'Authentication Error';
+                    errorMessage = 'You do not have permission to access this resource';
+                    break;
+                case 404:
+                    errorTitle = 'Resource Not Found';
+                    errorMessage = 'The requested resource does not exist';
+                    errorType = 'warning';
+                    break;
+                case 500:
+                    errorTitle = 'Server Error';
+                    errorMessage = 'The server encountered an error while processing your request';
+                    break;
+                case 503:
+                    errorTitle = 'Service Unavailable';
+                    errorMessage = 'The service is temporarily unavailable';
+                    break;
+                default:
+                    errorTitle = `HTTP Error ${errorInfo.status}`;
+                    errorMessage = errorInfo.statusText || 'An error occurred while communicating with the server';
+            }
             
-            // Categorize based on status code
-            if (status >= 400 && status < 500) {
-                if (status === 401 || status === 403) {
-                    category = 'auth';
-                } else if (status === 422) {
-                    category = 'validation';
-                } else {
-                    category = 'client';
-                }
-            } else if (status >= 500) {
-                category = 'server';
+            // For critical API errors, show a more prominent error
+            if (errorInfo.url.toString().includes('/api/') && [500, 502, 503, 504].includes(errorInfo.status)) {
+                errorDisplay = 'banner';
+            }
+            
+            // Try to get more error details from the response
+            if (errorInfo.response) {
+                errorInfo.response.text().then(text => {
+                    try {
+                        const data = JSON.parse(text);
+                        if (data.message || data.error) {
+                            errorDetails = data.message || data.error;
+                            this.updateErrorWithDetails(errorTitle, errorDetails);
+                        }
+                    } catch (e) {
+                        // If the response isn't JSON, use the text as details
+                        if (text && text.length < 100) {
+                            errorDetails = text;
+                            this.updateErrorWithDetails(errorTitle, errorDetails);
+                        }
+                    }
+                }).catch(() => {
+                    // Ignore errors parsing the response
+                });
+            }
+        } else if (errorInfo.error) {
+            // Network level errors
+            if (errorInfo.error.name === 'AbortError') {
+                errorTitle = 'Request Timeout';
+                errorMessage = 'The request was cancelled because it took too long';
+                errorType = 'warning';
+            } else {
+                errorMessage = 'Could not connect to the server. Please check your internet connection.';
+                errorDetails = errorInfo.error.message;
             }
         }
         
-        // Show the error
         this.showError({
-            title: 'API Error',
-            message: message,
-            type: 'error',
-            details: JSON.stringify({ url, ...data }, null, 2),
-            category: category,
-            actions: [
-                {
-                    label: 'Retry',
-                    onClick: () => {
-                        // Get the page the error occurred on
-                        const urlObj = new URL(url, window.location.origin);
-                        
-                        // If it's the current page, reload
-                        if (urlObj.pathname === window.location.pathname) {
-                            window.location.reload();
-                        } else {
-                            // Otherwise, just make a new request
-                            fetch(url).catch(() => {}); // Ignore errors from this fetch
-                        }
-                    }
-                }
-            ]
+            type: errorType,
+            title: errorTitle,
+            message: errorMessage,
+            details: errorDetails,
+            display: errorDisplay,
+            url: errorInfo.url.toString()
         });
+    }
+    
+    /**
+     * Update an existing error with new details
+     */
+    updateErrorWithDetails(errorTitle, details) {
+        // Find the most recent error with this title
+        const error = this.activeErrors.find(e => e.title === errorTitle);
+        if (error) {
+            const detailsElement = document.getElementById(`${error.id}-details`);
+            if (detailsElement) {
+                detailsElement.textContent = details;
+            }
+        }
     }
     
     /**
      * Show an error message
      */
     showError(options) {
-        // Default options
-        const defaults = {
-            title: 'Error',
-            message: this.config.fallbackMessages.default,
-            type: 'error', // error, warning, info
-            duration: this.config.autoHideDelay,
-            autoHide: this.config.autoHide,
-            dismissible: this.config.dismissible,
+        const settings = Object.assign({
+            type: 'error',
+            title: this.options.defaultErrorTitle,
+            message: this.options.defaultErrorMessage,
             details: null,
-            category: 'default',
-            actions: [],
-            position: 'toast', // toast, banner, inline, page
-            container: null, // for inline errors
-            onClose: null,
-            id: null
-        };
+            display: 'toast',
+            timeout: this.options.errorTimeout,
+            container: null,
+            autoHide: this.options.enableAutoHiding,
+            url: null
+        }, options);
         
-        // Merge options
-        const settings = { ...defaults, ...options };
-        
-        // Generate unique error ID if not provided
-        if (!settings.id) {
-            settings.id = this.generateErrorId(settings);
-        }
-        
-        // Check if this is a similar error to one already showing
-        if (this.config.groupSimilarErrors) {
+        // If we're grouping similar errors, check if there's already an error with the same message
+        if (this.options.groupSimilarErrors) {
             const similarError = this.findSimilarError(settings);
-            
             if (similarError) {
-                // Increment counter
-                this.errorCounter[similarError.id] = (this.errorCounter[similarError.id] || 1) + 1;
-                
-                // Update the counter in the UI
-                const errorEl = document.getElementById(similarError.id);
-                
-                if (errorEl) {
-                    const counterEl = errorEl.querySelector('.error-toast-counter');
-                    if (counterEl) {
-                        counterEl.textContent = this.errorCounter[similarError.id];
-                    } else {
-                        const titleEl = errorEl.querySelector('.error-toast-title');
-                        if (titleEl) {
-                            const counter = document.createElement('span');
-                            counter.className = 'error-toast-counter';
-                            counter.textContent = this.errorCounter[similarError.id];
-                            titleEl.appendChild(counter);
-                        }
-                    }
+                // Update count for similar error
+                const countElement = document.getElementById(`${similarError.id}-count`);
+                if (countElement) {
+                    similarError.count++;
+                    countElement.textContent = similarError.count;
                     
-                    // Highlight the error briefly
-                    errorEl.style.animation = 'none';
-                    setTimeout(() => {
-                        errorEl.style.animation = '';
-                        errorEl.classList.add('animate-in');
-                        setTimeout(() => {
-                            errorEl.classList.remove('animate-in');
-                        }, 300);
-                    }, 10);
-                    
-                    // Reset auto-hide timer if applicable
-                    if (settings.autoHide) {
-                        const progressBar = errorEl.querySelector('.error-toast-progress');
-                        if (progressBar && progressBar.animate) {
-                            const animation = progressBar.animate(
-                                [
-                                    { width: '100%' },
-                                    { width: '0%' }
-                                ],
-                                {
-                                    duration: settings.duration,
-                                    fill: 'forwards',
-                                    easing: 'linear'
-                                }
-                            );
-                            
-                            animation.onfinish = () => this.hideError(similarError.id);
-                        }
+                    // Reset timeout if autoHide is enabled
+                    if (settings.autoHide && similarError.timeoutId) {
+                        clearTimeout(similarError.timeoutId);
+                        similarError.timeoutId = setTimeout(() => this.hideError(similarError.id), settings.timeout);
                     }
                 }
-                
                 return similarError.id;
             }
         }
         
-        // Check if we've reached the maximum number of errors
-        if (this.activeErrors.length >= this.config.maxErrors) {
-            // Remove the oldest error
-            this.hideError(this.activeErrors[0].id);
+        // Limit the number of simultaneously displayed errors
+        if (this.activeErrors.length >= this.options.maxErrors && settings.display === 'toast') {
+            const oldestError = this.activeErrors[0];
+            this.hideError(oldestError.id);
         }
         
-        // Get or generate fallback message if needed
-        if (!settings.message || settings.message.trim() === '') {
-            settings.message = this.getFallbackMessage(settings.category);
-        }
+        // Generate a unique ID for this error
+        const errorId = this.generateErrorId(settings);
         
-        // Create error element based on position
+        // Create the error element based on display type
         let errorElement;
-        
-        switch (settings.position) {
+        switch (settings.display) {
+            case 'toast':
+                errorElement = this.createErrorToast(settings);
+                break;
             case 'banner':
                 errorElement = this.createErrorBanner(settings);
                 break;
@@ -710,404 +463,204 @@ class SynapseErrorHandler {
             case 'page':
                 errorElement = this.createErrorPage(settings);
                 break;
-            default: // toast
+            default:
                 errorElement = this.createErrorToast(settings);
         }
         
-        // Add error to active errors list
-        this.activeErrors.push({
-            id: settings.id,
-            type: settings.type,
+        // Store the error reference
+        const errorRef = {
+            id: errorId,
+            element: errorElement,
+            title: settings.title,
             message: settings.message,
-            category: settings.category,
-            element: errorElement
-        });
+            type: settings.type,
+            display: settings.display,
+            count: 1,
+            timeoutId: null
+        };
         
-        // Initialize error counter
-        this.errorCounter[settings.id] = 1;
+        this.activeErrors.push(errorRef);
         
-        // Return the error ID
-        return settings.id;
+        // Set up auto-hide if enabled
+        if (settings.autoHide && settings.display !== 'page') {
+            errorRef.timeoutId = setTimeout(() => this.hideError(errorId), settings.timeout);
+        }
+        
+        console.log(`Error displayed: ${settings.message}`);
+        return errorId;
     }
     
     /**
      * Create an error toast notification
      */
     createErrorToast(settings) {
-        // Find or create error container
-        const container = document.querySelector(`.${this.config.errorContainerClass}`);
-        if (!container) return null;
+        const errorElement = document.createElement('div');
+        errorElement.id = settings.id;
+        errorElement.className = `${this.options.errorClass} ${this.options.errorToastClass}`;
         
-        // Create toast element
-        const toast = document.createElement('div');
-        toast.className = `${this.config.errorToastClass}`;
-        toast.id = settings.id;
+        // Create inner content
+        const headerColor = settings.type === 'error' ? 'var(--bs-danger)' : 
+                           settings.type === 'warning' ? 'var(--bs-warning)' : 
+                           'var(--bs-primary)';
         
-        if (this.config.animateIn) {
-            toast.classList.add('animate-in');
-        }
-        
-        // Get icon based on type
-        let iconClass = 'fas fa-exclamation-circle';
-        if (settings.type === 'warning') {
-            iconClass = 'fas fa-exclamation-triangle';
-        } else if (settings.type === 'info') {
-            iconClass = 'fas fa-info-circle';
-        }
-        
-        // Set inner HTML
-        toast.innerHTML = `
-            <div class="error-toast-icon">
-                <i class="${iconClass}"></i>
+        errorElement.innerHTML = `
+            <div class="synapse-error-header" style="background-color: ${headerColor};">
+                <div>
+                    <i class="fas ${settings.type === 'error' ? 'fa-exclamation-circle' : 
+                                  settings.type === 'warning' ? 'fa-exclamation-triangle' : 
+                                  'fa-info-circle'}"></i>
+                    <strong>${settings.title}</strong>
+                    <span id="${settings.id}-count" class="synapse-error-count">1</span>
+                </div>
+                <button class="synapse-error-close" onclick="document.getElementById('${settings.id}').remove();">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <div class="error-toast-content">
-                <div class="error-toast-title">${settings.title}</div>
-                <div class="error-toast-message">${settings.message}</div>
-                ${settings.details ? '<div class="error-toast-details">Show details</div><div class="error-toast-detail-text"></div>' : ''}
-                ${settings.actions.length > 0 ? '<div class="error-toast-actions"></div>' : ''}
-                ${settings.autoHide ? '<div class="error-toast-progress" style="width: 100%"></div>' : ''}
+            <div class="synapse-error-body">
+                <div>${settings.message}</div>
+                ${settings.details ? `<div id="${settings.id}-details" class="synapse-error-details">${settings.details}</div>` : ''}
+                ${settings.type === 'error' ? `
+                    <div class="synapse-error-actions">
+                        <a href="#" class="synapse-error-help-link" onclick="window.location.reload(); return false;">
+                            <i class="fas fa-sync-alt"></i> Reload Page
+                        </a>
+                    </div>
+                ` : ''}
             </div>
-            ${settings.dismissible ? '<button class="error-toast-close">&times;</button>' : ''}
         `;
         
-        // Add details if provided
-        if (settings.details) {
-            const detailsToggle = toast.querySelector('.error-toast-details');
-            const detailsText = toast.querySelector('.error-toast-detail-text');
-            
-            if (detailsToggle && detailsText) {
-                detailsText.textContent = settings.details;
-                
-                detailsToggle.addEventListener('click', () => {
-                    if (detailsText.style.display === 'block') {
-                        detailsText.style.display = 'none';
-                        detailsToggle.textContent = 'Show details';
-                    } else {
-                        detailsText.style.display = 'block';
-                        detailsToggle.textContent = 'Hide details';
-                    }
-                });
-            }
-        }
-        
-        // Add actions if provided
-        if (settings.actions.length > 0) {
-            const actionsContainer = toast.querySelector('.error-toast-actions');
-            
-            if (actionsContainer) {
-                settings.actions.forEach(action => {
-                    const actionButton = document.createElement('button');
-                    actionButton.className = 'error-toast-action';
-                    actionButton.textContent = action.label;
-                    
-                    if (action.onClick) {
-                        actionButton.addEventListener('click', () => {
-                            action.onClick();
-                            if (action.closeOnClick !== false) {
-                                this.hideError(settings.id);
-                            }
-                        });
-                    }
-                    
-                    actionsContainer.appendChild(actionButton);
-                });
-            }
-        }
-        
-        // Add close handler
-        if (settings.dismissible) {
-            const closeButton = toast.querySelector('.error-toast-close');
-            
-            if (closeButton) {
-                closeButton.addEventListener('click', () => {
-                    this.hideError(settings.id);
-                    
-                    // Call onClose callback if provided
-                    if (typeof settings.onClose === 'function') {
-                        settings.onClose();
-                    }
-                });
-            }
-        }
-        
-        // Add auto-hide functionality
-        if (settings.autoHide) {
-            const progressBar = toast.querySelector('.error-toast-progress');
-            
-            if (progressBar && progressBar.animate) {
-                const animation = progressBar.animate(
-                    [
-                        { width: '100%' },
-                        { width: '0%' }
-                    ],
-                    {
-                        duration: settings.duration,
-                        fill: 'forwards',
-                        easing: 'linear'
-                    }
-                );
-                
-                animation.onfinish = () => this.hideError(settings.id);
-            } else {
-                // Fallback for browsers that don't support Web Animations API
-                setTimeout(() => {
-                    this.hideError(settings.id);
-                }, settings.duration);
-            }
-        }
-        
         // Add to container
-        container.appendChild(toast);
+        document.getElementById('synapse-error-container').appendChild(errorElement);
         
-        // Remove animate-in class after animation completes
-        setTimeout(() => {
-            toast.classList.remove('animate-in');
-        }, 300);
-        
-        return toast;
+        return errorElement;
     }
     
     /**
      * Create an error banner
      */
     createErrorBanner(settings) {
-        // Create banner element
-        const banner = document.createElement('div');
-        banner.className = `${this.config.errorBannerClass}`;
-        banner.id = settings.id;
+        const errorElement = document.createElement('div');
+        errorElement.id = settings.id;
+        errorElement.className = `${this.options.errorClass} ${this.options.errorBannerClass}`;
         
-        // Set inner HTML
-        banner.innerHTML = `
-            <div class="error-banner-icon">
-                <i class="fas fa-exclamation-triangle"></i>
+        errorElement.innerHTML = `
+            <div class="container d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas ${settings.type === 'error' ? 'fa-exclamation-circle' : 
+                                  settings.type === 'warning' ? 'fa-exclamation-triangle' : 
+                                  'fa-info-circle'}"></i>
+                    <strong>${settings.title}:</strong> ${settings.message}
+                    ${settings.type === 'error' ? `
+                        <a href="#" class="text-white ms-3" onclick="window.location.reload(); return false;">
+                            <i class="fas fa-sync-alt"></i> Reload Page
+                        </a>
+                    ` : ''}
+                </div>
+                <button class="synapse-error-close" onclick="document.getElementById('${settings.id}').remove();">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <div class="error-banner-content">
-                <div class="error-banner-message">${settings.message}</div>
-            </div>
-            ${settings.actions.length > 0 ? '<div class="error-banner-actions"></div>' : ''}
-            ${settings.dismissible ? '<button class="error-banner-close">&times;</button>' : ''}
         `;
         
-        // Add actions if provided
-        if (settings.actions.length > 0) {
-            const actionsContainer = banner.querySelector('.error-banner-actions');
-            
-            if (actionsContainer) {
-                settings.actions.forEach(action => {
-                    const actionButton = document.createElement('button');
-                    actionButton.className = 'error-banner-action';
-                    actionButton.textContent = action.label;
-                    
-                    if (action.onClick) {
-                        actionButton.addEventListener('click', () => {
-                            action.onClick();
-                            if (action.closeOnClick !== false) {
-                                this.hideError(settings.id);
-                            }
-                        });
-                    }
-                    
-                    actionsContainer.appendChild(actionButton);
-                });
-            }
-        }
+        document.body.prepend(errorElement);
+        document.body.style.paddingTop = `${errorElement.offsetHeight}px`;
         
-        // Add close handler
-        if (settings.dismissible) {
-            const closeButton = banner.querySelector('.error-banner-close');
-            
-            if (closeButton) {
-                closeButton.addEventListener('click', () => {
-                    this.hideError(settings.id);
-                    
-                    // Call onClose callback if provided
-                    if (typeof settings.onClose === 'function') {
-                        settings.onClose();
-                    }
-                });
-            }
-        }
+        // When the banner is removed, reset the body padding
+        const bannerRemoveObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList' && Array.from(mutation.removedNodes).includes(errorElement)) {
+                    document.body.style.paddingTop = '0';
+                    bannerRemoveObserver.disconnect();
+                }
+            });
+        });
         
-        // Add to document
-        document.body.appendChild(banner);
+        bannerRemoveObserver.observe(document.body, { childList: true });
         
-        // Trigger layout and then add active class
-        banner.offsetHeight; // Force reflow
-        banner.classList.add('active');
-        
-        // Add auto-hide functionality
-        if (settings.autoHide) {
-            setTimeout(() => {
-                this.hideError(settings.id);
-            }, settings.duration);
-        }
-        
-        return banner;
+        return errorElement;
     }
     
     /**
      * Create an inline error
      */
     createInlineError(settings) {
-        // Get container element
-        const container = settings.container instanceof Element ? 
-                        settings.container : 
-                        document.querySelector(settings.container);
+        const errorElement = document.createElement('div');
+        errorElement.id = settings.id;
+        errorElement.className = `${this.options.errorClass} synapse-error-inline`;
         
-        if (!container) return null;
-        
-        // Create inline error element
-        const inlineError = document.createElement('div');
-        inlineError.className = 'error-inline';
-        inlineError.id = settings.id;
-        
-        // Set inner HTML
-        inlineError.innerHTML = `
-            <div class="error-inline-icon">
-                <i class="fas fa-exclamation-circle"></i>
+        errorElement.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas ${settings.type === 'error' ? 'fa-exclamation-circle' : 
+                                  settings.type === 'warning' ? 'fa-exclamation-triangle' : 
+                                  'fa-info-circle'}"></i>
+                    <strong>${settings.title}:</strong> ${settings.message}
+                </div>
+                <button class="synapse-error-close" style="color: var(--bs-danger);" onclick="document.getElementById('${settings.id}').remove();">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-            <div class="error-inline-message">${settings.message}</div>
-            ${settings.dismissible ? '<button class="error-toast-close">&times;</button>' : ''}
+            ${settings.details ? `<div id="${settings.id}-details" class="synapse-error-details mt-2">${settings.details}</div>` : ''}
         `;
         
-        // Add close handler
-        if (settings.dismissible) {
-            const closeButton = inlineError.querySelector('.error-toast-close');
-            
-            if (closeButton) {
-                closeButton.addEventListener('click', () => {
-                    this.hideError(settings.id);
-                    
-                    // Call onClose callback if provided
-                    if (typeof settings.onClose === 'function') {
-                        settings.onClose();
-                    }
-                });
-            }
-        }
+        const container = settings.container || document.querySelector(this.options.containerSelector);
+        container.insertAdjacentElement('afterbegin', errorElement);
         
-        // Add to container
-        container.appendChild(inlineError);
-        
-        // Add auto-hide functionality
-        if (settings.autoHide) {
-            setTimeout(() => {
-                this.hideError(settings.id);
-            }, settings.duration);
-        }
-        
-        return inlineError;
+        return errorElement;
     }
     
     /**
      * Create an error page for fatal errors
      */
     createErrorPage(settings) {
-        // Create error page element
-        const errorPage = document.createElement('div');
-        errorPage.className = 'error-page';
-        errorPage.id = settings.id;
+        const errorElement = document.createElement('div');
+        errorElement.id = settings.id;
+        errorElement.className = `${this.options.errorClass} ${this.options.errorPageClass}`;
         
-        // Set inner HTML
-        errorPage.innerHTML = `
-            <div class="error-page-icon">
-                <i class="fas fa-exclamation-circle"></i>
+        errorElement.innerHTML = `
+            <div class="synapse-error-icon">
+                <i class="fas ${settings.type === 'error' ? 'fa-exclamation-circle' : 
+                              settings.type === 'warning' ? 'fa-exclamation-triangle' : 
+                              'fa-info-circle'}"></i>
             </div>
-            <h1 class="error-page-title">${settings.title}</h1>
-            <div class="error-page-message">${settings.message}</div>
-            <div class="error-page-actions">
-                <button class="error-page-action reload">Reload Page</button>
-                <button class="error-page-action secondary home">Go to Home</button>
+            <h1 class="synapse-error-title">${settings.title}</h1>
+            <div class="synapse-error-message">${settings.message}</div>
+            ${settings.details ? `<div id="${settings.id}-details" class="synapse-error-details">${settings.details}</div>` : ''}
+            <div class="synapse-error-actions mt-4">
+                <button class="btn btn-primary me-2" onclick="window.location.reload();">
+                    <i class="fas fa-sync-alt"></i> Reload Page
+                </button>
+                <button class="btn btn-outline-secondary" onclick="window.history.back();">
+                    <i class="fas fa-arrow-left"></i> Go Back
+                </button>
             </div>
-            ${settings.details ? '<div class="error-page-details"><div class="error-page-detail-text"></div></div>' : ''}
         `;
         
-        // Add details if provided
-        if (settings.details) {
-            const detailsText = errorPage.querySelector('.error-page-detail-text');
-            
-            if (detailsText) {
-                detailsText.textContent = settings.details;
-            }
-        }
+        document.body.appendChild(errorElement);
         
-        // Add action handlers
-        const reloadButton = errorPage.querySelector('.error-page-action.reload');
-        if (reloadButton) {
-            reloadButton.addEventListener('click', () => {
-                window.location.reload();
-            });
-        }
-        
-        const homeButton = errorPage.querySelector('.error-page-action.home');
-        if (homeButton) {
-            homeButton.addEventListener('click', () => {
-                window.location.href = '/';
-            });
-        }
-        
-        // Add to document
-        document.body.appendChild(errorPage);
-        
-        return errorPage;
+        return errorElement;
     }
     
     /**
      * Hide an error by ID
      */
     hideError(errorId) {
-        // Find error in active errors
-        const errorIndex = this.activeErrors.findIndex(error => error.id === errorId);
-        
-        if (errorIndex === -1) return;
-        
-        const error = this.activeErrors[errorIndex];
-        const element = error.element;
-        
-        if (!element) {
-            // If element not found, just remove from active errors
-            this.activeErrors.splice(errorIndex, 1);
-            delete this.errorCounter[errorId];
-            return;
-        }
-        
-        // Remove error with animation if enabled
-        if (this.config.animateOut && element.classList.contains(this.config.errorToastClass)) {
-            element.classList.add('animate-out');
+        const errorIndex = this.activeErrors.findIndex(e => e.id === errorId);
+        if (errorIndex !== -1) {
+            const error = this.activeErrors[errorIndex];
             
-            // Wait for animation to complete
-            setTimeout(() => {
-                if (element.parentNode) {
-                    element.parentNode.removeChild(element);
-                }
-                
-                // Remove from active errors
-                this.activeErrors.splice(errorIndex, 1);
-                delete this.errorCounter[errorId];
-            }, 300);
-        } else if (element.classList.contains(this.config.errorBannerClass)) {
-            // Remove banner
-            element.classList.remove('active');
-            
-            // Wait for transition to complete
-            setTimeout(() => {
-                if (element.parentNode) {
-                    element.parentNode.removeChild(element);
-                }
-                
-                // Remove from active errors
-                this.activeErrors.splice(errorIndex, 1);
-                delete this.errorCounter[errorId];
-            }, 300);
-        } else {
-            // Remove immediately
-            if (element.parentNode) {
-                element.parentNode.removeChild(element);
+            // Clear the timeout if it exists
+            if (error.timeoutId) {
+                clearTimeout(error.timeoutId);
             }
             
-            // Remove from active errors
+            // Remove the element
+            if (error.element && error.element.parentNode) {
+                error.element.parentNode.removeChild(error.element);
+            }
+            
+            // Remove from the active errors array
             this.activeErrors.splice(errorIndex, 1);
-            delete this.errorCounter[errorId];
         }
     }
     
@@ -1115,78 +668,89 @@ class SynapseErrorHandler {
      * Hide all errors
      */
     hideAllErrors() {
-        // Get a copy of active errors
-        const activeErrorsCopy = [...this.activeErrors];
-        
-        // Hide each error
-        activeErrorsCopy.forEach(error => {
-            this.hideError(error.id);
-        });
+        while (this.activeErrors.length > 0) {
+            this.hideError(this.activeErrors[0].id);
+        }
     }
     
     /**
      * Find a similar error to group with
      */
     findSimilarError(errorSettings) {
-        return this.activeErrors.find(error => {
-            // Check if same category and similar message
-            return error.category === errorSettings.category && 
-                   this.isSimilarMessage(error.message, errorSettings.message);
-        });
+        return this.activeErrors.find(error => 
+            error.display === errorSettings.display && 
+            error.type === errorSettings.type &&
+            this.isSimilarMessage(error.message, errorSettings.message)
+        );
     }
     
     /**
      * Check if two error messages are similar
      */
     isSimilarMessage(message1, message2) {
-        // Simple string similarity check - could be improved
+        // Exact match
         if (message1 === message2) return true;
         
-        // Convert to lowercase and remove punctuation
-        const normalize = (str) => str.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+        // Simple similarity check - compare the first 20 characters
+        if (message1.substring(0, 20) === message2.substring(0, 20)) return true;
         
-        const norm1 = normalize(message1);
-        const norm2 = normalize(message2);
-        
-        // Check if one is contained in the other
-        return norm1.includes(norm2) || norm2.includes(norm1);
+        return false;
     }
     
     /**
      * Generate a unique error ID
      */
     generateErrorId(settings) {
-        const timestamp = Date.now();
-        const randomPart = Math.floor(Math.random() * 10000);
-        const categoryPart = settings.category || 'default';
-        
-        return `error-${categoryPart}-${timestamp}-${randomPart}`;
+        const category = this.categorizeError(settings.message);
+        this.errorCounter++;
+        return `${this.options.errorIdPrefix}${category}-${this.errorCounter}`;
     }
     
     /**
      * Categorize an error based on its message
      */
     categorizeError(message) {
-        if (!message) return 'default';
+        if (!message) return 'general';
         
-        const lowerMessage = message.toLowerCase();
+        message = message.toLowerCase();
         
-        for (const [category, keywords] of Object.entries(this.config.errorCategories)) {
-            for (const keyword of keywords) {
-                if (lowerMessage.includes(keyword)) {
-                    return category;
-                }
-            }
+        if (message.includes('network') || message.includes('connection') || message.includes('offline')) {
+            return 'network';
+        } else if (message.includes('permission') || message.includes('access') || message.includes('unauthorized') || message.includes('auth')) {
+            return 'auth';
+        } else if (message.includes('server') || message.includes('500')) {
+            return 'server';
+        } else if (message.includes('not found') || message.includes('404')) {
+            return 'notfound';
+        } else if (message.includes('timeout') || message.includes('timed out')) {
+            return 'timeout';
+        } else if (message.includes('invalid') || message.includes('validation')) {
+            return 'validation';
+        } else {
+            return 'general';
         }
-        
-        return 'default';
     }
     
     /**
      * Get a fallback error message based on category
      */
     getFallbackMessage(category) {
-        return this.config.fallbackMessages[category] || this.config.fallbackMessages.default;
+        switch (category) {
+            case 'network':
+                return 'There seems to be a problem with your internet connection. Please check and try again.';
+            case 'auth':
+                return 'You do not have permission to access this resource or your session has expired.';
+            case 'server':
+                return 'The server encountered an error while processing your request. Please try again later.';
+            case 'notfound':
+                return 'The requested resource could not be found.';
+            case 'timeout':
+                return 'The operation timed out. Please try again later.';
+            case 'validation':
+                return 'There was an error validating your input. Please check and try again.';
+            default:
+                return this.options.defaultErrorMessage;
+        }
     }
     
     /**
@@ -1194,17 +758,11 @@ class SynapseErrorHandler {
      */
     showNetworkError(message, details = null) {
         return this.showError({
-            title: 'Network Error',
-            message: message || this.config.fallbackMessages.network,
             type: 'error',
+            title: 'Network Error',
+            message: message || 'Could not connect to the server. Please check your internet connection.',
             details: details,
-            category: 'network',
-            actions: [
-                {
-                    label: 'Retry',
-                    onClick: () => window.location.reload()
-                }
-            ]
+            display: 'toast'
         });
     }
     
@@ -1213,17 +771,11 @@ class SynapseErrorHandler {
      */
     showAuthError(message, details = null) {
         return this.showError({
-            title: 'Authentication Error',
-            message: message || this.config.fallbackMessages.auth,
             type: 'error',
+            title: 'Authentication Error',
+            message: message || 'You are not authorized to perform this action.',
             details: details,
-            category: 'auth',
-            actions: [
-                {
-                    label: 'Login',
-                    onClick: () => window.location.href = '/login'
-                }
-            ]
+            display: 'toast'
         });
     }
     
@@ -1232,14 +784,12 @@ class SynapseErrorHandler {
      */
     showValidationError(message, container, details = null) {
         return this.showError({
-            title: 'Validation Error',
-            message: message || this.config.fallbackMessages.validation,
             type: 'warning',
+            title: 'Validation Error',
+            message: message || 'Please check your input and try again.',
             details: details,
-            category: 'validation',
-            position: 'inline',
-            container: container,
-            autoHide: false
+            display: 'inline',
+            container: container
         });
     }
     
@@ -1248,17 +798,11 @@ class SynapseErrorHandler {
      */
     showServerError(message, details = null) {
         return this.showError({
-            title: 'Server Error',
-            message: message || this.config.fallbackMessages.server,
             type: 'error',
+            title: 'Server Error',
+            message: message || 'The server encountered an error while processing your request.',
             details: details,
-            category: 'server',
-            actions: [
-                {
-                    label: 'Retry',
-                    onClick: () => window.location.reload()
-                }
-            ]
+            display: 'toast'
         });
     }
     
@@ -1267,22 +811,23 @@ class SynapseErrorHandler {
      */
     showFatalError(message, details = null) {
         return this.showError({
-            title: 'Fatal Error',
-            message: message || 'The application encountered a critical error and cannot continue.',
             type: 'error',
+            title: 'Fatal Error',
+            message: message || 'A critical error has occurred and the application cannot continue.',
             details: details,
-            category: 'fatal',
-            position: 'page',
-            autoHide: false,
-            dismissible: false
+            display: 'page',
+            autoHide: false
         });
     }
 }
 
-// Initialize error handler
-const synapseErrors = new SynapseErrorHandler();
-
-// Export for module usage if needed
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = SynapseErrorHandler;
+// Initialize the error handler if script is loaded after DOM is ready
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(() => {
+        new SynapseErrorHandler().init();
+    }, 0);
+} else {
+    document.addEventListener('DOMContentLoaded', () => {
+        new SynapseErrorHandler().init();
+    });
 }

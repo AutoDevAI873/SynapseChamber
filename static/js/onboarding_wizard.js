@@ -6,281 +6,267 @@
 
 class OnboardingWizard {
     constructor(options = {}) {
-        // Configuration
-        this.config = {
-            showOnFirstVisit: options.showOnFirstVisit !== undefined ? options.showOnFirstVisit : true,
-            storageKey: options.storageKey || 'synapse_onboarding_completed',
-            steps: options.steps || this.getDefaultSteps(),
-            onComplete: options.onComplete || null,
-            onSkip: options.onSkip || null,
-            autoStart: options.autoStart !== undefined ? options.autoStart : false,
-            theme: options.theme || 'dark',
-            showSkip: options.showSkip !== undefined ? options.showSkip : true,
-            showProgress: options.showProgress !== undefined ? options.showProgress : true,
-            animateTransitions: options.animateTransitions !== undefined ? options.animateTransitions : true,
-            overlayOpacity: options.overlayOpacity || 0.7,
-            zIndex: options.zIndex || 10000,
-            onBeforeStep: options.onBeforeStep || null,
-            onAfterStep: options.onAfterStep || null
-        };
+        this.options = Object.assign({
+            storageKey: 'synapse_chamber_onboarding_completed',
+            permanentHideKey: 'synapse_chamber_onboarding_hidden',
+            enableAnimation: true,
+            enableProgressDots: true,
+            zIndex: 9998,
+            outlineWidth: 4,
+            animationDuration: 300,
+            tooltipOffset: 10,
+            backdropOpacity: 0.7,
+            tooltipWidth: 300,
+            tooltipClassName: 'onboarding-tooltip',
+            highlightClassName: 'onboarding-highlight',
+            backdropClassName: 'onboarding-backdrop',
+            completeOnLastStep: true,
+            steps: null
+        }, options);
         
-        // State
         this.currentStep = 0;
-        this.totalSteps = this.config.steps.length;
-        this.isActive = false;
-        this.highlightedElement = null;
-        
-        // Initialize
-        this.init();
+        this.overlay = null;
+        this.tooltip = null;
+        this.highlightElement = null;
+        this.steps = this.options.steps || this.getDefaultSteps();
     }
     
     /**
      * Initialize onboarding wizard
      */
     init() {
-        // Add CSS styles
         this.addStyles();
         
-        // Automatically start on first visit if configured
-        if (this.config.showOnFirstVisit && this.isFirstVisit() && !this.isPermanentlyHidden()) {
-            // Start on a slight delay to ensure page is fully loaded
-            setTimeout(() => {
+        // Check if this is the user's first visit
+        if (this.isFirstVisit() && !this.isPermanentlyHidden()) {
+            // Wait for the DOM to be fully loaded
+            if (document.readyState === 'complete') {
                 this.start();
-            }, 1000);
-        } else if (this.config.autoStart && !this.isPermanentlyHidden()) {
-            // Auto-start if configured
-            setTimeout(() => {
-                this.start();
-            }, 1000);
+            } else {
+                window.addEventListener('load', () => this.start());
+            }
         }
+        
+        // Make the wizard accessible globally
+        window.OnboardingWizard = this;
+        
+        console.log("Synapse Chamber Onboarding Wizard initialized");
     }
     
     /**
      * Add CSS styles
      */
     addStyles() {
-        const style = document.createElement('style');
-        style.textContent = `
-            .onboarding-overlay {
+        if (document.getElementById('onboarding-wizard-styles')) {
+            return;
+        }
+        
+        const styleElement = document.createElement('style');
+        styleElement.id = 'onboarding-wizard-styles';
+        styleElement.textContent = `
+            .${this.options.backdropClassName} {
                 position: fixed;
                 top: 0;
                 left: 0;
-                right: 0;
-                bottom: 0;
-                background-color: rgba(0, 0, 0, ${this.config.overlayOpacity});
-                z-index: ${this.config.zIndex};
-                display: ${this.isActive ? 'block' : 'none'};
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, ${this.options.backdropOpacity});
+                z-index: ${this.options.zIndex};
+                pointer-events: auto;
             }
             
-            .onboarding-spotlight {
+            .${this.options.tooltipClassName} {
                 position: absolute;
-                box-shadow: 0 0 0 9999px rgba(0, 0, 0, ${this.config.overlayOpacity});
-                border-radius: 4px;
-                z-index: ${this.config.zIndex + 1};
-                pointer-events: none;
-                transition: all 0.3s ease;
-            }
-            
-            .onboarding-tooltip {
-                position: absolute;
-                background-color: ${this.config.theme === 'dark' ? '#2d2d2d' : '#ffffff'};
-                color: ${this.config.theme === 'dark' ? '#ffffff' : '#333333'};
+                width: ${this.options.tooltipWidth}px;
+                max-width: 90vw;
+                background-color: var(--bs-dark);
                 border-radius: 8px;
                 padding: 20px;
-                width: 300px;
-                max-width: 90vw;
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-                z-index: ${this.config.zIndex + 2};
-                font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+                z-index: ${this.options.zIndex + 2};
+                color: white;
+                animation: onboardingFadeIn ${this.options.animationDuration}ms ease;
             }
             
             .onboarding-tooltip-arrow {
                 position: absolute;
-                width: 16px;
-                height: 16px;
-                background-color: ${this.config.theme === 'dark' ? '#2d2d2d' : '#ffffff'};
-                transform: rotate(45deg);
-                z-index: ${this.config.zIndex + 1};
+                width: 0;
+                height: 0;
+                border-style: solid;
+                border-width: 8px;
             }
             
-            .onboarding-tooltip-title {
-                font-size: 18px;
+            .onboarding-tooltip-arrow--top {
+                bottom: 100%;
+                border-color: transparent transparent var(--bs-dark) transparent;
+            }
+            
+            .onboarding-tooltip-arrow--bottom {
+                top: 100%;
+                border-color: var(--bs-dark) transparent transparent transparent;
+            }
+            
+            .onboarding-tooltip-arrow--left {
+                right: 100%;
+                border-color: transparent var(--bs-dark) transparent transparent;
+            }
+            
+            .onboarding-tooltip-arrow--right {
+                left: 100%;
+                border-color: transparent transparent transparent var(--bs-dark);
+            }
+            
+            .${this.options.highlightClassName} {
+                position: absolute;
+                border: ${this.options.outlineWidth}px solid var(--bs-primary);
+                border-radius: 4px;
+                box-shadow: 0 0 0 5000px rgba(0, 0, 0, ${this.options.backdropOpacity});
+                z-index: ${this.options.zIndex + 1};
+                pointer-events: none;
+                box-sizing: content-box;
+                transition: all ${this.options.animationDuration}ms ease;
+            }
+            
+            .onboarding-title {
+                font-size: 1.25rem;
                 font-weight: bold;
                 margin-bottom: 10px;
-                color: ${this.config.theme === 'dark' ? '#ffffff' : '#333333'};
+                color: var(--bs-primary);
             }
             
-            .onboarding-tooltip-content {
-                font-size: 14px;
-                line-height: 1.5;
+            .onboarding-content {
                 margin-bottom: 20px;
-                color: ${this.config.theme === 'dark' ? '#dddddd' : '#666666'};
+                line-height: 1.5;
             }
             
-            .onboarding-tooltip-buttons {
+            .onboarding-actions {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                margin-top: 20px;
             }
             
-            .onboarding-tooltip-button {
-                padding: 8px 16px;
+            .onboarding-skip {
+                color: var(--bs-secondary);
+                text-decoration: underline;
+                cursor: pointer;
+                background: none;
+                border: none;
+                font-size: 0.85rem;
+                padding: 5px;
+            }
+            
+            .onboarding-nav {
+                display: flex;
+                gap: 10px;
+            }
+            
+            .onboarding-button {
+                background-color: var(--bs-primary);
+                color: white;
+                border: none;
+                padding: 8px 15px;
                 border-radius: 4px;
                 cursor: pointer;
-                font-size: 14px;
-                font-weight: 500;
-                border: none;
                 transition: background-color 0.2s;
             }
             
-            .onboarding-tooltip-button-next {
-                background-color: #0d6efd;
-                color: white;
+            .onboarding-button:hover {
+                background-color: var(--bs-primary-dark, #0056b3);
             }
             
-            .onboarding-tooltip-button-next:hover {
-                background-color: #0b5ed7;
+            .onboarding-button--secondary {
+                background-color: var(--bs-secondary);
             }
             
-            .onboarding-tooltip-button-prev {
-                background-color: ${this.config.theme === 'dark' ? '#444444' : '#e9ecef'};
-                color: ${this.config.theme === 'dark' ? '#ffffff' : '#333333'};
-                margin-right: 10px;
+            .onboarding-button--secondary:hover {
+                background-color: var(--bs-secondary-dark, #5a6268);
             }
             
-            .onboarding-tooltip-button-prev:hover {
-                background-color: ${this.config.theme === 'dark' ? '#555555' : '#dee2e6'};
-            }
-            
-            .onboarding-tooltip-button-skip {
-                background-color: transparent;
-                color: ${this.config.theme === 'dark' ? '#aaaaaa' : '#6c757d'};
-                text-decoration: underline;
-                padding: 8px;
-            }
-            
-            .onboarding-tooltip-button-skip:hover {
-                color: ${this.config.theme === 'dark' ? '#ffffff' : '#5a6268'};
-            }
-            
-            .onboarding-tooltip-progress {
+            .onboarding-dots {
                 display: flex;
                 justify-content: center;
+                gap: 8px;
                 margin-top: 15px;
-                gap: 6px;
             }
             
-            .onboarding-tooltip-progress-dot {
+            .onboarding-dot {
                 width: 8px;
                 height: 8px;
                 border-radius: 50%;
-                background-color: ${this.config.theme === 'dark' ? '#555555' : '#dee2e6'};
+                background-color: rgba(255, 255, 255, 0.3);
+                transition: all 0.2s ease;
             }
             
-            .onboarding-tooltip-progress-dot.active {
-                background-color: #0d6efd;
-            }
-            
-            .onboarding-tooltip-image {
-                width: 100%;
-                max-height: 150px;
-                object-fit: contain;
-                margin-bottom: 15px;
-                border-radius: 4px;
-            }
-            
-            /* Animation classes */
-            .onboarding-fadein {
-                animation: onboardingFadeIn 0.3s forwards;
-            }
-            
-            .onboarding-fadeout {
-                animation: onboardingFadeOut 0.3s forwards;
+            .onboarding-dot--active {
+                background-color: var(--bs-primary);
+                transform: scale(1.2);
             }
             
             @keyframes onboardingFadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-            
-            @keyframes onboardingFadeOut {
-                from { opacity: 1; }
-                to { opacity: 0; }
-            }
-            
-            /* Mobile responsive adjustments */
-            @media (max-width: 768px) {
-                .onboarding-tooltip {
-                    width: 85vw;
-                    font-size: 14px;
-                    padding: 15px;
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
                 }
-                
-                .onboarding-tooltip-title {
-                    font-size: 16px;
-                }
-                
-                .onboarding-tooltip-content {
-                    font-size: 13px;
-                }
-                
-                .onboarding-tooltip-button {
-                    padding: 6px 12px;
-                    font-size: 13px;
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
                 }
             }
         `;
         
-        document.head.appendChild(style);
+        document.head.appendChild(styleElement);
     }
     
     /**
      * Start the onboarding wizard
      */
     start() {
-        if (this.isActive || this.isPermanentlyHidden()) return;
+        if (this.steps.length === 0) return;
         
-        this.isActive = true;
-        this.currentStep = 0;
-        
-        // Create overlay
         this.createOverlay();
-        
-        // Show first step
         this.showStep(0);
+        
+        // Add global event listener for escape key
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                this.skip();
+            }
+        });
     }
     
     /**
      * Show a specific step
      */
     showStep(stepIndex) {
-        // Validate step index
-        if (stepIndex < 0 || stepIndex >= this.totalSteps) return;
+        if (stepIndex < 0 || stepIndex >= this.steps.length) return;
         
-        // Update current step
         this.currentStep = stepIndex;
+        const step = this.steps[stepIndex];
         
-        // Get step configuration
-        const step = this.config.steps[stepIndex];
+        // Try to find the target element
+        const targetElement = this.getTargetElement(step.target);
         
-        // Call before step callback if defined
-        if (typeof this.config.onBeforeStep === 'function') {
-            this.config.onBeforeStep(step, stepIndex);
+        if (!targetElement && step.required) {
+            // If the element doesn't exist and is required, skip to next step
+            console.warn(`Onboarding: Target element "${step.target}" not found. Skipping to next step.`);
+            if (stepIndex < this.steps.length - 1) {
+                this.showStep(stepIndex + 1);
+            } else {
+                this.complete();
+            }
+            return;
         }
+        
+        // Remove existing highlight
+        this.removeHighlight();
         
         // Create or update tooltip
         this.createOrUpdateTooltip(step);
         
-        // Highlight target element if provided
-        if (step.target) {
-            this.highlightElement(step.target);
-        } else {
-            this.removeHighlight();
-        }
-        
-        // Call after step callback if defined
-        if (typeof this.config.onAfterStep === 'function') {
-            this.config.onAfterStep(step, stepIndex);
+        // Highlight target element if it exists
+        if (targetElement) {
+            this.highlightElement(targetElement);
         }
     }
     
@@ -288,87 +274,55 @@ class OnboardingWizard {
      * Create overlay element
      */
     createOverlay() {
-        // Check if overlay already exists
-        let overlay = document.querySelector('.onboarding-overlay');
+        // Create overlay
+        this.overlay = document.createElement('div');
+        this.overlay.className = this.options.backdropClassName;
+        document.body.appendChild(this.overlay);
         
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.className = 'onboarding-overlay';
-            
-            // Add animation if enabled
-            if (this.config.animateTransitions) {
-                overlay.classList.add('onboarding-fadein');
-            }
-            
-            document.body.appendChild(overlay);
-            
-            // Add click handler to close when clicking on overlay if allowed
-            if (this.config.showSkip) {
-                overlay.addEventListener('click', (e) => {
-                    if (e.target === overlay) {
-                        this.skip();
-                    }
-                });
-            }
-        } else {
-            overlay.style.display = 'block';
-        }
+        // Prevent scrolling
+        document.body.style.overflow = 'hidden';
     }
     
     /**
      * Create or update tooltip
      */
     createOrUpdateTooltip(step) {
-        // Check if tooltip already exists
-        let tooltip = document.querySelector('.onboarding-tooltip');
-        let isNew = false;
-        
-        if (!tooltip) {
-            tooltip = document.createElement('div');
-            tooltip.className = 'onboarding-tooltip';
-            
-            // Add animation if enabled
-            if (this.config.animateTransitions) {
-                tooltip.classList.add('onboarding-fadein');
-            }
-            
-            document.body.appendChild(tooltip);
-            isNew = true;
+        if (!this.tooltip) {
+            this.tooltip = document.createElement('div');
+            this.tooltip.className = this.options.tooltipClassName;
+            document.body.appendChild(this.tooltip);
         }
         
-        // Create tooltip content
-        let tooltipContent = `
-            ${step.title ? `<div class="onboarding-tooltip-title">${step.title}</div>` : ''}
-            ${step.image ? `<img src="${step.image}" alt="${step.title || 'Onboarding'}" class="onboarding-tooltip-image">` : ''}
-            <div class="onboarding-tooltip-content">${step.content}</div>
-            <div class="onboarding-tooltip-buttons">
-                <div>
-                    ${this.currentStep > 0 ? `<button class="onboarding-tooltip-button onboarding-tooltip-button-prev">Previous</button>` : ''}
-                    ${this.config.showSkip ? `<button class="onboarding-tooltip-button onboarding-tooltip-button-skip">${this.currentStep === this.totalSteps - 1 ? 'Close' : 'Skip'}</button>` : ''}
+        const arrowElement = document.createElement('div');
+        arrowElement.className = 'onboarding-tooltip-arrow';
+        
+        this.tooltip.innerHTML = `
+            <div class="onboarding-title">${step.title}</div>
+            <div class="onboarding-content">${step.content}</div>
+            ${this.options.enableProgressDots ? this.createProgressDots() : ''}
+            <div class="onboarding-actions">
+                <button class="onboarding-skip" id="onboarding-skip">Skip tutorial</button>
+                <div class="onboarding-nav">
+                    ${this.currentStep > 0 ? '<button class="onboarding-button onboarding-button--secondary" id="onboarding-prev">Previous</button>' : ''}
+                    <button class="onboarding-button" id="onboarding-next">
+                        ${this.currentStep < this.steps.length - 1 ? 'Next' : 'Finish'}
+                    </button>
                 </div>
-                <button class="onboarding-tooltip-button onboarding-tooltip-button-next">${this.currentStep === this.totalSteps - 1 ? 'Finish' : 'Next'}</button>
             </div>
-            ${this.config.showProgress && this.totalSteps > 1 ? this.createProgressDots() : ''}
         `;
         
-        tooltip.innerHTML = tooltipContent;
+        // Add arrow to tooltip
+        this.tooltip.appendChild(arrowElement);
         
         // Position tooltip
-        this.positionTooltip(tooltip, step);
+        this.positionTooltip(this.tooltip, step);
         
-        // Add event listeners if this is a new tooltip
-        if (isNew) {
-            tooltip.addEventListener('click', (e) => {
-                const target = e.target;
-                
-                if (target.classList.contains('onboarding-tooltip-button-next')) {
-                    this.nextStep();
-                } else if (target.classList.contains('onboarding-tooltip-button-prev')) {
-                    this.prevStep();
-                } else if (target.classList.contains('onboarding-tooltip-button-skip')) {
-                    this.skip();
-                }
-            });
+        // Add event listeners
+        document.getElementById('onboarding-skip').addEventListener('click', () => this.skip());
+        document.getElementById('onboarding-next').addEventListener('click', () => this.nextStep());
+        
+        if (this.currentStep > 0) {
+            document.getElementById('onboarding-prev').addEventListener('click', () => this.prevStep());
         }
     }
     
@@ -376,158 +330,146 @@ class OnboardingWizard {
      * Position tooltip relative to target element
      */
     positionTooltip(tooltip, step) {
-        // Default position (center of screen) if no target
-        let position = { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+        const targetElement = this.getTargetElement(step.target);
         
-        // Create arrow element
-        let arrow = document.querySelector('.onboarding-tooltip-arrow');
-        if (!arrow) {
-            arrow = document.createElement('div');
-            arrow.className = 'onboarding-tooltip-arrow';
-            document.body.appendChild(arrow);
+        if (!targetElement) {
+            // If there's no target, center the tooltip
+            tooltip.style.top = '50%';
+            tooltip.style.left = '50%';
+            tooltip.style.transform = 'translate(-50%, -50%)';
+            return;
         }
         
-        // Hide arrow by default
-        arrow.style.display = 'none';
+        const targetRect = targetElement.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
         
-        if (step.target) {
-            const targetEl = this.getTargetElement(step.target);
+        const arrow = tooltip.querySelector('.onboarding-tooltip-arrow');
+        arrow.className = 'onboarding-tooltip-arrow';
+        
+        // Default position (right of target)
+        let position = step.position || 'right';
+        
+        // Auto-detect position if needed
+        if (position === 'auto') {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
             
-            if (targetEl) {
-                const targetRect = targetEl.getBoundingClientRect();
-                const tooltipRect = tooltip.getBoundingClientRect();
-                
-                // Calculate tooltip position based on placement
-                const placement = step.placement || 'bottom';
-                
-                // Calculate position
-                switch (placement) {
-                    case 'top':
-                        position = {
-                            top: `${targetRect.top - tooltipRect.height - 15}px`,
-                            left: `${targetRect.left + targetRect.width / 2 - tooltipRect.width / 2}px`,
-                            transform: 'none'
-                        };
-                        break;
-                    case 'bottom':
-                        position = {
-                            top: `${targetRect.bottom + 15}px`,
-                            left: `${targetRect.left + targetRect.width / 2 - tooltipRect.width / 2}px`,
-                            transform: 'none'
-                        };
-                        break;
-                    case 'left':
-                        position = {
-                            top: `${targetRect.top + targetRect.height / 2 - tooltipRect.height / 2}px`,
-                            left: `${targetRect.left - tooltipRect.width - 15}px`,
-                            transform: 'none'
-                        };
-                        break;
-                    case 'right':
-                        position = {
-                            top: `${targetRect.top + targetRect.height / 2 - tooltipRect.height / 2}px`,
-                            left: `${targetRect.right + 15}px`,
-                            transform: 'none'
-                        };
-                        break;
-                }
-                
-                // Adjust for viewport boundaries
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-                
-                // Ensure tooltip doesn't go off screen horizontally
-                if (parseFloat(position.left) < 10) {
-                    position.left = '10px';
-                } else if (parseFloat(position.left) + tooltipRect.width > viewportWidth - 10) {
-                    position.left = `${viewportWidth - tooltipRect.width - 10}px`;
-                }
-                
-                // Ensure tooltip doesn't go off screen vertically
-                if (parseFloat(position.top) < 10) {
-                    position.top = '10px';
-                } else if (parseFloat(position.top) + tooltipRect.height > viewportHeight - 10) {
-                    position.top = `${viewportHeight - tooltipRect.height - 10}px`;
-                }
-                
-                // Position arrow
-                arrow.style.display = 'block';
-                
-                switch (placement) {
-                    case 'top':
-                        arrow.style.top = `${targetRect.top - 8}px`;
-                        arrow.style.left = `${targetRect.left + targetRect.width / 2 - 8}px`;
-                        break;
-                    case 'bottom':
-                        arrow.style.top = `${targetRect.bottom - 8}px`;
-                        arrow.style.left = `${targetRect.left + targetRect.width / 2 - 8}px`;
-                        break;
-                    case 'left':
-                        arrow.style.top = `${targetRect.top + targetRect.height / 2 - 8}px`;
-                        arrow.style.left = `${targetRect.left - 8}px`;
-                        break;
-                    case 'right':
-                        arrow.style.top = `${targetRect.top + targetRect.height / 2 - 8}px`;
-                        arrow.style.left = `${targetRect.right - 8}px`;
-                        break;
-                }
-            }
+            // Calculate available space in each direction
+            const spaceRight = windowWidth - (targetRect.right + this.options.tooltipOffset);
+            const spaceLeft = targetRect.left - this.options.tooltipOffset;
+            const spaceBelow = windowHeight - (targetRect.bottom + this.options.tooltipOffset);
+            const spaceAbove = targetRect.top - this.options.tooltipOffset;
+            
+            // Find the direction with the most space
+            const spaces = [
+                { position: 'right', space: spaceRight },
+                { position: 'left', space: spaceLeft },
+                { position: 'bottom', space: spaceBelow },
+                { position: 'top', space: spaceAbove }
+            ];
+            
+            const bestPosition = spaces.sort((a, b) => b.space - a.space)[0];
+            position = bestPosition.space > tooltipRect.width ? bestPosition.position : 'center';
         }
         
-        // Apply position to tooltip
-        Object.assign(tooltip.style, position);
+        // Calculate tooltip position
+        switch (position) {
+            case 'top':
+                tooltip.style.left = `${targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2)}px`;
+                tooltip.style.top = `${targetRect.top - tooltipRect.height - this.options.tooltipOffset}px`;
+                arrow.classList.add('onboarding-tooltip-arrow--bottom');
+                arrow.style.left = '50%';
+                arrow.style.marginLeft = '-8px';
+                arrow.style.top = '100%';
+                break;
+                
+            case 'bottom':
+                tooltip.style.left = `${targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2)}px`;
+                tooltip.style.top = `${targetRect.bottom + this.options.tooltipOffset}px`;
+                arrow.classList.add('onboarding-tooltip-arrow--top');
+                arrow.style.left = '50%';
+                arrow.style.marginLeft = '-8px';
+                arrow.style.bottom = '100%';
+                break;
+                
+            case 'left':
+                tooltip.style.right = `${window.innerWidth - targetRect.left + this.options.tooltipOffset}px`;
+                tooltip.style.top = `${targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2)}px`;
+                tooltip.style.left = 'auto';
+                arrow.classList.add('onboarding-tooltip-arrow--right');
+                arrow.style.top = '50%';
+                arrow.style.marginTop = '-8px';
+                arrow.style.left = '100%';
+                break;
+                
+            case 'right':
+                tooltip.style.left = `${targetRect.right + this.options.tooltipOffset}px`;
+                tooltip.style.top = `${targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2)}px`;
+                arrow.classList.add('onboarding-tooltip-arrow--left');
+                arrow.style.top = '50%';
+                arrow.style.marginTop = '-8px';
+                arrow.style.right = '100%';
+                break;
+                
+            case 'center':
+                tooltip.style.top = '50%';
+                tooltip.style.left = '50%';
+                tooltip.style.transform = 'translate(-50%, -50%)';
+                arrow.style.display = 'none';
+                break;
+        }
+        
+        // Make sure the tooltip is within the viewport
+        const updatedTooltipRect = tooltip.getBoundingClientRect();
+        
+        if (updatedTooltipRect.left < 0) {
+            tooltip.style.left = `${this.options.tooltipOffset}px`;
+            tooltip.style.right = 'auto';
+        }
+        
+        if (updatedTooltipRect.right > window.innerWidth) {
+            tooltip.style.right = `${this.options.tooltipOffset}px`;
+            tooltip.style.left = 'auto';
+        }
+        
+        if (updatedTooltipRect.top < 0) {
+            tooltip.style.top = `${this.options.tooltipOffset}px`;
+        }
+        
+        if (updatedTooltipRect.bottom > window.innerHeight) {
+            tooltip.style.top = `${window.innerHeight - updatedTooltipRect.height - this.options.tooltipOffset}px`;
+        }
     }
     
     /**
      * Highlight a target element
      */
     highlightElement(target) {
-        const targetEl = this.getTargetElement(target);
+        const rect = target.getBoundingClientRect();
         
-        if (!targetEl) {
-            this.removeHighlight();
-            return;
+        this.highlight = document.createElement('div');
+        this.highlight.className = this.options.highlightClassName;
+        this.highlight.style.top = `${rect.top - this.options.outlineWidth}px`;
+        this.highlight.style.left = `${rect.left - this.options.outlineWidth}px`;
+        this.highlight.style.width = `${rect.width}px`;
+        this.highlight.style.height = `${rect.height}px`;
+        
+        document.body.appendChild(this.highlight);
+        
+        // Make the highlighted element clickable
+        if (this.options.clickableHighlight) {
+            target.style.position = 'relative';
+            target.style.zIndex = this.options.zIndex + 3;
         }
-        
-        const targetRect = targetEl.getBoundingClientRect();
-        
-        // Create or update spotlight
-        let spotlight = document.querySelector('.onboarding-spotlight');
-        
-        if (!spotlight) {
-            spotlight = document.createElement('div');
-            spotlight.className = 'onboarding-spotlight';
-            document.body.appendChild(spotlight);
-        }
-        
-        // Position spotlight
-        spotlight.style.top = `${targetRect.top - 5}px`;
-        spotlight.style.left = `${targetRect.left - 5}px`;
-        spotlight.style.width = `${targetRect.width + 10}px`;
-        spotlight.style.height = `${targetRect.height + 10}px`;
-        
-        // Store reference to highlighted element
-        this.highlightedElement = targetEl;
-        
-        // Make target clickable
-        targetEl.style.position = 'relative';
-        targetEl.style.zIndex = this.config.zIndex + 3;
     }
     
     /**
      * Remove highlight from element
      */
     removeHighlight() {
-        // Remove spotlight
-        const spotlight = document.querySelector('.onboarding-spotlight');
-        if (spotlight) {
-            spotlight.remove();
-        }
-        
-        // Reset highlighted element z-index
-        if (this.highlightedElement) {
-            this.highlightedElement.style.zIndex = '';
-            this.highlightedElement = null;
+        if (this.highlight) {
+            this.highlight.remove();
+            this.highlight = null;
         }
     }
     
@@ -535,25 +477,26 @@ class OnboardingWizard {
      * Create progress dots HTML
      */
     createProgressDots() {
-        let dotsHtml = '<div class="onboarding-tooltip-progress">';
+        let dotsHTML = '<div class="onboarding-dots">';
         
-        for (let i = 0; i < this.totalSteps; i++) {
-            dotsHtml += `<div class="onboarding-tooltip-progress-dot ${i === this.currentStep ? 'active' : ''}"></div>`;
+        for (let i = 0; i < this.steps.length; i++) {
+            dotsHTML += `<div class="onboarding-dot ${i === this.currentStep ? 'onboarding-dot--active' : ''}"></div>`;
         }
         
-        dotsHtml += '</div>';
-        
-        return dotsHtml;
+        dotsHTML += '</div>';
+        return dotsHTML;
     }
     
     /**
      * Go to next step
      */
     nextStep() {
-        if (this.currentStep === this.totalSteps - 1) {
-            this.complete();
-        } else {
+        if (this.currentStep < this.steps.length - 1) {
             this.showStep(this.currentStep + 1);
+        } else {
+            if (this.options.completeOnLastStep) {
+                this.complete();
+            }
         }
     }
     
@@ -570,30 +513,16 @@ class OnboardingWizard {
      * Skip the onboarding wizard
      */
     skip() {
-        // Add fadeout animation if enabled
-        if (this.config.animateTransitions) {
-            const overlay = document.querySelector('.onboarding-overlay');
-            const tooltip = document.querySelector('.onboarding-tooltip');
-            const arrow = document.querySelector('.onboarding-tooltip-arrow');
-            
-            if (overlay) overlay.classList.add('onboarding-fadeout');
-            if (tooltip) tooltip.classList.add('onboarding-fadeout');
-            if (arrow) arrow.classList.add('onboarding-fadeout');
-            
-            // Wait for animation to complete
-            setTimeout(() => {
-                this.cleanup();
-            }, 300);
-        } else {
+        if (confirm('Are you sure you want to skip the onboarding tutorial? You can access it again from the help menu.')) {
             this.cleanup();
-        }
-        
-        // Mark as completed
-        this.markAsCompleted();
-        
-        // Call onSkip callback if defined
-        if (typeof this.config.onSkip === 'function') {
-            this.config.onSkip();
+            
+            // Offer to permanently hide
+            if (confirm('Would you like to permanently hide the onboarding tutorial?')) {
+                this.permanentlyHide();
+            } else {
+                // Mark as completed but allow it to be shown again later
+                this.markAsCompleted();
+            }
         }
     }
     
@@ -601,120 +530,86 @@ class OnboardingWizard {
      * Complete the onboarding wizard
      */
     complete() {
-        // Add fadeout animation if enabled
-        if (this.config.animateTransitions) {
-            const overlay = document.querySelector('.onboarding-overlay');
-            const tooltip = document.querySelector('.onboarding-tooltip');
-            const arrow = document.querySelector('.onboarding-tooltip-arrow');
-            
-            if (overlay) overlay.classList.add('onboarding-fadeout');
-            if (tooltip) tooltip.classList.add('onboarding-fadeout');
-            if (arrow) arrow.classList.add('onboarding-fadeout');
-            
-            // Wait for animation to complete
-            setTimeout(() => {
-                this.cleanup();
-            }, 300);
-        } else {
-            this.cleanup();
-        }
-        
-        // Mark as completed
+        this.cleanup();
         this.markAsCompleted();
         
-        // Call onComplete callback if defined
-        if (typeof this.config.onComplete === 'function') {
-            this.config.onComplete();
-        }
+        // Show completion message
+        alert('Onboarding complete! You can access the tutorial again from the help menu if needed.');
     }
     
     /**
      * Clean up DOM elements
      */
     cleanup() {
-        // Remove highlight
-        this.removeHighlight();
-        
         // Remove overlay
-        const overlay = document.querySelector('.onboarding-overlay');
-        if (overlay) {
-            overlay.remove();
+        if (this.overlay) {
+            this.overlay.remove();
+            this.overlay = null;
         }
         
         // Remove tooltip
-        const tooltip = document.querySelector('.onboarding-tooltip');
-        if (tooltip) {
-            tooltip.remove();
+        if (this.tooltip) {
+            this.tooltip.remove();
+            this.tooltip = null;
         }
         
-        // Remove arrow
-        const arrow = document.querySelector('.onboarding-tooltip-arrow');
-        if (arrow) {
-            arrow.remove();
-        }
+        // Remove highlight
+        this.removeHighlight();
         
-        // Reset state
-        this.isActive = false;
+        // Restore scrolling
+        document.body.style.overflow = '';
+        
+        // Remove event handlers
+        document.removeEventListener('keydown', this.escHandler);
     }
     
     /**
      * Mark onboarding as completed
      */
     markAsCompleted() {
-        if (typeof localStorage !== 'undefined') {
-            localStorage.setItem(this.config.storageKey, 'true');
-        }
+        localStorage.setItem(this.options.storageKey, 'true');
     }
     
     /**
      * Check if this is the first visit
      */
     isFirstVisit() {
-        if (typeof localStorage !== 'undefined') {
-            return !localStorage.getItem(this.config.storageKey);
-        }
-        return true;
+        return !localStorage.getItem(this.options.storageKey);
     }
     
     /**
      * Check if onboarding is permanently hidden
      */
     isPermanentlyHidden() {
-        if (typeof localStorage !== 'undefined') {
-            return localStorage.getItem(this.config.storageKey + '_hidden') === 'true';
-        }
-        return false;
+        return localStorage.getItem(this.options.permanentHideKey) === 'true';
     }
     
     /**
      * Permanently hide onboarding
      */
     permanentlyHide() {
-        if (typeof localStorage !== 'undefined') {
-            localStorage.setItem(this.config.storageKey + '_hidden', 'true');
-        }
+        localStorage.setItem(this.options.permanentHideKey, 'true');
     }
     
     /**
      * Reset onboarding (clear completed status)
      */
     reset() {
-        if (typeof localStorage !== 'undefined') {
-            localStorage.removeItem(this.config.storageKey);
-            localStorage.removeItem(this.config.storageKey + '_hidden');
-        }
+        localStorage.removeItem(this.options.storageKey);
+        localStorage.removeItem(this.options.permanentHideKey);
     }
     
     /**
      * Get target element from selector or element
      */
     getTargetElement(target) {
-        if (target instanceof Element) {
-            return target;
-        } else if (typeof target === 'string') {
+        if (!target) return null;
+        
+        if (typeof target === 'string') {
             return document.querySelector(target);
         }
-        return null;
+        
+        return target;
     }
     
     /**
@@ -724,55 +619,53 @@ class OnboardingWizard {
         return [
             {
                 title: "Welcome to Synapse Chamber",
-                content: "This guided tour will introduce you to the key features of Synapse Chamber, your AI agent training environment. Let's get started!",
-                placement: "center"
+                content: "This guided tour will help you understand the key features of the Synapse Chamber platform. Let's get started!",
+                target: null,
+                position: "center"
             },
             {
-                title: "AI Platform Integration",
-                content: "Synapse Chamber connects with multiple AI platforms including ChatGPT, Claude, Gemini, Grok, and DeepSeek. Use the platform selector to choose which AIs to train with.",
-                target: ".platform-selector",
-                placement: "bottom"
+                title: "Navigation Panel",
+                content: "The main navigation panel gives you access to all the major features of the platform including AI Interaction, Training, Analytics, and various tools.",
+                target: ".navbar",
+                position: "bottom"
             },
             {
-                title: "Training System",
-                content: "The training interface allows you to create structured learning experiences for your AI agent. Select topics, create prompts, and review AI responses to build your agent's knowledge.",
-                target: "#training-tab",
-                placement: "bottom"
-            },
-            {
-                title: "Memory System",
-                content: "The memory explorer provides access to stored conversations and knowledge. Use semantic search to find specific information and visualize connections between concepts.",
-                target: "#memory-tab",
-                placement: "bottom"
-            },
-            {
-                title: "Development Environment",
-                content: "The built-in development environment includes file management, code editing, and terminal access - everything you need to refine your agent's capabilities.",
-                target: "#dev-tab",
-                placement: "bottom"
+                title: "AI Interaction",
+                content: "Interact with multiple AI platforms simultaneously. Compare responses and train your agent with the best practices.",
+                target: "a[href='/ai_interaction']",
+                position: "right"
             },
             {
                 title: "System Health Dashboard",
-                content: "Monitor the performance and status of all Synapse Chamber components through the System Health Dashboard. Get real-time metrics and address issues before they impact your work.",
-                target: "#system-health-dashboard",
-                placement: "top"
+                content: "Monitor the status and performance of all system components, including browser automation, database connections, and AI platform status.",
+                target: "a[href='/system-health']",
+                position: "right"
             },
             {
-                title: "You're Ready to Go!",
-                content: "You now have a basic understanding of Synapse Chamber. Explore each section to discover more features and capabilities. Happy training!",
-                placement: "center"
+                title: "Terminal",
+                content: "Access the interactive terminal for direct command-line interactions with the system.",
+                target: "a[href='/terminal']",
+                position: "right"
+            },
+            {
+                title: "Let's Get Started!",
+                content: "You're now ready to use the Synapse Chamber. Remember, you can access this tutorial again from the help menu at any time.",
+                target: null,
+                position: "center"
             }
         ];
     }
 }
 
-// Initialize with default options
-const synapseOnboarding = new OnboardingWizard();
-
-// Make available globally
-window.synapseOnboarding = synapseOnboarding;
-
-// Export for module usage if needed
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = OnboardingWizard;
+// Initialize the onboarding wizard if script is loaded after DOM is ready
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(() => {
+        new OnboardingWizard().init();
+    }, 1000); // Slight delay to make sure everything else has loaded
+} else {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            new OnboardingWizard().init();
+        }, 1000);
+    });
 }
