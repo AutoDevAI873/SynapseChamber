@@ -960,3 +960,230 @@ def memory_explorer_view():
 def platforms_view():
     """AI platforms management view"""
     return render_template('platforms.html')
+    
+@app.route('/system-health')
+def system_health_view():
+    """System health dashboard for monitoring performance and component status"""
+    return render_template('system_health.html')
+
+# API Routes for System Health Monitoring
+@app.route('/api/system-health/data', methods=['GET'])
+def get_system_health_data():
+    """Get current system health metrics"""
+    import psutil
+    import time
+    import random
+    
+    # Basic system metrics
+    memory = psutil.virtual_memory()
+    cpu = psutil.cpu_percent(interval=0.5)
+    
+    # Get browser driver status
+    driver_status = "healthy"
+    driver_metrics = {}
+    
+    try:
+        # Check if browser driver is functioning
+        if browser_automation.driver:
+            driver_metrics = {
+                "initialized": True,
+                "url": browser_automation.driver.current_url if hasattr(browser_automation.driver, 'current_url') else "unknown",
+                "type": "undetected_chromedriver" if "undetected_chromedriver" in str(type(browser_automation.driver)) else "standard"
+            }
+        else:
+            driver_status = "warning"
+            driver_metrics = {
+                "initialized": False,
+                "error": "Driver not initialized"
+            }
+    except Exception as e:
+        driver_status = "critical"
+        driver_metrics = {
+            "initialized": False,
+            "error": str(e)
+        }
+    
+    # Get database status
+    db_status = "healthy"
+    db_metrics = {}
+    
+    try:
+        # Simple database check
+        from sqlalchemy import text
+        with db.engine.connect() as conn:
+            result = conn.execute(text("SELECT 1"))
+            db_metrics = {
+                "connected": True,
+                "pool_size": db.engine.pool.size(),
+                "pool_checked_out": db.engine.pool.checkedout()
+            }
+    except Exception as e:
+        db_status = "critical"
+        db_metrics = {
+            "connected": False,
+            "error": str(e)
+        }
+    
+    # Get AI platform status
+    # This is simplified - in a real implementation we would check actual platform connectivity
+    ai_status = "healthy"
+    ai_platforms = {}
+    
+    for platform in ["gpt", "claude", "gemini", "grok", "deepseek"]:
+        # Random status for demonstration
+        rand = random.random()
+        if rand > 0.8:
+            platform_status = "warning"
+        elif rand > 0.95:
+            platform_status = "critical"
+        else:
+            platform_status = "healthy"
+            
+        ai_platforms[platform] = {
+            "status": platform_status,
+            "last_success": (datetime.datetime.now() - datetime.timedelta(minutes=random.randint(1, 60))).isoformat() if platform_status != "critical" else None,
+            "success_rate": random.randint(70, 100) if platform_status != "critical" else random.randint(0, 50)
+        }
+    
+    # Memory system metrics
+    memory_status = "healthy"
+    memory_metrics = {
+        "items_count": 0,
+        "conversations_count": 0,
+        "total_size_mb": 0
+    }
+    
+    try:
+        # Try to get memory metrics
+        memory_metrics["items_count"] = memory_system.get_memory_count() if hasattr(memory_system, 'get_memory_count') else 0
+        memory_metrics["conversations_count"] = memory_system.get_conversation_count() if hasattr(memory_system, 'get_conversation_count') else 0
+    except Exception as e:
+        memory_status = "warning"
+        memory_metrics["error"] = str(e)
+    
+    # Overall system metrics
+    system_status = "healthy"
+    if cpu > 80 or memory.percent > 80:
+        system_status = "critical"
+    elif cpu > 60 or memory.percent > 60:
+        system_status = "warning"
+    
+    system_metrics = {
+        "cpu_usage_percent": cpu,
+        "load_avg_1m": psutil.getloadavg()[0],
+        "load_avg_5m": psutil.getloadavg()[1],
+        "load_avg_15m": psutil.getloadavg()[2],
+        "uptime_seconds": time.time() - psutil.boot_time()
+    }
+    
+    # Generate some historical data for charts
+    timestamps = []
+    response_times = []
+    error_rates = []
+    
+    # Create 12 data points, 5 minutes apart
+    for i in range(12):
+        # Calculate time point (now - (11-i) * 5 minutes)
+        time_point = datetime.datetime.now() - datetime.timedelta(minutes=(11-i) * 5)
+        timestamps.append(time_point.strftime("%H:%M"))
+        
+        # Mock response time (200-500ms with some randomness)
+        response_time = 200 + (i * 20) + random.randint(-50, 50)
+        response_times.append(response_time)
+        
+        # Mock error rate (increasing slightly over time with randomness)
+        error_rate = min(100, max(0, (i * 0.5) + random.randint(0, 3)))
+        error_rates.append(error_rate)
+    
+    # Build complete response
+    health_data = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "overall_status": system_status,
+        "components": {
+            "memory": {
+                "status": memory_status,
+                "metrics": {
+                    "usage_percent": memory.percent,
+                    "total_mb": memory.total // (1024 * 1024),
+                    "used_mb": memory.used // (1024 * 1024),
+                    "free_mb": memory.available // (1024 * 1024)
+                }
+            },
+            "browser": {
+                "status": driver_status,
+                "metrics": driver_metrics
+            },
+            "database": {
+                "status": db_status,
+                "metrics": db_metrics
+            },
+            "ai": {
+                "status": ai_status,
+                "platforms": ai_platforms,
+                "metrics": {
+                    "total_requests": 0,  # Would track this in a real implementation
+                    "success_rate": 0,    # Would track this in a real implementation
+                    "avg_response_time_ms": 0  # Would track this in a real implementation
+                }
+            },
+            "system": {
+                "status": system_status,
+                "metrics": system_metrics
+            }
+        },
+        "logs": [
+            # Would get actual logs in a real implementation
+            {"type": "info", "message": "System health check completed", "timestamp": datetime.datetime.now().isoformat()},
+            {"type": "info", "message": "Browser driver initialized successfully", "timestamp": (datetime.datetime.now() - datetime.timedelta(minutes=5)).isoformat()},
+            {"type": "info", "message": "Database connection pool expanded", "timestamp": (datetime.datetime.now() - datetime.timedelta(minutes=10)).isoformat()},
+        ],
+        "performance_history": {
+            "timestamps": timestamps,
+            "response_time_ms": response_times,
+            "error_rate_percent": error_rates
+        }
+    }
+    
+    return jsonify(health_data)
+
+@app.route('/api/system-health/reinitialize-driver', methods=['POST'])
+def reinitialize_driver():
+    """Reinitialize the browser driver"""
+    try:
+        browser_automation.initialize_driver(retry_count=3)
+        return jsonify({
+            "success": True,
+            "message": "Browser driver reinitialized successfully"
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
+
+@app.route('/api/system-health/logs', methods=['GET'])
+def get_system_logs():
+    """Get system logs"""
+    import glob
+    import random
+    
+    log_data = []
+    
+    # In a real implementation, we would fetch actual logs
+    # For now, return mock data since we haven't implemented a logging system to file
+    for i in range(20):
+        log_type = "info"
+        if i % 10 == 0:
+            log_type = "warning"
+        elif i % 15 == 0:
+            log_type = "error"
+            
+        timestamp = datetime.datetime.now() - datetime.timedelta(minutes=i * 5)
+        
+        log_data.append({
+            "timestamp": timestamp.isoformat(),
+            "type": log_type,
+            "message": f"System log entry {i}"
+        })
+    
+    return jsonify(log_data)
