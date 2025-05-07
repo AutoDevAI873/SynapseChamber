@@ -98,11 +98,15 @@
     
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/dock.js') }}"></script>
     <script src="{{ url_for('static', filename='js/error_handler.js') }}"></script>
     <script src="{{ url_for('static', filename='js/tooltips.js') }}"></script>
     <script src="{{ url_for('static', filename='js/spinners.js') }}"></script>
     <script src="{{ url_for('static', filename='js/onboarding_wizard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/self_repair.js') }}"></script>
+    <!-- Load dock.js only if we're on a page that uses it -->
+    {% if request.path == '/dashboard' %}
+    <script src="{{ url_for('static', filename='js/dock.js') }}"></script>
+    {% endif %}
     
     <!-- Run Button Functionality -->
     <script>
