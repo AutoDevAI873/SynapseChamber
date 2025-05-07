@@ -1,51 +1,64 @@
 /**
  * Synapse Chamber - Contextual Tooltips
- * Provides rich, context-aware tooltips for UI elements
+ * Provides dynamic, context-aware tooltips for improved user experience
  * Part of the Synapse Chamber UX enhancement project
  */
 
 class SynapseTooltips {
     constructor(options = {}) {
         this.options = Object.assign({
-            selector: '[data-tooltip]',
-            containerClass: 'synapse-tooltip-container',
             tooltipClass: 'synapse-tooltip',
+            containerClass: 'synapse-tooltip-container',
             arrowClass: 'synapse-tooltip-arrow',
-            animationDuration: 200,
+            titleClass: 'synapse-tooltip-title',
+            contentClass: 'synapse-tooltip-content',
+            activeClass: 'synapse-tooltip--active',
+            zIndex: 9000,
             showDelay: 300,
             hideDelay: 200,
             offset: 10,
-            followMouse: false,
-            maxWidth: 250,
-            zIndex: 9000,
-            allowHTML: false
+            duration: 200,
+            enableAnimations: true,
+            autoPosition: true,
+            dataAttrSelector: '[data-tooltip]',
+            titleSelector: '[data-tooltip-title]',
+            contentSelector: '[data-tooltip-content]',
+            positionSelector: '[data-tooltip-position]',
+            typeSelector: '[data-tooltip-type]',
+            defaultPosition: 'top',
+            defaultType: 'default',
+            allowHtml: false
         }, options);
-        
+
         this.activeTooltips = [];
+        this.tooltipIdCounter = 0;
         this.tooltipContainer = null;
-        this.hoverTimeoutId = null;
-        this.leaveTimeoutId = null;
+        this.tooltipHideTimeouts = new Map();
+        this.tooltipShowTimeouts = new Map();
     }
-    
+
     /**
      * Initialize tooltips
      */
     init() {
-        this.createStyles();
+        this.addStyles();
         this.createTooltipContainer();
         this.bindEvents();
-        
+
+        // Make tooltips accessible globally
+        window.SynapseTooltips = this;
+
         console.log('Synapse Tooltips initialized');
     }
-    
+
     /**
-     * Create CSS styles for tooltips
+     * Add CSS styles for tooltips
      */
-    createStyles() {
+    addStyles() {
         if (document.getElementById('synapse-tooltip-styles')) {
             return;
         }
-        
+
         const styleEl = document.createElement('style');
         styleEl.id = 'synapse-tooltip-styles';
         styleEl.textContent = `
@@ -66,41 +79,38 @@ class SynapseTooltips {
                 border-radius: 4px;
                 padding: 8px 12px;
                 font-size: 0.875rem;
-                max-width: ${this.options.maxWidth}px;
+                max-width: 250px;
                 box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
                 pointer-events: none;
-                transition: opacity ${this.options.animationDuration}ms ease, 
-                            transform ${this.options.animationDuration}ms ease;
+                transition: opacity ${this.options.duration}ms ease, transform ${this.options.duration}ms ease;
                 opacity: 0;
                 transform: translateY(5px);
-                z-index: ${this.options.zIndex};
+                border-left: 3px solid transparent;
             }
             
-            .${this.options.tooltipClass}--visible {
+            .${this.options.tooltipClass}.${this.options.activeClass} {
                 opacity: 1;
                 transform: translateY(0);
             }
             
             .${this.options.tooltipClass}--info {
-                border-left: 3px solid var(--bs-info);
+                border-left-color: var(--bs-info);
             }
             
             .${this.options.tooltipClass}--warning {
-                border-left: 3px solid var(--bs-warning);
+                border-left-color: var(--bs-warning);
             }
             
             .${this.options.tooltipClass}--error {
-                border-left: 3px solid var(--bs-danger);
+                border-left-color: var(--bs-danger);
             }
             
             .${this.options.tooltipClass}--success {
-                border-left: 3px solid var(--bs-success);
+                border-left-color: var(--bs-success);
             }
             
-            .${this.options.tooltipClass}--critical {
-                border-left: 3px solid var(--bs-danger);
-                background-color: rgba(var(--bs-danger-rgb), 0.9);
-                font-weight: bold;
+            .${this.options.tooltipClass}--default {
+                border-left-color: var(--bs-primary);
             }
             
             .${this.options.arrowClass} {
@@ -131,58 +141,19 @@ class SynapseTooltips {
                 border-color: transparent transparent transparent var(--bs-dark);
             }
             
-            .${this.options.tooltipClass}--info .${this.options.arrowClass}--top {
-                border-bottom-color: var(--bs-info);
-            }
-            
-            .${this.options.tooltipClass}--warning .${this.options.arrowClass}--top {
-                border-bottom-color: var(--bs-warning);
-            }
-            
-            .${this.options.tooltipClass}--error .${this.options.arrowClass}--top {
-                border-bottom-color: var(--bs-danger);
-            }
-            
-            .${this.options.tooltipClass}--success .${this.options.arrowClass}--top {
-                border-bottom-color: var(--bs-success);
-            }
-            
-            .${this.options.tooltipClass}--critical .${this.options.arrowClass}--top {
-                border-bottom-color: var(--bs-danger);
-            }
-            
-            .${this.options.tooltipClass}--info .${this.options.arrowClass}--bottom {
-                border-top-color: var(--bs-info);
-            }
-            
-            .${this.options.tooltipClass}--warning .${this.options.arrowClass}--bottom {
-                border-top-color: var(--bs-warning);
-            }
-            
-            .${this.options.tooltipClass}--error .${this.options.arrowClass}--bottom {
-                border-top-color: var(--bs-danger);
-            }
-            
-            .${this.options.tooltipClass}--success .${this.options.arrowClass}--bottom {
-                border-top-color: var(--bs-success);
-            }
-            
-            .${this.options.tooltipClass}--critical .${this.options.arrowClass}--bottom {
-                border-top-color: var(--bs-danger);
-            }
-            
-            .${this.options.tooltipClass}--has-title .tooltip-title {
-                display: block;
+            .${this.options.titleClass} {
                 font-weight: bold;
-                margin-bottom: 5px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-                padding-bottom: 5px;
+                margin-bottom: 4px;
+            }
+            
+            .${this.options.contentClass} {
+                line-height: 1.4;
             }
         `;
-        
+
         document.head.appendChild(styleEl);
     }
-    
+
     /**
      * Create tooltip container
      */
@@ -191,389 +162,426 @@ class SynapseTooltips {
         this.tooltipContainer.className = this.options.containerClass;
         document.body.appendChild(this.tooltipContainer);
     }
-    
+
     /**
-     * Bind events
+     * Bind event listeners
      */
     bindEvents() {
-        // Define the element event handlers
-        const handleMouseEnter = (e) => {
-            clearTimeout(this.leaveTimeoutId);
-            
-            const target = e.currentTarget;
-            
-            this.hoverTimeoutId = setTimeout(() => {
-                this.showTooltip(target, e);
-            }, this.options.showDelay);
-        };
-        
-        const handleMouseLeave = () => {
-            clearTimeout(this.hoverTimeoutId);
-            
-            this.leaveTimeoutId = setTimeout(() => {
-                this.hideAllTooltips();
-            }, this.options.hideDelay);
-        };
-        
-        const handleMouseMove = (e) => {
-            if (this.options.followMouse && this.activeTooltips.length > 0) {
-                // Get the last created tooltip
-                const activeTooltip = this.activeTooltips[this.activeTooltips.length - 1];
-                
-                if (activeTooltip && activeTooltip.target === e.currentTarget) {
-                    this.positionTooltipForMouse(activeTooltip.element, e);
+        // Bind event handlers for data-attribute tooltips
+        document.addEventListener('mouseenter', (e) => {
+            const tooltipElem = this.findTooltipElement(e.target);
+            if (tooltipElem) {
+                const content = tooltipElem.getAttribute('data-tooltip');
+                if (content) {
+                    this.showTooltipFromData(tooltipElem);
                 }
             }
-        };
-        
-        // Add event listeners to all matching elements
-        const tooltipElements = document.querySelectorAll(this.options.selector);
-        tooltipElements.forEach(el => {
-            el.addEventListener('mouseenter', handleMouseEnter);
-            el.addEventListener('mouseleave', handleMouseLeave);
-            if (this.options.followMouse) {
-                el.addEventListener('mousemove', handleMouseMove);
-            }
-            
-            // For mobile/touch devices
-            el.addEventListener('touchstart', handleMouseEnter, { passive: true });
-            document.addEventListener('touchend', handleMouseLeave, { passive: true });
-        });
-        
-        // Handle dynamic elements with a global delegated event
-        document.addEventListener('mouseover', (e) => {
-            // Check if the target or any parent matches the selector
-            const matchingElement = e.target.closest(this.options.selector);
-            
-            if (matchingElement && !matchingElement._tooltipInitialized) {
-                matchingElement._tooltipInitialized = true;
-                matchingElement.addEventListener('mouseenter', handleMouseEnter);
-                matchingElement.addEventListener('mouseleave', handleMouseLeave);
-                if (this.options.followMouse) {
-                    matchingElement.addEventListener('mousemove', handleMouseMove);
+        }, true);
+
+        document.addEventListener('mouseleave', (e) => {
+            const tooltipElem = this.findTooltipElement(e.target);
+            if (tooltipElem) {
+                const tooltipId = tooltipElem._tooltipId;
+                if (tooltipId) {
+                    this.hideTooltip(tooltipId);
                 }
-                
-                // For mobile/touch devices
-                matchingElement.addEventListener('touchstart', handleMouseEnter, { passive: true });
             }
-        });
-        
-        // Handle tooltip container mouseover/mouseout to prevent flicker
-        this.tooltipContainer.addEventListener('mouseenter', () => {
-            clearTimeout(this.leaveTimeoutId);
-        });
-        
-        this.tooltipContainer.addEventListener('mouseleave', () => {
-            this.leaveTimeoutId = setTimeout(() => {
-                this.hideAllTooltips();
-            }, this.options.hideDelay);
-        });
-        
-        // Handle scroll and resize events
-        window.addEventListener('scroll', () => {
-            this.updateTooltipPositions();
-        }, { passive: true });
-        
-        window.addEventListener('resize', () => {
-            this.updateTooltipPositions();
-        });
+        }, true);
+
+        // Recalculate positions on window resize
+        window.addEventListener('resize', this.debounce(() => {
+            this.activeTooltips.forEach(tooltip => {
+                const targetElement = tooltip.targetElement;
+                if (targetElement && document.body.contains(targetElement)) {
+                    this.positionTooltip(tooltip.element, targetElement, tooltip.position);
+                } else {
+                    this.hideTooltip(tooltip.id);
+                }
+            });
+        }, 100));
+
+        // Handle scroll events
+        window.addEventListener('scroll', this.debounce(() => {
+            this.activeTooltips.forEach(tooltip => {
+                const targetElement = tooltip.targetElement;
+                if (targetElement && document.body.contains(targetElement)) {
+                    this.positionTooltip(tooltip.element, targetElement, tooltip.position);
+                } else {
+                    this.hideTooltip(tooltip.id);
+                }
+            });
+        }, 100), true);
     }
-    
+
     /**
-     * Show tooltip for an element
+     * Find tooltip element
      */
-    showTooltip(target, event) {
-        // Get tooltip content
-        const content = target.getAttribute('data-tooltip');
-        if (!content) return;
-        
-        // Check if there's already a tooltip for this target
-        const existingTooltip = this.activeTooltips.find(tooltip => tooltip.target === target);
-        if (existingTooltip) return;
-        
-        // Create tooltip element
-        const tooltipEl = document.createElement('div');
-        tooltipEl.className = this.options.tooltipClass;
-        
-        // Get tooltip type if specified
-        const tooltipType = target.getAttribute('data-tooltip-type');
-        if (tooltipType) {
-            tooltipEl.classList.add(`${this.options.tooltipClass}--${tooltipType}`);
+    findTooltipElement(element) {
+        if (element.matches(this.options.dataAttrSelector)) {
+            return element;
         }
         
-        // Get tooltip title if specified
-        const tooltipTitle = target.getAttribute('data-tooltip-title');
-        if (tooltipTitle) {
-            tooltipEl.classList.add(`${this.options.tooltipClass}--has-title`);
-            tooltipEl.innerHTML = `<span class="tooltip-title">${tooltipTitle}</span>`;
+        let current = element;
+        while (current && current !== document.body) {
+            if (current.matches(this.options.dataAttrSelector)) {
+                return current;
+            }
+            current = current.parentElement;
         }
         
-        // Add content
-        if (this.options.allowHTML || target.hasAttribute('data-tooltip-html')) {
-            tooltipEl.innerHTML += content;
-        } else {
-            tooltipEl.innerHTML += content;
-        }
+        return null;
+    }
+
+    /**
+     * Show tooltip from data attributes
+     */
+    showTooltipFromData(element) {
+        const content = element.getAttribute('data-tooltip');
+        const title = element.getAttribute('data-tooltip-title') || '';
+        const position = element.getAttribute('data-tooltip-position') || this.options.defaultPosition;
+        const type = element.getAttribute('data-tooltip-type') || this.options.defaultType;
         
-        // Create arrow element
-        const arrowEl = document.createElement('div');
-        arrowEl.className = this.options.arrowClass;
-        tooltipEl.appendChild(arrowEl);
-        
-        // Append to container
-        this.tooltipContainer.appendChild(tooltipEl);
-        
-        // Position the tooltip
-        const position = target.getAttribute('data-tooltip-position') || 'top';
-        
-        if (this.options.followMouse) {
-            this.positionTooltipForMouse(tooltipEl, event);
-        } else {
-            this.positionTooltip(tooltipEl, target, position, arrowEl);
-        }
-        
-        // Store reference to active tooltip
-        this.activeTooltips.push({
-            target: target,
-            element: tooltipEl,
-            position: position
+        const tooltipId = this.showTooltip({
+            content: content,
+            title: title,
+            position: position,
+            type: type,
+            targetElement: element
         });
         
-        // Show the tooltip
-        setTimeout(() => {
-            tooltipEl.classList.add(`${this.options.tooltipClass}--visible`);
-        }, 10);
+        // Store the tooltip ID on the element
+        element._tooltipId = tooltipId;
+        
+        return tooltipId;
     }
-    
+
+    /**
+     * Show a tooltip
+     */
+    showTooltip(options) {
+        const tooltipOptions = Object.assign({
+            content: '',
+            title: '',
+            position: this.options.defaultPosition,
+            type: this.options.defaultType,
+            allowHtml: this.options.allowHtml,
+            targetElement: null,
+            autoHide: false,
+            autoHideDelay: 3000
+        }, options);
+        
+        const { content, title, position, type, targetElement, autoHide, autoHideDelay } = tooltipOptions;
+        
+        // Generate a unique ID for this tooltip
+        const tooltipId = `tooltip-${++this.tooltipIdCounter}`;
+        
+        // Clear any existing hide timeout
+        if (targetElement && targetElement._tooltipId) {
+            const existingTooltipId = targetElement._tooltipId;
+            if (this.tooltipHideTimeouts.has(existingTooltipId)) {
+                clearTimeout(this.tooltipHideTimeouts.get(existingTooltipId));
+                this.tooltipHideTimeouts.delete(existingTooltipId);
+            }
+            
+            // Hide the existing tooltip
+            this.hideTooltip(existingTooltipId, true);
+        }
+        
+        // Schedule the tooltip to appear after the delay
+        const showTimeout = setTimeout(() => {
+            // Create the tooltip element
+            const tooltipElement = document.createElement('div');
+            tooltipElement.id = tooltipId;
+            tooltipElement.className = `${this.options.tooltipClass} ${this.options.tooltipClass}--${type}`;
+            
+            // Create tooltip content
+            const tooltipContent = document.createElement('div');
+            tooltipContent.className = this.options.contentClass;
+            
+            if (tooltipOptions.allowHtml) {
+                tooltipContent.innerHTML = content;
+            } else {
+                tooltipContent.textContent = content;
+            }
+            
+            // Create tooltip title if provided
+            if (title) {
+                const tooltipTitle = document.createElement('div');
+                tooltipTitle.className = this.options.titleClass;
+                
+                if (tooltipOptions.allowHtml) {
+                    tooltipTitle.innerHTML = title;
+                } else {
+                    tooltipTitle.textContent = title;
+                }
+                
+                tooltipElement.appendChild(tooltipTitle);
+            }
+            
+            tooltipElement.appendChild(tooltipContent);
+            
+            // Create arrow element
+            const arrowElement = document.createElement('div');
+            arrowElement.className = this.options.arrowClass;
+            tooltipElement.appendChild(arrowElement);
+            
+            // Add the tooltip to the container
+            this.tooltipContainer.appendChild(tooltipElement);
+            
+            // Position the tooltip
+            if (targetElement) {
+                this.positionTooltip(tooltipElement, targetElement, position);
+            } else {
+                // Position in the center if no target
+                tooltipElement.style.top = '50%';
+                tooltipElement.style.left = '50%';
+                tooltipElement.style.transform = 'translate(-50%, -50%)';
+            }
+            
+            // Add to active tooltips
+            this.activeTooltips.push({
+                id: tooltipId,
+                element: tooltipElement,
+                targetElement: targetElement,
+                position: position
+            });
+            
+            // Make the tooltip visible
+            setTimeout(() => {
+                tooltipElement.classList.add(this.options.activeClass);
+            }, 10);
+            
+            // Set up auto-hide if specified
+            if (autoHide) {
+                setTimeout(() => {
+                    this.hideTooltip(tooltipId);
+                }, autoHideDelay);
+            }
+            
+            // Clear the show timeout reference
+            this.tooltipShowTimeouts.delete(tooltipId);
+        }, this.options.showDelay);
+        
+        // Store the timeout reference
+        this.tooltipShowTimeouts.set(tooltipId, showTimeout);
+        
+        return tooltipId;
+    }
+
+    /**
+     * Hide a tooltip
+     */
+    hideTooltip(tooltipId, immediate = false) {
+        // Cancel any pending show operation
+        if (this.tooltipShowTimeouts.has(tooltipId)) {
+            clearTimeout(this.tooltipShowTimeouts.get(tooltipId));
+            this.tooltipShowTimeouts.delete(tooltipId);
+            return;
+        }
+        
+        // Find the tooltip in the active tooltips
+        const tooltipIndex = this.activeTooltips.findIndex(t => t.id === tooltipId);
+        if (tooltipIndex === -1) return;
+        
+        const tooltip = this.activeTooltips[tooltipIndex].element;
+        
+        if (immediate) {
+            // Remove immediately
+            if (tooltip && tooltip.parentNode) {
+                tooltip.parentNode.removeChild(tooltip);
+            }
+            this.activeTooltips.splice(tooltipIndex, 1);
+        } else {
+            // Schedule the tooltip to hide after the delay
+            const hideTimeout = setTimeout(() => {
+                // Fade out animation
+                tooltip.classList.remove(this.options.activeClass);
+                
+                // Remove the element after the animation completes
+                setTimeout(() => {
+                    if (tooltip && tooltip.parentNode) {
+                        tooltip.parentNode.removeChild(tooltip);
+                    }
+                    this.activeTooltips.splice(tooltipIndex, 1);
+                }, this.options.duration);
+                
+                // Remove the timeout reference
+                this.tooltipHideTimeouts.delete(tooltipId);
+            }, this.options.hideDelay);
+            
+            // Store the timeout reference
+            this.tooltipHideTimeouts.set(tooltipId, hideTimeout);
+        }
+    }
+
+    /**
+     * Position a tooltip relative to a target element
+     */
+    positionTooltip(tooltip, target, preferredPosition) {
+        const targetRect = target.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        // Default position
+        let position = preferredPosition || this.options.defaultPosition;
+        const arrow = tooltip.querySelector(`.${this.options.arrowClass}`);
+        
+        // Reset arrow class
+        if (arrow) {
+            arrow.className = this.options.arrowClass;
+        }
+        
+        // If auto-positioning is enabled, choose the best position
+        if (this.options.autoPosition && position === 'auto') {
+            // Calculate available space in each direction
+            const spaceTop = targetRect.top;
+            const spaceBottom = windowHeight - targetRect.bottom;
+            const spaceLeft = targetRect.left;
+            const spaceRight = windowWidth - targetRect.right;
+            
+            // Find the position with the most space
+            const spaces = [
+                { position: 'top', space: spaceTop },
+                { position: 'bottom', space: spaceBottom },
+                { position: 'left', space: spaceLeft },
+                { position: 'right', space: spaceRight }
+            ];
+            
+            // Sort by available space
+            spaces.sort((a, b) => b.space - a.space);
+            
+            // Choose the position with the most space
+            position = spaces[0].position;
+        }
+        
+        // Calculate tooltip position
+        let top, left;
+        
+        switch (position) {
+            case 'top':
+                top = targetRect.top - tooltipRect.height - this.options.offset;
+                left = targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2);
+                
+                // Add arrow
+                if (arrow) {
+                    arrow.classList.add(`${this.options.arrowClass}--bottom`);
+                    arrow.style.left = '50%';
+                    arrow.style.marginLeft = '-6px';
+                    arrow.style.bottom = '-6px';
+                }
+                break;
+                
+            case 'bottom':
+                top = targetRect.bottom + this.options.offset;
+                left = targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2);
+                
+                // Add arrow
+                if (arrow) {
+                    arrow.classList.add(`${this.options.arrowClass}--top`);
+                    arrow.style.left = '50%';
+                    arrow.style.marginLeft = '-6px';
+                    arrow.style.top = '-6px';
+                }
+                break;
+                
+            case 'left':
+                top = targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2);
+                left = targetRect.left - tooltipRect.width - this.options.offset;
+                
+                // Add arrow
+                if (arrow) {
+                    arrow.classList.add(`${this.options.arrowClass}--right`);
+                    arrow.style.top = '50%';
+                    arrow.style.marginTop = '-6px';
+                    arrow.style.right = '-6px';
+                }
+                break;
+                
+            case 'right':
+                top = targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2);
+                left = targetRect.right + this.options.offset;
+                
+                // Add arrow
+                if (arrow) {
+                    arrow.classList.add(`${this.options.arrowClass}--left`);
+                    arrow.style.top = '50%';
+                    arrow.style.marginTop = '-6px';
+                    arrow.style.left = '-6px';
+                }
+                break;
+        }
+        
+        // Make sure the tooltip is within the viewport
+        if (left < 10) left = 10;
+        if (left + tooltipRect.width > windowWidth - 10) left = windowWidth - tooltipRect.width - 10;
+        if (top < 10) top = 10;
+        if (top + tooltipRect.height > windowHeight - 10) top = windowHeight - tooltipRect.height - 10;
+        
+        // Set the tooltip position
+        tooltip.style.top = `${top}px`;
+        tooltip.style.left = `${left}px`;
+    }
+
+    /**
+     * Utility function for debouncing
+     */
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    /**
+     * Show a floating tooltip at a specific position
+     */
+    showFloatingTooltip(options) {
+        const { content, title, type, x, y, autoHide, autoHideDelay } = Object.assign({
+            content: '',
+            title: '',
+            type: this.options.defaultType,
+            x: 0,
+            y: 0,
+            autoHide: true,
+            autoHideDelay: 3000
+        }, options);
+        
+        const tooltipId = this.showTooltip({
+            content,
+            title,
+            type,
+            autoHide,
+            autoHideDelay
+        });
+        
+        const tooltip = document.getElementById(tooltipId);
+        if (tooltip) {
+            tooltip.style.top = `${y}px`;
+            tooltip.style.left = `${x}px`;
+        }
+        
+        return tooltipId;
+    }
+
     /**
      * Hide all tooltips
      */
     hideAllTooltips() {
-        this.activeTooltips.forEach(tooltip => {
-            tooltip.element.classList.remove(`${this.options.tooltipClass}--visible`);
-            
-            setTimeout(() => {
-                if (tooltip.element.parentNode) {
-                    tooltip.element.parentNode.removeChild(tooltip.element);
-                }
-            }, this.options.animationDuration);
+        // Clone the array since we'll be modifying it
+        const tooltips = [...this.activeTooltips];
+        tooltips.forEach(tooltip => {
+            this.hideTooltip(tooltip.id, true);
         });
-        
-        this.activeTooltips = [];
-    }
-    
-    /**
-     * Position tooltip relative to target element
-     */
-    positionTooltip(tooltipEl, targetEl, position, arrowEl) {
-        const targetRect = targetEl.getBoundingClientRect();
-        const tooltipRect = tooltipEl.getBoundingClientRect();
-        
-        // Reset any previous positioning
-        tooltipEl.style.top = '';
-        tooltipEl.style.left = '';
-        tooltipEl.style.right = '';
-        tooltipEl.style.bottom = '';
-        tooltipEl.style.transform = '';
-        
-        // Clear existing arrow classes
-        arrowEl.className = this.options.arrowClass;
-        
-        // Position based on specified position
-        switch (position) {
-            case 'top':
-                tooltipEl.style.left = `${window.scrollX + targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2)}px`;
-                tooltipEl.style.top = `${window.scrollY + targetRect.top - tooltipRect.height - this.options.offset}px`;
-                arrowEl.classList.add(`${this.options.arrowClass}--bottom`);
-                arrowEl.style.left = '50%';
-                arrowEl.style.marginLeft = '-6px';
-                arrowEl.style.top = '100%';
-                break;
-                
-            case 'bottom':
-                tooltipEl.style.left = `${window.scrollX + targetRect.left + (targetRect.width / 2) - (tooltipRect.width / 2)}px`;
-                tooltipEl.style.top = `${window.scrollY + targetRect.bottom + this.options.offset}px`;
-                arrowEl.classList.add(`${this.options.arrowClass}--top`);
-                arrowEl.style.left = '50%';
-                arrowEl.style.marginLeft = '-6px';
-                arrowEl.style.bottom = '100%';
-                break;
-                
-            case 'left':
-                tooltipEl.style.left = `${window.scrollX + targetRect.left - tooltipRect.width - this.options.offset}px`;
-                tooltipEl.style.top = `${window.scrollY + targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2)}px`;
-                arrowEl.classList.add(`${this.options.arrowClass}--right`);
-                arrowEl.style.top = '50%';
-                arrowEl.style.marginTop = '-6px';
-                arrowEl.style.left = '100%';
-                break;
-                
-            case 'right':
-                tooltipEl.style.left = `${window.scrollX + targetRect.right + this.options.offset}px`;
-                tooltipEl.style.top = `${window.scrollY + targetRect.top + (targetRect.height / 2) - (tooltipRect.height / 2)}px`;
-                arrowEl.classList.add(`${this.options.arrowClass}--left`);
-                arrowEl.style.top = '50%';
-                arrowEl.style.marginTop = '-6px';
-                arrowEl.style.right = '100%';
-                break;
-        }
-        
-        // Adjust if the tooltip is outside viewport
-        this.adjustTooltipPosition(tooltipEl, position, arrowEl);
-    }
-    
-    /**
-     * Position tooltip following mouse cursor
-     */
-    positionTooltipForMouse(tooltipEl, event) {
-        const tooltipRect = tooltipEl.getBoundingClientRect();
-        
-        // Position the tooltip near the cursor
-        tooltipEl.style.left = `${window.scrollX + event.clientX - (tooltipRect.width / 2)}px`;
-        tooltipEl.style.top = `${window.scrollY + event.clientY - tooltipRect.height - 20}px`;
-        
-        // Hide the arrow for mouse-following tooltips
-        const arrowEl = tooltipEl.querySelector(`.${this.options.arrowClass}`);
-        if (arrowEl) {
-            arrowEl.style.display = 'none';
-        }
-        
-        // Adjust if the tooltip is outside viewport
-        this.adjustTooltipPosition(tooltipEl, 'mouse');
-    }
-    
-    /**
-     * Adjust tooltip position to keep it within viewport
-     */
-    adjustTooltipPosition(tooltipEl, position, arrowEl) {
-        const tooltipRect = tooltipEl.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        
-        // Horizontal adjustment
-        if (tooltipRect.left < 0) {
-            tooltipEl.style.left = `${window.scrollX + this.options.offset}px`;
-            
-            if (position === 'top' || position === 'bottom') {
-                // Move arrow to match the original center of the target
-                if (arrowEl) {
-                    arrowEl.style.left = `${Math.max(6, tooltipRect.width / 2 + tooltipRect.left - this.options.offset)}px`;
-                    arrowEl.style.marginLeft = '0';
-                }
-            }
-        } else if (tooltipRect.right > viewportWidth) {
-            tooltipEl.style.left = `${window.scrollX + viewportWidth - tooltipRect.width - this.options.offset}px`;
-            
-            if (position === 'top' || position === 'bottom') {
-                // Move arrow to match the original center of the target
-                if (arrowEl) {
-                    arrowEl.style.left = `${Math.min(tooltipRect.width - 6, tooltipRect.width / 2 - (viewportWidth - tooltipRect.right) + this.options.offset)}px`;
-                    arrowEl.style.marginLeft = '0';
-                }
-            }
-        }
-        
-        // Vertical adjustment
-        if (tooltipRect.top < 0) {
-            if (position === 'top') {
-                // Flip to bottom if needed
-                const targetForTop = this.activeTooltips.find(t => t.element === tooltipEl)?.target;
-                if (targetForTop) {
-                    const targetRect = targetForTop.getBoundingClientRect();
-                    tooltipEl.style.top = `${window.scrollY + targetRect.bottom + this.options.offset}px`;
-                    
-                    if (arrowEl) {
-                        arrowEl.className = `${this.options.arrowClass} ${this.options.arrowClass}--top`;
-                        arrowEl.style.top = 'auto';
-                        arrowEl.style.bottom = '100%';
-                    }
-                } else {
-                    tooltipEl.style.top = `${window.scrollY + this.options.offset}px`;
-                }
-            } else {
-                tooltipEl.style.top = `${window.scrollY + this.options.offset}px`;
-            }
-        } else if (tooltipRect.bottom > viewportHeight) {
-            if (position === 'bottom') {
-                // Flip to top if needed
-                const targetForBottom = this.activeTooltips.find(t => t.element === tooltipEl)?.target;
-                if (targetForBottom) {
-                    const targetRect = targetForBottom.getBoundingClientRect();
-                    tooltipEl.style.top = `${window.scrollY + targetRect.top - tooltipRect.height - this.options.offset}px`;
-                    
-                    if (arrowEl) {
-                        arrowEl.className = `${this.options.arrowClass} ${this.options.arrowClass}--bottom`;
-                        arrowEl.style.bottom = 'auto';
-                        arrowEl.style.top = '100%';
-                    }
-                } else {
-                    tooltipEl.style.top = `${window.scrollY + viewportHeight - tooltipRect.height - this.options.offset}px`;
-                }
-            } else {
-                tooltipEl.style.top = `${window.scrollY + viewportHeight - tooltipRect.height - this.options.offset}px`;
-            }
-        }
-    }
-    
-    /**
-     * Update positions of all active tooltips
-     */
-    updateTooltipPositions() {
-        this.activeTooltips.forEach(tooltip => {
-            const arrowEl = tooltip.element.querySelector(`.${this.options.arrowClass}`);
-            this.positionTooltip(tooltip.element, tooltip.target, tooltip.position, arrowEl);
-        });
-    }
-    
-    /**
-     * Show a tooltip programmatically
-     */
-    showTooltipFor(selector, content, options = {}) {
-        const targetEl = document.querySelector(selector);
-        if (!targetEl) return;
-        
-        // Set content attribute
-        targetEl.setAttribute('data-tooltip', content);
-        
-        // Set optional attributes
-        if (options.title) {
-            targetEl.setAttribute('data-tooltip-title', options.title);
-        }
-        
-        if (options.type) {
-            targetEl.setAttribute('data-tooltip-type', options.type);
-        }
-        
-        if (options.position) {
-            targetEl.setAttribute('data-tooltip-position', options.position);
-        }
-        
-        if (options.html) {
-            targetEl.setAttribute('data-tooltip-html', 'true');
-        }
-        
-        // Show the tooltip
-        this.showTooltip(targetEl);
-        
-        // Return a function to hide this specific tooltip
-        return () => {
-            const index = this.activeTooltips.findIndex(t => t.target === targetEl);
-            if (index !== -1) {
-                const tooltip = this.activeTooltips[index];
-                tooltip.element.classList.remove(`${this.options.tooltipClass}--visible`);
-                
-                setTimeout(() => {
-                    if (tooltip.element.parentNode) {
-                        tooltip.element.parentNode.removeChild(tooltip.element);
-                    }
-                    this.activeTooltips.splice(index, 1);
-                }, this.options.animationDuration);
-            }
-        };
     }
 }
 
-// Initialize the tooltips if script is loaded after DOM is ready
+// Initialize tooltips if script is loaded after DOM is ready
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     setTimeout(() => {
         window.synapseTooltips = new SynapseTooltips();

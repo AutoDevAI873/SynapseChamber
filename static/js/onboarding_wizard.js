@@ -27,7 +27,7 @@ class OnboardingWizard {
         this.currentStep = 0;
         this.overlay = null;
         this.tooltip = null;
-        this.highlightElement = null;
+        this.highlight = null;
         this.steps = this.options.steps || this.getDefaultSteps();
     }
     
