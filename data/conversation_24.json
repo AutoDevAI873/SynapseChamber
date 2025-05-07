@@ -1,0 +1,23 @@
+{
+  "id": 24,
+  "platform": "claude",
+  "subject": "Fallback interaction with claude",
+  "goal": "Generated response due to browser automation failure",
+  "created_at": "2025-05-07T04:22:53.967698",
+  "messages": [
+    {
+      "id": 65,
+      "is_user": true,
+      "content": "How would you design a regex-based entity extraction system that's robust against variations?",
+      "screenshot_path": null,
+      "timestamp": "2025-05-07T04:22:54.764626"
+    },
+    {
+      "id": 66,
+      "is_user": false,
+      "content": "I'm sorry, I couldn't connect to Anthropic's Claude at the moment due to technical issues. Please try again later or consider trying a different AI platform.\n\nYour prompt was: 'How would you design a regex-based entity extraction system that's robust against variations?'",
+      "screenshot_path": null,
+      "timestamp": "2025-05-07T04:22:55.414400"
+    }
+  ]
+}
