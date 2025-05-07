@@ -1,0 +1,200 @@
+/* Advanced Tooltips for Synapse Chamber UI
+ * Provides custom, contextual tooltips for complex UI elements
+ * Created as part of the Synapse Chamber UX enhancement project
+ */
+
+/* Base tooltip styling */
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tooltip trigger can be any element - buttons, icons, etc. */
+.tooltip-trigger {
+  cursor: help;
+  border-bottom: 1px dotted var(--bs-info);
+  position: relative;
+}
+
+/* Icon-based tooltips */
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--bs-info);
+  color: var(--bs-dark);
+  font-size: 12px;
+  margin-left: 5px;
+  cursor: help;
+}
+
+/* Tooltip content container */
+.tooltip-content {
+  visibility: hidden;
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(33, 37, 41, 0.95);
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 10px 15px;
+  width: 250px;
+  max-width: 300px;
+  z-index: 1000;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity 0.3s, visibility 0.3s, transform 0.3s;
+  pointer-events: none;
+  font-size: 14px;
+  font-weight: normal;
+  border: 1px solid var(--bs-secondary);
+}
+
+/* Arrow for tooltip */
+.tooltip-content::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: rgba(33, 37, 41, 0.95) transparent transparent transparent;
+}
+
+/* Show the tooltip on hover */
+.tooltip-wrapper:hover .tooltip-content,
+.tooltip-trigger:hover + .tooltip-content,
+.tooltip-icon:hover + .tooltip-content {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(-50%) translateY(-5px);
+}
+
+/* Tooltip title */
+.tooltip-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: var(--bs-info);
+  font-size: 15px;
+}
+
+/* Tooltip description */
+.tooltip-description {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+/* Optional tooltip footer */
+.tooltip-footer {
+  margin-top: 5px;
+  font-size: 12px;
+  opacity: 0.8;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 5px;
+}
+
+/* Keyboard shortcut styling inside tooltips */
+.tooltip-shortcut {
+  display: inline-block;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 2px 5px;
+  border-radius: 3px;
+  margin-left: 3px;
+  font-family: monospace;
+  font-size: 90%;
+}
+
+/* Different tooltip positions */
+.tooltip-top .tooltip-content {
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tooltip-bottom .tooltip-content {
+  top: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tooltip-left .tooltip-content {
+  top: 50%;
+  right: 125%;
+  transform: translateY(-50%);
+}
+
+.tooltip-right .tooltip-content {
+  top: 50%;
+  left: 125%;
+  transform: translateY(-50%);
+}
+
+/* Different tooltip colors/types */
+.tooltip-info .tooltip-content {
+  background-color: rgba(13, 110, 253, 0.95);
+}
+
+.tooltip-info .tooltip-content::after {
+  border-color: rgba(13, 110, 253, 0.95) transparent transparent transparent;
+}
+
+.tooltip-warning .tooltip-content {
+  background-color: rgba(255, 193, 7, 0.95);
+  color: #212529;
+}
+
+.tooltip-warning .tooltip-content::after {
+  border-color: rgba(255, 193, 7, 0.95) transparent transparent transparent;
+}
+
+.tooltip-error .tooltip-content {
+  background-color: rgba(220, 53, 69, 0.95);
+}
+
+.tooltip-error .tooltip-content::after {
+  border-color: rgba(220, 53, 69, 0.95) transparent transparent transparent;
+}
+
+/* Tooltip with HTML content */
+.tooltip-rich-content img {
+  max-width: 100%;
+  margin: 5px 0;
+  border-radius: 4px;
+}
+
+.tooltip-rich-content code {
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 90%;
+}
+
+/* Animated tooltips for special elements */
+.tooltip-animated .tooltip-content {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(var(--bs-info-rgb), 0.7); }
+  70% { box-shadow: 0 0 0 8px rgba(var(--bs-info-rgb), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--bs-info-rgb), 0); }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .tooltip-content {
+    width: 200px;
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+  
+  .tooltip-title {
+    font-size: 13px;
+  }
+}

@@ -10,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from datetime import datetime
+import undetected_chromedriver as uc
 
 # Always mock pyautogui and keyboard in this environment
 logging.warning("Running in headless environment. GUI operations will be simulated.")
@@ -127,16 +128,23 @@ class BrowserAutomation:
         self.logger.info(f"Updated browser settings: {self.settings}")
     
     def initialize_driver(self, retry_count=3):
-        """Initialize and return a browser driver with retry capability"""
+        """Initialize and return a browser driver with retry capability using undetected_chromedriver"""
         if self.driver is not None:
             self.close_driver()
             
-        self.logger.info(f"Initializing browser driver with {retry_count} retry attempts")
+        self.logger.info(f"Initializing undetected browser driver with {retry_count} retry attempts")
+        
+        # Create driver pool storage for potential reuse
+        self._driver_pool = getattr(self, "_driver_pool", [])
+        
+        # Use an escalating backoff strategy
+        backoff_times = [2, 4, 8, 16, 32]  # Exponential backoff
         
         for attempt in range(retry_count):
             try:
                 import os
                 import subprocess
+                import math
                 
                 self.logger.info(f"Driver initialization attempt {attempt+1}/{retry_count}")
                 
@@ -158,84 +166,190 @@ class BrowserAutomation:
                 except Exception as e:
                     self.logger.warning(f"Error finding Chrome paths: {str(e)}")
                 
-                chrome_options = Options()
-                
-                # Set the binary location if Chrome is available
-                if os.path.exists(chromium_path):
-                    chrome_options.binary_location = chromium_path
-                
-                # Enhanced browser options for better reliability and stability
-                chrome_options.add_argument("--headless=new")
-                chrome_options.add_argument("--no-sandbox")
-                chrome_options.add_argument("--disable-dev-shm-usage")
-                chrome_options.add_argument("--disable-gpu")
-                chrome_options.add_argument("--window-size=1920,1080")
-                chrome_options.add_argument("--disable-notifications")
-                chrome_options.add_argument("--disable-popup-blocking")
-                chrome_options.add_argument("--ignore-certificate-errors")
-                chrome_options.add_argument("--disable-web-security")
-                chrome_options.add_argument("--disable-extensions")
-                
-                # Performance optimizations
-                prefs = {
-                    "profile.managed_default_content_settings.images": 2,  # Block images
-                    "profile.default_content_setting_values.notifications": 2,  # Block notifications
-                    "profile.managed_default_content_settings.cookies": 1,  # Allow cookies
-                    "profile.default_content_setting_values.plugins": 1,  # Allow plugins
-                }
-                chrome_options.add_experimental_option("prefs", prefs)
-                
-                # Add user agent to make detection harder - use a modern Chrome version
-                chrome_options.add_argument(f"--user-agent={self.settings['user_agent']}")
-                
-                # Use fake browser version to avoid compatibility issues
-                chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-                chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-                chrome_options.add_experimental_option("useAutomationExtension", False)
-                
-                # Try to initialize a real browser with improved service settings
+                # Try to initialize using undetected_chromedriver first to bypass detection
                 try:
-                    # Try to explicitly use the chromedriver path if we found it
-                    if os.path.exists(chromedriver_path):
-                        from selenium.webdriver.chrome.service import Service
-                        service = Service(executable_path=chromedriver_path)
-                        self.driver = webdriver.Chrome(service=service, options=chrome_options)
-                    else:
-                        # Let selenium find chromedriver automatically
-                        self.driver = webdriver.Chrome(options=chrome_options)
+                    self.logger.info("Attempting to initialize with undetected_chromedriver...")
+                    
+                    # Set up options for undetected_chromedriver
+                    options = uc.ChromeOptions()
+                    options.add_argument("--headless=new")
+                    options.add_argument("--no-sandbox")
+                    options.add_argument("--disable-dev-shm-usage")
+                    options.add_argument("--disable-gpu") 
+                    options.add_argument("--window-size=1920,1080")
+                    options.add_argument("--disable-notifications")
+                    options.add_argument("--disable-popup-blocking")
+                    options.add_argument("--ignore-certificate-errors")
+                    
+                    # Custom user agent to avoid detection
+                    options.add_argument(f"--user-agent={self.settings['user_agent']}")
+                    
+                    # Create temporary directory for browser data
+                    import tempfile
+                    browser_data_dir = tempfile.mkdtemp()
+                    self.logger.info(f"Created browser data directory at: {browser_data_dir}")
+                    
+                    # Initialize undetected Chrome driver with anti-detection measures
+                    driver = uc.Chrome(
+                        options=options, 
+                        driver_executable_path=chromedriver_path if os.path.exists(chromedriver_path) else None,
+                        browser_executable_path=chromium_path if os.path.exists(chromium_path) else None,
+                        user_data_dir=browser_data_dir,
+                        headless=True,
+                        version_main=125  # Specify Chrome version to match system
+                    )
+                    
+                    self.driver = driver
                     
                     # Set extended timeouts for improved stability
                     self.driver.set_page_load_timeout(self.settings.get("timeout", 45))
                     self.driver.set_script_timeout(30)
                     
+                    # Inject evasion scripts to trick bot detection
+                    evasion_script = """
+                    // Overwrite the navigator properties
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => false,
+                        configurable: true
+                    });
+                    
+                    // Override permissions API
+                    if (navigator.permissions) {
+                        const originalQuery = navigator.permissions.query;
+                        navigator.permissions.query = (parameters) => (
+                            parameters.name === 'notifications' ?
+                                Promise.resolve({ state: Notification.permission }) :
+                                originalQuery(parameters)
+                        );
+                    }
+                    
+                    // Fake plugins
+                    Object.defineProperty(navigator, 'plugins', {
+                        get: () => {
+                            return [
+                                {
+                                    0: {type: "application/pdf"},
+                                    description: "Portable Document Format",
+                                    filename: "internal-pdf-viewer",
+                                    length: 1,
+                                    name: "Chrome PDF Plugin"
+                                },
+                                {
+                                    0: {type: "application/pdf"},
+                                    description: "Portable Document Format",
+                                    filename: "internal-pdf-viewer",
+                                    length: 1,
+                                    name: "Chrome PDF Viewer"
+                                }
+                            ];
+                        }
+                    });
+                    """
+                    
                     # Test the driver with a basic operation to verify it's working
                     self.driver.get("about:blank")
+                    self.driver.execute_script(evasion_script)
+                    
                     if self.driver.title is not None:
-                        self.logger.info("Real browser driver initialized successfully")
+                        self.logger.info("Undetected browser driver initialized successfully")
+                        
+                        # Add to driver pool for potential reuse
+                        self._driver_pool.append(self.driver)
+                        if len(self._driver_pool) > 3:  # Keep pool size manageable
+                            old_driver = self._driver_pool.pop(0)
+                            try:
+                                old_driver.quit()
+                            except:
+                                pass
+                                
                         return self.driver
+                        
+                except Exception as uc_error:
+                    self.logger.error(f"Failed to initialize with undetected_chromedriver: {str(uc_error)}")
+                    self.logger.info("Falling back to regular selenium webdriver...")
                     
-                except Exception as browser_error:
-                    self.logger.error(f"Failed to initialize real browser (attempt {attempt+1}): {str(browser_error)}")
-                    if self.driver:
-                        try:
-                            self.driver.quit()
-                        except:
-                            pass
-                        self.driver = None
+                    # Fall back to regular Chrome if undetected_chromedriver fails
+                    chrome_options = Options()
                     
-                    # Only do additional attempts if we haven't reached max retries
-                    if attempt < retry_count - 1:
-                        self.logger.info(f"Retrying in 2 seconds...")
-                        time.sleep(2)
-                    else:
-                        self.logger.warning("All initialization attempts failed. Falling back to mock driver.")
-                        break
+                    # Set the binary location if Chrome is available
+                    if os.path.exists(chromium_path):
+                        chrome_options.binary_location = chromium_path
+                    
+                    # Enhanced browser options for better reliability and stability
+                    chrome_options.add_argument("--headless=new")
+                    chrome_options.add_argument("--no-sandbox")
+                    chrome_options.add_argument("--disable-dev-shm-usage")
+                    chrome_options.add_argument("--disable-gpu")
+                    chrome_options.add_argument("--window-size=1920,1080")
+                    chrome_options.add_argument("--disable-notifications")
+                    chrome_options.add_argument("--disable-popup-blocking")
+                    chrome_options.add_argument("--ignore-certificate-errors")
+                    chrome_options.add_argument("--disable-web-security")
+                    chrome_options.add_argument("--disable-extensions")
+                    
+                    # Performance optimizations
+                    prefs = {
+                        "profile.managed_default_content_settings.images": 2,  # Block images
+                        "profile.default_content_setting_values.notifications": 2,  # Block notifications
+                        "profile.managed_default_content_settings.cookies": 1,  # Allow cookies
+                        "profile.default_content_setting_values.plugins": 1,  # Allow plugins
+                    }
+                    chrome_options.add_experimental_option("prefs", prefs)
+                    
+                    # Add user agent to make detection harder - use a modern Chrome version
+                    chrome_options.add_argument(f"--user-agent={self.settings['user_agent']}")
+                    
+                    # Use fake browser version to avoid compatibility issues
+                    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+                    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+                    chrome_options.add_experimental_option("useAutomationExtension", False)
+                    
+                    try:
+                        # Try to explicitly use the chromedriver path if we found it
+                        if os.path.exists(chromedriver_path):
+                            from selenium.webdriver.chrome.service import Service
+                            service = Service(executable_path=chromedriver_path)
+                            self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                        else:
+                            # Let selenium find chromedriver automatically
+                            self.driver = webdriver.Chrome(options=chrome_options)
+                        
+                        # Set extended timeouts for improved stability
+                        self.driver.set_page_load_timeout(self.settings.get("timeout", 45))
+                        self.driver.set_script_timeout(30)
+                        
+                        # Test the driver with a basic operation to verify it's working
+                        self.driver.get("about:blank")
+                        if self.driver.title is not None:
+                            self.logger.info("Regular browser driver initialized successfully")
+                            return self.driver
+                        
+                    except Exception as browser_error:
+                        self.logger.error(f"Failed to initialize regular browser (attempt {attempt+1}): {str(browser_error)}")
+                        if self.driver:
+                            try:
+                                self.driver.quit()
+                            except:
+                                pass
+                            self.driver = None
+                    
+                # Only do additional attempts if we haven't reached max retries
+                if attempt < retry_count - 1:
+                    # Get backoff time (with fallback if attempt is beyond array length)
+                    backoff_time = backoff_times[attempt] if attempt < len(backoff_times) else 2 ** min(5, attempt)
+                    self.logger.info(f"Retrying in {backoff_time} seconds...")
+                    time.sleep(backoff_time)
+                else:
+                    self.logger.warning("All initialization attempts failed. Falling back to mock driver.")
+                    break
             
             except Exception as e:
                 self.logger.error(f"Critical error during initialization attempt {attempt+1}: {str(e)}")
                 if attempt < retry_count - 1:
-                    self.logger.info(f"Retrying in 3 seconds...")
-                    time.sleep(3)
+                    # Get backoff time with exponential increase
+                    backoff_time = math.pow(2, min(attempt + 1, 5))
+                    self.logger.info(f"Retrying in {backoff_time} seconds...")
+                    time.sleep(backoff_time)
                 else:
                     self.logger.warning("All initialization attempts failed. Falling back to mock driver.")
                     break
