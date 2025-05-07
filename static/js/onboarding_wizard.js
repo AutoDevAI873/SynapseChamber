@@ -15,7 +15,7 @@ class OnboardingWizard {
             outlineWidth: 4,
             animationDuration: 300,
             tooltipOffset: 10,
-            backdropOpacity: 0.7,
+            backdropOpacity: 0.35,
             tooltipWidth: 300,
             tooltipClassName: 'onboarding-tooltip',
             highlightClassName: 'onboarding-highlight',
@@ -420,25 +420,68 @@ class OnboardingWizard {
                 break;
         }
         
-        // Make sure the tooltip is within the viewport
+        // Make sure the tooltip is within the viewport with better positioning
         const updatedTooltipRect = tooltip.getBoundingClientRect();
+        const safeMargin = 20; // Ensure this much space from the edges
         
-        if (updatedTooltipRect.left < 0) {
-            tooltip.style.left = `${this.options.tooltipOffset}px`;
+        // Check horizontal positioning
+        if (updatedTooltipRect.left < safeMargin) {
+            // Too close to left edge
+            tooltip.style.left = `${safeMargin}px`;
             tooltip.style.right = 'auto';
+            
+            // Adjust arrow if we have one
+            const arrow = tooltip.querySelector('.onboarding-tooltip-arrow');
+            if (arrow && arrow.classList.contains('onboarding-tooltip-arrow--left')) {
+                // Recalculate arrow position
+                const targetCenter = targetElement ? targetElement.getBoundingClientRect().left + (targetElement.getBoundingClientRect().width / 2) : 0;
+                const tooltipLeft = safeMargin;
+                arrow.style.left = `${Math.max(10, targetCenter - tooltipLeft)}px`;
+            }
         }
         
-        if (updatedTooltipRect.right > window.innerWidth) {
-            tooltip.style.right = `${this.options.tooltipOffset}px`;
+        if (updatedTooltipRect.right > window.innerWidth - safeMargin) {
+            // Too close to right edge
+            tooltip.style.right = `${safeMargin}px`;
             tooltip.style.left = 'auto';
+            
+            // Adjust arrow if we have one
+            const arrow = tooltip.querySelector('.onboarding-tooltip-arrow');
+            if (arrow && arrow.classList.contains('onboarding-tooltip-arrow--right')) {
+                // Recalculate arrow position
+                const targetCenter = targetElement ? targetElement.getBoundingClientRect().right - (targetElement.getBoundingClientRect().width / 2) : 0;
+                const tooltipRight = window.innerWidth - safeMargin;
+                arrow.style.right = `${Math.max(10, tooltipRight - targetCenter)}px`;
+            }
         }
         
-        if (updatedTooltipRect.top < 0) {
-            tooltip.style.top = `${this.options.tooltipOffset}px`;
+        // Check vertical positioning
+        if (updatedTooltipRect.top < safeMargin) {
+            // Too close to top edge
+            tooltip.style.top = `${safeMargin}px`;
+            
+            // Adjust arrow if we have one
+            const arrow = tooltip.querySelector('.onboarding-tooltip-arrow');
+            if (arrow && arrow.classList.contains('onboarding-tooltip-arrow--top')) {
+                // Recalculate arrow position
+                const targetCenter = targetElement ? targetElement.getBoundingClientRect().top + (targetElement.getBoundingClientRect().height / 2) : 0;
+                const tooltipTop = safeMargin;
+                arrow.style.top = `${Math.max(10, targetCenter - tooltipTop)}px`;
+            }
         }
         
-        if (updatedTooltipRect.bottom > window.innerHeight) {
-            tooltip.style.top = `${window.innerHeight - updatedTooltipRect.height - this.options.tooltipOffset}px`;
+        if (updatedTooltipRect.bottom > window.innerHeight - safeMargin) {
+            // Too close to bottom edge
+            tooltip.style.top = `${window.innerHeight - updatedTooltipRect.height - safeMargin}px`;
+            
+            // Adjust arrow if we have one
+            const arrow = tooltip.querySelector('.onboarding-tooltip-arrow');
+            if (arrow && arrow.classList.contains('onboarding-tooltip-arrow--bottom')) {
+                // Recalculate arrow position
+                const targetCenter = targetElement ? targetElement.getBoundingClientRect().bottom - (targetElement.getBoundingClientRect().height / 2) : 0;
+                const tooltipBottom = window.innerHeight - safeMargin - updatedTooltipRect.height;
+                arrow.style.bottom = `${Math.max(10, tooltipBottom - targetCenter)}px`;
+            }
         }
     }
     
@@ -606,11 +649,22 @@ class OnboardingWizard {
     getTargetElement(target) {
         if (!target) return null;
         
-        if (typeof target === 'string') {
-            return document.querySelector(target);
+        // If target is already a DOM element, return it
+        if (target instanceof Element || target instanceof HTMLElement) {
+            return target;
         }
         
-        return target;
+        // If target is a string selector, query the DOM
+        if (typeof target === 'string') {
+            try {
+                return document.querySelector(target);
+            } catch (error) {
+                console.error('Invalid selector:', target, error);
+                return null;
+            }
+        }
+        
+        return null;
     }
     
     /**

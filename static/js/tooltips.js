@@ -217,13 +217,35 @@ class SynapseTooltips {
      * Find tooltip element
      */
     findTooltipElement(element) {
-        if (element.matches(this.options.dataAttrSelector)) {
+        // This is a more compatible way to check if an element matches a selector
+        const matchesSelector = function(el, selector) {
+            if (el.matches) return el.matches(selector);
+            if (el.msMatchesSelector) return el.msMatchesSelector(selector);
+            if (el.webkitMatchesSelector) return el.webkitMatchesSelector(selector);
+            if (el.mozMatchesSelector) return el.mozMatchesSelector(selector);
+            
+            // Fallback method if no match function exists
+            try {
+                const doc = el.ownerDocument || document;
+                if (!doc) return false;
+                
+                const matches = doc.querySelectorAll(selector);
+                let i = matches.length;
+                while (--i >= 0 && matches.item(i) !== el) {}
+                return i > -1;
+            } catch (err) {
+                console.error('Error in matchesSelector fallback:', err);
+                return false;
+            }
+        };
+        
+        if (element && matchesSelector(element, this.options.dataAttrSelector)) {
             return element;
         }
         
         let current = element;
         while (current && current !== document.body) {
-            if (current.matches(this.options.dataAttrSelector)) {
+            if (matchesSelector(current, this.options.dataAttrSelector)) {
                 return current;
             }
             current = current.parentElement;
