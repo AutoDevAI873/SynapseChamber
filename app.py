@@ -136,7 +136,72 @@ def terminal():
 @app.route('/memory')
 def memory_explorer():
     """Advanced memory explorer for visualizing and managing the memory system"""
-    return render_template('memory_explorer.html')
+    # Get memory statistics
+    try:
+        # Initialize with default values
+        memory_stats = {
+            'total_memories': 0,
+            'consolidated_knowledge': 0,
+            'links': 0,
+            'contexts': [],
+            'recent_memories': []
+        }
+        
+        # Add enhanced sample data for demonstration
+        import random
+        memory_stats = {
+            'total_memories': 126,
+            'consolidated_knowledge': 18,
+            'links': 74,
+            'contexts': [
+                {
+                    'name': 'current_session',
+                    'data': {
+                        'user_id': 'user123',
+                        'session_start': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'active_platforms': ['gpt', 'claude', 'gemini']
+                    }
+                },
+                {
+                    'name': 'learning_focus',
+                    'data': {
+                        'topics': ['web_development', 'database_design', 'api_integration'],
+                        'difficulty': 'intermediate',
+                        'priority': 'high'
+                    }
+                }
+            ],
+            'recent_memories': []
+        }
+        
+        # Add sample memories
+        types = ['general', 'conversation', 'factual', 'procedural']
+        contents = [
+            "User prefers detailed explanations with code examples when learning new concepts.",
+            "During last session, the user struggled with understanding asynchronous programming concepts.",
+            "PostgreSQL uses MVCC (Multi-Version Concurrency Control) for handling concurrent access.",
+            "To deploy a Flask application, use gunicorn as a WSGI server with nginx as a reverse proxy.",
+            "User is working on a project involving AI training and automation of cross-platform interactions."
+        ]
+        
+        for i in range(5):
+            timestamp = datetime.datetime.now() - datetime.timedelta(days=i, hours=random.randint(0, 12))
+            memory_type = random.choice(types)
+            importance = round(random.uniform(0.3, 0.9), 1)
+            
+            memory_stats['recent_memories'].append({
+                'id': i + 1,
+                'memory_type': memory_type,
+                'content': contents[i],
+                'importance': importance,
+                'created_at': timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'source': random.choice(['user', 'system', 'gpt', 'claude', 'gemini'])
+            })
+            
+        return render_template('memory_explorer.html', memory_stats=memory_stats)
+    except Exception as e:
+        app.logger.error(f"Error getting memory stats: {e}")
+        return render_template('memory_explorer.html', error=str(e))
     
 @app.route('/platforms')
 def platforms():
