@@ -20,6 +20,14 @@
       {
         "timestamp": "2025-05-07T15:08:30.061684",
         "value": 77.01010704708746
+      },
+      {
+        "timestamp": "2025-05-07T15:09:55.905225",
+        "value": 72.63000669368547
+      },
+      {
+        "timestamp": "2025-05-07T15:10:35.230345",
+        "value": 79.08135085335672
       }
     ],
     "response_times": [],
@@ -43,6 +51,14 @@
       {
         "timestamp": "2025-05-07T15:08:30.061742",
         "value": 257.38763668909974
+      },
+      {
+        "timestamp": "2025-05-07T15:09:55.905283",
+        "value": 122.10091560708207
+      },
+      {
+        "timestamp": "2025-05-07T15:10:35.230394",
+        "value": 311.20231590937044
       }
     ],
     "error_rates": [
@@ -65,6 +81,14 @@
       {
         "timestamp": "2025-05-07T15:08:30.061754",
         "value": 1.702068878898122
+      },
+      {
+        "timestamp": "2025-05-07T15:09:55.905292",
+        "value": 3.5193793122593275
+      },
+      {
+        "timestamp": "2025-05-07T15:10:35.230400",
+        "value": 0.9862142346463754
       }
     ],
     "uptime": []
@@ -83,7 +107,7 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 249.01307104906982,
+    "avg_session_duration": 145.7086113478028,
     "session_history": [
       {
         "id": 6,
@@ -150,8 +174,8 @@
       "training": 1,
       "recommendations": 1,
       "logs": 1,
-      "settings": 1,
-      "dashboard": 1
+      "settings": 2,
+      "dashboard": 2
     },
     "interaction_patterns": [
       {
@@ -183,8 +207,20 @@
         "hour": 15,
         "day_of_week": 2,
         "feature": "dashboard"
+      },
+      {
+        "timestamp": "2025-05-07T15:09:57.560943",
+        "hour": 15,
+        "day_of_week": 2,
+        "feature": "dashboard"
+      },
+      {
+        "timestamp": "2025-05-07T15:10:36.888530",
+        "hour": 15,
+        "day_of_week": 2,
+        "feature": "settings"
       }
     ]
   },
-  "last_updated": "2025-05-07T15:08:31.764118"
+  "last_updated": "2025-05-07T15:10:36.888549"
 }

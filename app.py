@@ -998,7 +998,61 @@ def terminal_view():
 @app.route('/memory')
 def memory_explorer_view():
     """Memory explorer view"""
-    return render_template('memory_explorer.html')
+    # Get memory statistics
+    try:
+        # Check if memory system has the method
+        if hasattr(memory_system, 'get_memory_stats'):
+            memory_stats = memory_system.get_memory_stats()
+        else:
+            memory_stats = {
+                'total_memories': 0,
+                'recent_memories': [],
+                'contexts': []
+            }
+            
+        return render_template('memory_explorer.html', memory_stats=memory_stats)
+    except Exception as e:
+        logger.error(f"Error getting memory stats: {e}")
+        return render_template('memory_explorer.html', error=str(e))
+
+@app.route('/profile')
+def profile_view():
+    """User profile view"""
+    try:
+        # Fetch profile data from gamification system
+        user_data = gamification_system.get_user_data() if hasattr(gamification_system, 'get_user_data') else {}
+        
+        # Get additional stats
+        training_stats = {
+            'completed': analytics_system.get_completed_training_count() if hasattr(analytics_system, 'get_completed_training_count') else 0,
+            'success_rate': analytics_system.get_success_rate() if hasattr(analytics_system, 'get_success_rate') else 0,
+            'platform_stats': analytics_system.get_platform_stats() if hasattr(analytics_system, 'get_platform_stats') else {}
+        }
+        
+        return render_template('profile.html', user_data=user_data, training_stats=training_stats)
+    except Exception as e:
+        logger.error(f"Error loading profile data: {e}")
+        return render_template('profile.html', error=str(e))
+
+@app.route('/achievements')
+def achievements_view():
+    """Achievements and badges view"""
+    try:
+        # Fetch achievements from gamification system
+        achievements = gamification_system.get_achievements() if hasattr(gamification_system, 'get_achievements') else []
+        
+        # Organize achievements by category
+        achievement_categories = {}
+        for achievement in achievements:
+            category = achievement.get('category', 'Other')
+            if category not in achievement_categories:
+                achievement_categories[category] = []
+            achievement_categories[category].append(achievement)
+            
+        return render_template('achievements.html', achievement_categories=achievement_categories)
+    except Exception as e:
+        logger.error(f"Error loading achievements: {e}")
+        return render_template('achievements.html', error=str(e))
 
 @app.route('/platforms')
 def platforms_view():

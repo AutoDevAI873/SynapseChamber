@@ -6,6 +6,13 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
   
+  // Add compatibility for Chart.instances if it doesn't exist
+  if (!Chart.instances) {
+    Chart.instances = [];
+    Chart.instances.forEach = function() { /* Empty function */ };
+    console.log('Added Chart.instances compatibility');
+  }
+  
   // Initialize dashboard components
   try {
     // Initialize charts if they exist
