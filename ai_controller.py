@@ -382,16 +382,34 @@ class AIController:
         # Store the user prompt
         self.memory_system.add_message(conversation_id, prompt, is_user=True)
         
-        # Get platform-specific message or generic fallback
-        response = self.fallback_responses.get(
+        # Create more detailed and platform-specific fallback messages
+        enhanced_fallbacks = {
+            "gpt": "ChatGPT is currently unavailable. This may be due to server load, network issues, or authentication requirements.",
+            "claude": "Claude is currently unavailable. This could be related to session management or authentication requirements.",
+            "gemini": "Gemini is currently unavailable. The web interface may have changed or authentication might be required.",
+            "deepseek": "DeepSeek is currently unavailable. This may be due to server maintenance or authentication requirements.",
+            "grok": "Grok is currently unavailable. This could be due to access limitations or authentication requirements."
+        }
+        
+        # Get enhanced platform-specific message or use generic fallback
+        platform_msg = enhanced_fallbacks.get(
             platform, 
-            "I'm sorry, I couldn't connect to the AI platform at the moment due to technical issues."
+            f"{platform.capitalize()} is currently unavailable. This may be due to authentication or interface changes."
         )
         
-        # Add additional info about what was attempted
-        response += f"\n\nYour prompt was: '{prompt[:100]}{'...' if len(prompt) > 100 else ''}'"
+        # Build a more comprehensive response with troubleshooting details
+        response = (
+            f"⚠️ {platform_msg}\n\n"
+            f"I've recorded your prompt for future processing: '{prompt[:100]}{'...' if len(prompt) > 100 else ''}'\n\n"
+            f"Possible solutions:\n"
+            f"• Check your network connection\n"
+            f"• Try again in a few minutes\n"
+            f"• Consider using an API-based approach if available\n\n"
+            f"Technical details: Browser automation could not interact with the {platform} interface. "
+            f"This might be due to interface changes, authentication requirements, or connection issues."
+        )
         
-        # Store the fallback response
+        # Store the enhanced fallback response
         self.memory_system.add_message(conversation_id, response, is_user=False)
         
         # Return a properly formatted response object
