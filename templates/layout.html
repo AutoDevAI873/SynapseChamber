@@ -134,26 +134,31 @@
             });
         });
         
-        // Connect the toggle dock button
-        document.getElementById('toggleDockBtn').addEventListener('click', function() {
-            const dockContainer = document.getElementById('dockContainer');
-            const dockToggleBtn = document.getElementById('dockToggleBtn');
-            const mainContainer = document.querySelector('body');
-            
-            if (dockContainer.classList.contains('dock-collapsed')) {
-                dockContainer.classList.remove('dock-collapsed');
-                dockToggleBtn.style.display = 'none';
-                mainContainer.classList.add('dock-active');
-                mainContainer.classList.remove('dock-collapsed');
-                localStorage.setItem('dockCollapsed', 'false');
-            } else {
-                dockContainer.classList.add('dock-collapsed');
-                dockToggleBtn.style.display = 'block';
-                mainContainer.classList.add('dock-collapsed');
-                mainContainer.classList.remove('dock-active');
-                localStorage.setItem('dockCollapsed', 'true');
-            }
-        });
+        // Connect the toggle dock button (only if it exists)
+        const toggleDockBtn = document.getElementById('toggleDockBtn');
+        if (toggleDockBtn) {
+            toggleDockBtn.addEventListener('click', function() {
+                const dockContainer = document.getElementById('dockContainer');
+                const dockToggleBtn = document.getElementById('dockToggleBtn');
+                const mainContainer = document.querySelector('body');
+                
+                if (dockContainer && dockToggleBtn) {
+                    if (dockContainer.classList.contains('dock-collapsed')) {
+                        dockContainer.classList.remove('dock-collapsed');
+                        dockToggleBtn.style.display = 'none';
+                        mainContainer.classList.add('dock-active');
+                        mainContainer.classList.remove('dock-collapsed');
+                        localStorage.setItem('dockCollapsed', 'false');
+                    } else {
+                        dockContainer.classList.add('dock-collapsed');
+                        dockToggleBtn.style.display = 'block';
+                        mainContainer.classList.add('dock-collapsed');
+                        mainContainer.classList.remove('dock-active');
+                        localStorage.setItem('dockCollapsed', 'true');
+                    }
+                }
+            });
+        }
         
         // Simple notification function
         function showNotification(type, message) {

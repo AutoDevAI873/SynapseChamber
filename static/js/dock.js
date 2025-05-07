@@ -1,10 +1,14 @@
 // Dock system for Synapse Chamber
 
 document.addEventListener('DOMContentLoaded', function() {
-  initializeDock();
-  initializeFileTree();
-  initializeTools();
-  initializeAgent();
+  // Only initialize dock-related components if they exist on the current page
+  if (document.getElementById('dockContainer')) {
+    initializeDock();
+    initializeFileTree();
+    initializeTools();
+    initializeAgent();
+  }
+  // Always bind event listeners for elements that exist
   bindEventListeners();
 });
 
