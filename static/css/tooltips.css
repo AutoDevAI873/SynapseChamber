@@ -1,10 +1,10 @@
-/**
- * Synapse Chamber - Contextual Tooltips Styles
+/* 
+ * Synapse Chamber - Contextual Tooltips
+ * Provides dynamic, context-aware tooltips for improved user experience
  * Part of the Synapse Chamber UX enhancement project
  */
 
-/* Default tooltip container */
-.tooltip-container {
+.synapse-tooltip-container {
     position: absolute;
     top: 0;
     left: 0;
@@ -14,8 +14,7 @@
     z-index: 9000;
 }
 
-/* Default tooltip */
-.tooltip {
+.synapse-tooltip {
     position: absolute;
     background-color: var(--bs-dark);
     color: white;
@@ -28,40 +27,35 @@
     transition: opacity 200ms ease, transform 200ms ease;
     opacity: 0;
     transform: translateY(5px);
-    z-index: 9000;
+    border-left: 3px solid transparent;
 }
 
-/* Tooltip visibility */
-.tooltip--visible {
+.synapse-tooltip.synapse-tooltip--active {
     opacity: 1;
     transform: translateY(0);
 }
 
-/* Tooltip types */
-.tooltip--info {
-    border-left: 3px solid var(--bs-info);
+.synapse-tooltip--info {
+    border-left-color: var(--bs-info);
 }
 
-.tooltip--warning {
-    border-left: 3px solid var(--bs-warning);
+.synapse-tooltip--warning {
+    border-left-color: var(--bs-warning);
 }
 
-.tooltip--error {
-    border-left: 3px solid var(--bs-danger);
+.synapse-tooltip--error {
+    border-left-color: var(--bs-danger);
 }
 
-.tooltip--success {
-    border-left: 3px solid var(--bs-success);
+.synapse-tooltip--success {
+    border-left-color: var(--bs-success);
 }
 
-.tooltip--critical {
-    border-left: 3px solid var(--bs-danger);
-    background-color: rgba(var(--bs-danger-rgb), 0.9);
-    font-weight: bold;
+.synapse-tooltip--default {
+    border-left-color: var(--bs-primary);
 }
 
-/* Tooltip arrow */
-.tooltip-arrow {
+.synapse-tooltip-arrow {
     position: absolute;
     width: 0;
     height: 0;
@@ -69,111 +63,78 @@
     border-width: 6px;
 }
 
-.tooltip-arrow--top {
+.synapse-tooltip-arrow--top {
     bottom: 100%;
     border-color: transparent transparent var(--bs-dark) transparent;
 }
 
-.tooltip-arrow--bottom {
+.synapse-tooltip-arrow--bottom {
     top: 100%;
     border-color: var(--bs-dark) transparent transparent transparent;
 }
 
-.tooltip-arrow--left {
+.synapse-tooltip-arrow--left {
     right: 100%;
     border-color: transparent var(--bs-dark) transparent transparent;
 }
 
-.tooltip-arrow--right {
+.synapse-tooltip-arrow--right {
     left: 100%;
     border-color: transparent transparent transparent var(--bs-dark);
 }
 
-/* Tooltip arrow colors for different types */
-.tooltip--info .tooltip-arrow--top {
-    border-bottom-color: var(--bs-info);
-}
-
-.tooltip--warning .tooltip-arrow--top {
-    border-bottom-color: var(--bs-warning);
-}
-
-.tooltip--error .tooltip-arrow--top {
-    border-bottom-color: var(--bs-danger);
-}
-
-.tooltip--success .tooltip-arrow--top {
-    border-bottom-color: var(--bs-success);
-}
-
-.tooltip--critical .tooltip-arrow--top {
-    border-bottom-color: var(--bs-danger);
-}
-
-.tooltip--info .tooltip-arrow--bottom {
-    border-top-color: var(--bs-info);
-}
-
-.tooltip--warning .tooltip-arrow--bottom {
-    border-top-color: var(--bs-warning);
-}
-
-.tooltip--error .tooltip-arrow--bottom {
-    border-top-color: var(--bs-danger);
-}
-
-.tooltip--success .tooltip-arrow--bottom {
-    border-top-color: var(--bs-success);
-}
-
-.tooltip--critical .tooltip-arrow--bottom {
-    border-top-color: var(--bs-danger);
-}
-
-/* Tooltip with title */
-.tooltip--has-title .tooltip-title {
-    display: block;
+.synapse-tooltip-title {
     font-weight: bold;
-    margin-bottom: 5px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 5px;
+    margin-bottom: 4px;
 }
 
-/* Data attribute tooltips */
-[data-tooltip] {
-    position: relative;
-    cursor: help;
+.synapse-tooltip-content {
+    line-height: 1.4;
 }
 
-/* Platform tooltips */
-.platform-tooltip {
-    position: absolute;
-    background-color: var(--bs-dark);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    max-width: 300px;
-    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.2s, visibility 0.2s;
+/* Tooltip position modifiers */
+.synapse-tooltip--top {
+    margin-bottom: 10px;
 }
 
-.platform-item:hover .platform-tooltip {
-    opacity: 1;
-    visibility: visible;
+.synapse-tooltip--bottom {
+    margin-top: 10px;
 }
 
-/* Feature tooltips */
-.feature-tooltip {
-    display: inline-block;
-    margin-left: 5px;
-    color: var(--bs-secondary);
-    cursor: help;
+.synapse-tooltip--left {
+    margin-right: 10px;
 }
 
-.feature-tooltip:hover {
-    color: var(--bs-primary);
+.synapse-tooltip--right {
+    margin-left: 10px;
+}
+
+/* Special types of tooltips */
+.synapse-tooltip--feature {
+    border-left-color: #7952b3; /* Purple for feature highlights */
+    background-color: #2a1b3d;
+}
+
+.synapse-tooltip--help {
+    border-left-color: #198754; /* Green for help content */
+}
+
+.synapse-tooltip--interactive {
+    pointer-events: auto; /* Allow interaction with these tooltips */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* States for tooltips */
+.synapse-tooltip--fading {
+    opacity: 0.6;
+    transition: opacity 3s ease-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .synapse-tooltip {
+        max-width: 200px;
+        font-size: 0.8rem;
+        padding: 6px 10px;
+    }
 }

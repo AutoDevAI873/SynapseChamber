@@ -266,6 +266,7 @@ class OnboardingWizard {
         
         // Highlight target element if it exists
         if (targetElement) {
+            // call the highlightElement method defined in this class
             this.highlightElement(targetElement);
         }
     }
