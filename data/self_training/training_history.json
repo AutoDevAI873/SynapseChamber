@@ -7596,6 +7596,7 @@
     "platforms": null,
     "goal": "Improve natural_language_processing capabilities to reach score of 0.7",
     "session_id": null,
-    "status": "running"
+    "status": "timeout",
+    "success": false
   }
 ]

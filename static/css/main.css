@@ -32,11 +32,26 @@ body {
   padding: 2rem 0;
   margin-left: 0;
   transition: margin-left 0.3s ease;
+  overflow-x: hidden; /* Prevent horizontal scrolling always */
+}
+
+/* Ensure containers don't overflow */
+.container, .container-fluid {
+  width: 100%;
+  max-width: 100%;
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+  box-sizing: border-box; /* Include padding in width calculation */
 }
 
 /* When dock is active, adjust the main content */
 body.dock-active .main-content {
   margin-left: 300px; /* Match the dock width */
+  width: calc(100% - 300px); /* Ensure content doesn't overflow */
+  max-width: calc(100% - 300px); /* Prevent any expansion beyond available space */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
 /* Custom scrollbar */
@@ -229,6 +244,22 @@ code {
   border-color: var(--primary-color);
   color: var(--text-color);
   box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Fix for form check layout in training page */
+.form-check {
+  padding-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-check-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 90%;
 }
 
 /* Progress bars */
