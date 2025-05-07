@@ -16,6 +16,10 @@
       {
         "timestamp": "2025-05-07T15:04:03.222354",
         "value": 73.84684915057706
+      },
+      {
+        "timestamp": "2025-05-07T15:08:30.061684",
+        "value": 77.01010704708746
       }
     ],
     "response_times": [],
@@ -35,6 +39,10 @@
       {
         "timestamp": "2025-05-07T15:04:03.222431",
         "value": 446.2069669902074
+      },
+      {
+        "timestamp": "2025-05-07T15:08:30.061742",
+        "value": 257.38763668909974
       }
     ],
     "error_rates": [
@@ -53,6 +61,10 @@
       {
         "timestamp": "2025-05-07T15:04:03.222443",
         "value": 2.5554423851506964
+      },
+      {
+        "timestamp": "2025-05-07T15:08:30.061754",
+        "value": 1.702068878898122
       }
     ],
     "uptime": []
@@ -71,7 +83,7 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 75.50601844035585,
+    "avg_session_duration": 249.01307104906982,
     "session_history": [
       {
         "id": 6,
@@ -138,7 +150,8 @@
       "training": 1,
       "recommendations": 1,
       "logs": 1,
-      "settings": 1
+      "settings": 1,
+      "dashboard": 1
     },
     "interaction_patterns": [
       {
@@ -164,8 +177,14 @@
         "hour": 15,
         "day_of_week": 2,
         "feature": "settings"
+      },
+      {
+        "timestamp": "2025-05-07T15:08:31.764084",
+        "hour": 15,
+        "day_of_week": 2,
+        "feature": "dashboard"
       }
     ]
   },
-  "last_updated": "2025-05-07T15:04:04.921667"
+  "last_updated": "2025-05-07T15:08:31.764118"
 }
