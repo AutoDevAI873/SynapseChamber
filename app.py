@@ -82,7 +82,13 @@ with app.app_context():
 # Routes
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # Get system status for homepage dashboard
+    system_health = analytics_system.get_system_health()
+    recent_trainings = memory_system.get_threads(limit=3)
+    
+    return render_template('index.html', 
+                          system_health=system_health,
+                          recent_trainings=recent_trainings)
     
 @app.route('/terminal')
 def terminal():

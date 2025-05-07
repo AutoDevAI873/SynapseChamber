@@ -353,6 +353,44 @@ code {
   color: var(--danger-color);
 }
 
+/* AI Interaction page */
+.platform-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+  background-color: var(--darker-bg-color);
+}
+
+.platform-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+.platform-card.selected {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 15px rgba(13, 110, 253, 0.3);
+}
+
+.textarea-tall {
+  min-height: 150px !important;
+}
+
+.ai-response {
+  background-color: var(--darker-bg-color);
+  border-radius: 0.5rem;
+  border-left: 4px solid var(--primary-color);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.response-platform-icon {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 1.25rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   body.dock-active .main-content {

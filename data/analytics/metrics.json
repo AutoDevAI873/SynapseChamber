@@ -1,0 +1,114 @@
+{
+  "system_performance": {
+    "memory_usage": [
+      {
+        "timestamp": "2025-05-07T09:24:04.872506",
+        "value": 36.59229400261585
+      }
+    ],
+    "response_times": [],
+    "api_latency": [
+      {
+        "timestamp": "2025-05-07T09:24:04.872553",
+        "value": 157.83607748211804
+      }
+    ],
+    "error_rates": [
+      {
+        "timestamp": "2025-05-07T09:24:04.872558",
+        "value": 0.6465658836178728
+      }
+    ],
+    "uptime": []
+  },
+  "training_metrics": {
+    "sessions_total": 6,
+    "sessions_completed": 0,
+    "sessions_failed": 0,
+    "topics": {
+      "Natural Language Processing": 1,
+      "Fallback interaction with grok": 1,
+      "Fallback interaction with claude": 1,
+      "Fallback interaction with deepseek": 1,
+      "Fallback interaction with gemini": 1,
+      "Fallback interaction with gpt": 1
+    },
+    "platforms": {},
+    "success_rate": 0.0,
+    "avg_session_duration": 71.0161340411664,
+    "session_history": [
+      {
+        "id": 6,
+        "timestamp": "2025-05-07T04:27:20.756807",
+        "topic": "Natural Language Processing",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 5,
+        "timestamp": "2025-05-06T21:59:41.416753",
+        "topic": "Fallback interaction with grok",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 4,
+        "timestamp": "2025-05-06T21:59:38.755080",
+        "topic": "Fallback interaction with claude",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 3,
+        "timestamp": "2025-05-06T21:59:36.077307",
+        "topic": "Fallback interaction with deepseek",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 2,
+        "timestamp": "2025-05-06T21:59:33.362200",
+        "topic": "Fallback interaction with gemini",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 1,
+        "timestamp": "2025-05-06T21:59:30.658956",
+        "topic": "Fallback interaction with gpt",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      }
+    ]
+  },
+  "platform_metrics": {
+    "platform_success_rates": {},
+    "platform_response_times": {},
+    "platform_usage": {},
+    "platform_contribution_quality": {}
+  },
+  "user_engagement": {
+    "active_days": [
+      "2025-05-07"
+    ],
+    "session_frequency": [],
+    "feature_usage": {
+      "training": 1
+    },
+    "interaction_patterns": [
+      {
+        "timestamp": "2025-05-07T09:24:06.516871",
+        "hour": 9,
+        "day_of_week": 2,
+        "feature": "training"
+      }
+    ]
+  },
+  "last_updated": "2025-05-07T09:24:06.516890"
+}
