@@ -109,186 +109,234 @@ class BrowserAutomation:
         self.settings.update(settings)
         self.logger.info(f"Updated browser settings: {self.settings}")
     
-    def initialize_driver(self):
-        """Initialize and return a browser driver"""
+    def initialize_driver(self, retry_count=3):
+        """Initialize and return a browser driver with retry capability"""
         if self.driver is not None:
             self.close_driver()
+            
+        self.logger.info(f"Initializing browser driver with {retry_count} retry attempts")
         
-        try:
-            import os
-            import subprocess
-            
-            # Check if we have Chromium installed in the system
-            chromium_path = "/nix/store/chromium"
-            chromedriver_path = "/nix/store/chromedriver"
-            
-            # Try to locate the actual path
+        for attempt in range(retry_count):
             try:
-                chromium_result = subprocess.run(['which', 'chromium'], capture_output=True, text=True)
-                if chromium_result.returncode == 0:
-                    chromium_path = chromium_result.stdout.strip()
-                    self.logger.info(f"Found Chromium at: {chromium_path}")
+                import os
+                import subprocess
                 
-                chromedriver_result = subprocess.run(['which', 'chromedriver'], capture_output=True, text=True)
-                if chromedriver_result.returncode == 0:
-                    chromedriver_path = chromedriver_result.stdout.strip()
-                    self.logger.info(f"Found ChromeDriver at: {chromedriver_path}")
-            except Exception as e:
-                self.logger.warning(f"Error finding Chrome paths: {str(e)}")
-            
-            chrome_options = Options()
-            
-            # Set the binary location if Chrome is available
-            if os.path.exists(chromium_path):
-                chrome_options.binary_location = chromium_path
+                self.logger.info(f"Driver initialization attempt {attempt+1}/{retry_count}")
                 
-            # Always run headless in this environment
-            chrome_options.add_argument("--headless=new")
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--window-size=1920,1080")
-            
-            # Add user agent to make detection harder
-            chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36")
-            
-            # Use fake browser version to avoid compatibility issues
-            chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-            chrome_options.add_experimental_option("useAutomationExtension", False)
-            
-            # Create a mock driver if real browser initialization fails
-            try:
-                # Try to explicitly use the chromedriver path if we found it
-                if os.path.exists(chromedriver_path):
-                    from selenium.webdriver.chrome.service import Service
-                    service = Service(executable_path=chromedriver_path)
-                    self.driver = webdriver.Chrome(service=service, options=chrome_options)
-                else:
-                    # Let selenium find chromedriver automatically
-                    self.driver = webdriver.Chrome(options=chrome_options)
+                # Check if we have Chromium installed in the system
+                chromium_path = "/nix/store/chromium"
+                chromedriver_path = "/nix/store/chromedriver"
                 
-                self.driver.set_page_load_timeout(self.settings.get("timeout", 30))
-                self.logger.info("Real browser driver initialized")
-            except Exception as browser_error:
-                self.logger.error(f"Failed to initialize real browser: {str(browser_error)}")
-                self.logger.info("Initializing mock browser driver instead")
-                
-                # Create a mock driver with minimal functionality
-                from selenium.webdriver.remote.webdriver import WebDriver
-                from selenium.webdriver.remote.webelement import WebElement
-                
-                class MockDriver:
-                    def __init__(self):
-                        self._current_url = "about:blank"
-                        self._page_source = "<html><body><p>Mock Browser</p></body></html>"
-                        self.mock_elements = {}
-                        self.switch_to = MockSwitchTo()
-                        
-                    @property
-                    def current_url(self):
-                        return self._current_url
-                        
-                    @property
-                    def page_source(self):
-                        return self._page_source
-                        
-                    def get(self, url):
-                        self._current_url = url
-                        logging.info(f"Mock browser navigated to: {url}")
-                        return None
-                        
-                    def find_element(self, by, value):
-                        element_key = f"{by}:{value}"
-                        if element_key not in self.mock_elements:
-                            mock_element = MockElement()
-                            self.mock_elements[element_key] = mock_element
-                        return self.mock_elements[element_key]
+                # Try to locate the actual path
+                try:
+                    chromium_result = subprocess.run(['which', 'chromium'], capture_output=True, text=True)
+                    if chromium_result.returncode == 0:
+                        chromium_path = chromium_result.stdout.strip()
+                        self.logger.info(f"Found Chromium at: {chromium_path}")
                     
-                    def find_elements(self, by, value):
-                        return [self.find_element(by, value)]
-                        
-                    def refresh(self):
-                        logging.info("Mock browser refreshed")
-                        return None
-                        
-                    def quit(self):
-                        logging.info("Mock browser closed")
-                        return None
-                        
-                    def save_screenshot(self, filename):
+                    chromedriver_result = subprocess.run(['which', 'chromedriver'], capture_output=True, text=True)
+                    if chromedriver_result.returncode == 0:
+                        chromedriver_path = chromedriver_result.stdout.strip()
+                        self.logger.info(f"Found ChromeDriver at: {chromedriver_path}")
+                except Exception as e:
+                    self.logger.warning(f"Error finding Chrome paths: {str(e)}")
+                
+                chrome_options = Options()
+                
+                # Set the binary location if Chrome is available
+                if os.path.exists(chromium_path):
+                    chrome_options.binary_location = chromium_path
+                
+                # Enhanced browser options for better reliability and stability
+                chrome_options.add_argument("--headless=new")
+                chrome_options.add_argument("--no-sandbox")
+                chrome_options.add_argument("--disable-dev-shm-usage")
+                chrome_options.add_argument("--disable-gpu")
+                chrome_options.add_argument("--window-size=1920,1080")
+                chrome_options.add_argument("--disable-notifications")
+                chrome_options.add_argument("--disable-popup-blocking")
+                chrome_options.add_argument("--ignore-certificate-errors")
+                chrome_options.add_argument("--disable-web-security")
+                chrome_options.add_argument("--disable-extensions")
+                
+                # Performance optimizations
+                prefs = {
+                    "profile.managed_default_content_settings.images": 2,  # Block images
+                    "profile.default_content_setting_values.notifications": 2,  # Block notifications
+                    "profile.managed_default_content_settings.cookies": 1,  # Allow cookies
+                    "profile.default_content_setting_values.plugins": 1,  # Allow plugins
+                }
+                chrome_options.add_experimental_option("prefs", prefs)
+                
+                # Add user agent to make detection harder - use a modern Chrome version
+                chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+                
+                # Use fake browser version to avoid compatibility issues
+                chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+                chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+                chrome_options.add_experimental_option("useAutomationExtension", False)
+                
+                # Try to initialize a real browser with improved service settings
+                try:
+                    # Try to explicitly use the chromedriver path if we found it
+                    if os.path.exists(chromedriver_path):
+                        from selenium.webdriver.chrome.service import Service
+                        service = Service(executable_path=chromedriver_path)
+                        self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                    else:
+                        # Let selenium find chromedriver automatically
+                        self.driver = webdriver.Chrome(options=chrome_options)
+                    
+                    # Set extended timeouts for improved stability
+                    self.driver.set_page_load_timeout(self.settings.get("timeout", 45))
+                    self.driver.set_script_timeout(30)
+                    
+                    # Test the driver with a basic operation to verify it's working
+                    self.driver.get("about:blank")
+                    if self.driver.title is not None:
+                        self.logger.info("Real browser driver initialized successfully")
+                        return self.driver
+                    
+                except Exception as browser_error:
+                    self.logger.error(f"Failed to initialize real browser (attempt {attempt+1}): {str(browser_error)}")
+                    if self.driver:
                         try:
-                            from PIL import Image
-                            img = Image.new('RGB', (800, 600), color = (73, 109, 137))
-                            img.save(filename)
-                            logging.info(f"Created blank screenshot at {filename}")
-                        except Exception:
-                            with open(filename, 'w') as f:
-                                f.write("Mock Screenshot")
-                            logging.info(f"Mock screenshot text saved: {filename}")
-                        return filename
-                        
-                    def execute_script(self, script, *args):
-                        logging.info(f"Mock executing script: {script[:50]}...")
-                        return None
-                        
-                    def get_cookies(self):
-                        logging.info("Mock get_cookies called")
-                        return []
-                        
-                    def add_cookie(self, cookie_dict):
-                        logging.info(f"Mock add_cookie called with: {cookie_dict}")
-                        return None
+                            self.driver.quit()
+                        except:
+                            pass
+                        self.driver = None
+                    
+                    # Only do additional attempts if we haven't reached max retries
+                    if attempt < retry_count - 1:
+                        self.logger.info(f"Retrying in 2 seconds...")
+                        time.sleep(2)
+                    else:
+                        self.logger.warning("All initialization attempts failed. Falling back to mock driver.")
+                        break
+            
+            except Exception as e:
+                self.logger.error(f"Critical error during initialization attempt {attempt+1}: {str(e)}")
+                if attempt < retry_count - 1:
+                    self.logger.info(f"Retrying in 3 seconds...")
+                    time.sleep(3)
+                else:
+                    self.logger.warning("All initialization attempts failed. Falling back to mock driver.")
+                    break
+        
+        # If we get here, all attempts failed - create a mock driver
+        self.logger.info("Initializing mock browser driver as fallback")
+        
+        # Create a mock driver with expanded functionality
+        from selenium.webdriver.remote.webdriver import WebDriver
+        from selenium.webdriver.remote.webelement import WebElement
+        
+        class MockDriver:
+            def __init__(self):
+                self._current_url = "about:blank"
+                self._page_source = "<html><body><p>Mock Browser</p></body></html>"
+                self.mock_elements = {}
+                self.switch_to = MockSwitchTo()
                 
-                class MockElement:
-                    def __init__(self):
-                        self.location = {'x': 100, 'y': 100}
-                        self.size = {'width': 100, 'height': 30}
-                        self.text = 'Mock Element Text'
-                        
-                    def click(self):
-                        logging.info("Mock element clicked")
-                        return None
-                        
-                    def send_keys(self, keys):
-                        logging.info(f"Mock element received keys: {keys}")
-                        return None
-                        
-                    def clear(self):
-                        logging.info("Mock element cleared")
-                        return None
-                        
-                    def is_displayed(self):
-                        return True
-                        
-                class MockSwitchTo:
-                    def __init__(self):
-                        self.alert = MockAlert()
-                        
-                    def frame(self, frame_reference):
-                        logging.info(f"Mock switched to frame: {frame_reference}")
-                        return None
-                        
-                    def default_content(self):
-                        logging.info("Mock switched to default content")
-                        return None
-                        
-                class MockAlert:
-                    def accept(self):
-                        logging.info("Mock alert accepted")
-                        return None
-                        
-                    def dismiss(self):
-                        logging.info("Mock alert dismissed")
-                        return None
+            @property
+            def current_url(self):
+                return self._current_url
                 
-                self.driver = MockDriver()
-                self.logger.warning("Using mock browser driver - functionality will be limited")
+            @property
+            def page_source(self):
+                return self._page_source
                 
-            return self.driver
-        except Exception as e:
-            self.logger.error(f"Critical error initializing driver: {str(e)}")
-            return None
+            def get(self, url):
+                self._current_url = url
+                logging.info(f"Mock browser navigated to: {url}")
+                return None
+                
+            def find_element(self, by, value):
+                element_key = f"{by}:{value}"
+                if element_key not in self.mock_elements:
+                    mock_element = MockElement()
+                    self.mock_elements[element_key] = mock_element
+                return self.mock_elements[element_key]
+            
+            def find_elements(self, by, value):
+                return [self.find_element(by, value)]
+                
+            def refresh(self):
+                logging.info("Mock browser refreshed")
+                return None
+                
+            def quit(self):
+                logging.info("Mock browser closed")
+                return None
+                
+            def save_screenshot(self, filename):
+                try:
+                    from PIL import Image
+                    img = Image.new('RGB', (800, 600), color = (73, 109, 137))
+                    img.save(filename)
+                    logging.info(f"Created blank screenshot at {filename}")
+                except Exception:
+                    with open(filename, 'w') as f:
+                        f.write("Mock Screenshot")
+                    logging.info(f"Mock screenshot text saved: {filename}")
+                return filename
+                
+            def execute_script(self, script, *args):
+                logging.info(f"Mock executing script: {script[:50]}...")
+                return None
+                
+            def get_cookies(self):
+                logging.info("Mock get_cookies called")
+                return []
+                
+            def add_cookie(self, cookie_dict):
+                logging.info(f"Mock add_cookie called with: {cookie_dict}")
+                return None
+        
+        class MockElement:
+            def __init__(self):
+                self.location = {'x': 100, 'y': 100}
+                self.size = {'width': 100, 'height': 30}
+                self.text = 'Mock Element Text'
+                
+            def click(self):
+                logging.info("Mock element clicked")
+                return None
+                
+            def send_keys(self, keys):
+                logging.info(f"Mock element received keys: {keys}")
+                return None
+                
+            def clear(self):
+                logging.info("Mock element cleared")
+                return None
+                
+            def is_displayed(self):
+                return True
+                
+        class MockSwitchTo:
+            def __init__(self):
+                self.alert = MockAlert()
+                
+            def frame(self, frame_reference):
+                logging.info(f"Mock switched to frame: {frame_reference}")
+                return None
+                
+            def default_content(self):
+                logging.info("Mock switched to default content")
+                return None
+                
+        class MockAlert:
+            def accept(self):
+                logging.info("Mock alert accepted")
+                return None
+                
+            def dismiss(self):
+                logging.info("Mock alert dismissed")
+                return None
+        
+        self.driver = MockDriver()
+        self.logger.warning("Using mock browser driver - functionality will be limited")
+        return self.driver
     
     def close_driver(self):
         """Close the browser driver"""
