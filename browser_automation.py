@@ -115,7 +115,33 @@ class BrowserAutomation:
             self.close_driver()
         
         try:
+            import os
+            import subprocess
+            
+            # Check if we have Chromium installed in the system
+            chromium_path = "/nix/store/chromium"
+            chromedriver_path = "/nix/store/chromedriver"
+            
+            # Try to locate the actual path
+            try:
+                chromium_result = subprocess.run(['which', 'chromium'], capture_output=True, text=True)
+                if chromium_result.returncode == 0:
+                    chromium_path = chromium_result.stdout.strip()
+                    self.logger.info(f"Found Chromium at: {chromium_path}")
+                
+                chromedriver_result = subprocess.run(['which', 'chromedriver'], capture_output=True, text=True)
+                if chromedriver_result.returncode == 0:
+                    chromedriver_path = chromedriver_result.stdout.strip()
+                    self.logger.info(f"Found ChromeDriver at: {chromedriver_path}")
+            except Exception as e:
+                self.logger.warning(f"Error finding Chrome paths: {str(e)}")
+            
             chrome_options = Options()
+            
+            # Set the binary location if Chrome is available
+            if os.path.exists(chromium_path):
+                chrome_options.binary_location = chromium_path
+                
             # Always run headless in this environment
             chrome_options.add_argument("--headless=new")
             chrome_options.add_argument("--no-sandbox")
@@ -133,7 +159,15 @@ class BrowserAutomation:
             
             # Create a mock driver if real browser initialization fails
             try:
-                self.driver = webdriver.Chrome(options=chrome_options)
+                # Try to explicitly use the chromedriver path if we found it
+                if os.path.exists(chromedriver_path):
+                    from selenium.webdriver.chrome.service import Service
+                    service = Service(executable_path=chromedriver_path)
+                    self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                else:
+                    # Let selenium find chromedriver automatically
+                    self.driver = webdriver.Chrome(options=chrome_options)
+                
                 self.driver.set_page_load_timeout(self.settings.get("timeout", 30))
                 self.logger.info("Real browser driver initialized")
             except Exception as browser_error:
@@ -144,39 +178,109 @@ class BrowserAutomation:
                 from selenium.webdriver.remote.webdriver import WebDriver
                 from selenium.webdriver.remote.webelement import WebElement
                 
-                class MockDriver(WebDriver):
+                class MockDriver:
                     def __init__(self):
-                        self.current_url = "about:blank"
-                        self.page_source = "<html><body><p>Mock Browser</p></body></html>"
+                        self._current_url = "about:blank"
+                        self._page_source = "<html><body><p>Mock Browser</p></body></html>"
                         self.mock_elements = {}
+                        self.switch_to = MockSwitchTo()
+                        
+                    @property
+                    def current_url(self):
+                        return self._current_url
+                        
+                    @property
+                    def page_source(self):
+                        return self._page_source
                         
                     def get(self, url):
-                        self.current_url = url
-                        self.logger.info(f"Mock browser navigated to: {url}")
+                        self._current_url = url
+                        logging.info(f"Mock browser navigated to: {url}")
                         return None
                         
                     def find_element(self, by, value):
                         element_key = f"{by}:{value}"
                         if element_key not in self.mock_elements:
-                            mock_element = type('MockElement', (WebElement,), {
-                                'click': lambda self: None,
-                                'send_keys': lambda self, keys: None,
-                                'clear': lambda self: None,
-                                'is_displayed': lambda self: True,
-                                'text': 'Mock Element Text'
-                            })()
+                            mock_element = MockElement()
                             self.mock_elements[element_key] = mock_element
                         return self.mock_elements[element_key]
+                    
+                    def find_elements(self, by, value):
+                        return [self.find_element(by, value)]
+                        
+                    def refresh(self):
+                        logging.info("Mock browser refreshed")
+                        return None
                         
                     def quit(self):
-                        self.logger.info("Mock browser closed")
+                        logging.info("Mock browser closed")
                         return None
                         
                     def save_screenshot(self, filename):
-                        with open(filename, 'w') as f:
-                            f.write("Mock Screenshot")
-                        self.logger.info(f"Mock screenshot saved: {filename}")
+                        try:
+                            from PIL import Image
+                            img = Image.new('RGB', (800, 600), color = (73, 109, 137))
+                            img.save(filename)
+                            logging.info(f"Created blank screenshot at {filename}")
+                        except Exception:
+                            with open(filename, 'w') as f:
+                                f.write("Mock Screenshot")
+                            logging.info(f"Mock screenshot text saved: {filename}")
                         return filename
+                        
+                    def execute_script(self, script, *args):
+                        logging.info(f"Mock executing script: {script[:50]}...")
+                        return None
+                        
+                    def get_cookies(self):
+                        logging.info("Mock get_cookies called")
+                        return []
+                        
+                    def add_cookie(self, cookie_dict):
+                        logging.info(f"Mock add_cookie called with: {cookie_dict}")
+                        return None
+                
+                class MockElement:
+                    def __init__(self):
+                        self.location = {'x': 100, 'y': 100}
+                        self.size = {'width': 100, 'height': 30}
+                        self.text = 'Mock Element Text'
+                        
+                    def click(self):
+                        logging.info("Mock element clicked")
+                        return None
+                        
+                    def send_keys(self, keys):
+                        logging.info(f"Mock element received keys: {keys}")
+                        return None
+                        
+                    def clear(self):
+                        logging.info("Mock element cleared")
+                        return None
+                        
+                    def is_displayed(self):
+                        return True
+                        
+                class MockSwitchTo:
+                    def __init__(self):
+                        self.alert = MockAlert()
+                        
+                    def frame(self, frame_reference):
+                        logging.info(f"Mock switched to frame: {frame_reference}")
+                        return None
+                        
+                    def default_content(self):
+                        logging.info("Mock switched to default content")
+                        return None
+                        
+                class MockAlert:
+                    def accept(self):
+                        logging.info("Mock alert accepted")
+                        return None
+                        
+                    def dismiss(self):
+                        logging.info("Mock alert dismissed")
+                        return None
                 
                 self.driver = MockDriver()
                 self.logger.warning("Using mock browser driver - functionality will be limited")
