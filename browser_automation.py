@@ -44,66 +44,83 @@ class BrowserAutomation:
             "headless": True,  # Always headless in this environment
             "timeout": 30,
             "screenshot_on_action": True,
-            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
             "viewport_width": 1920,
             "viewport_height": 1080,
             "wait_time_min": 1.0,  # Minimum wait time in seconds
-            "wait_time_max": 3.0,   # Maximum wait time in seconds
-            "cookies_enabled": True
+            "wait_time_max": 3.0,  # Maximum wait time in seconds
         }
         
-        # AI platform URLs
+        # URLs for AI platforms
         self.platform_urls = {
-            "gpt": "https://chat.openai.com/",
-            "gemini": "https://gemini.google.com/",
-            "deepseek": "https://chat.deepseek.com/",
+            "chatgpt": "https://chat.openai.com/",
             "claude": "https://claude.ai/",
-            "grok": "https://grok.x.com/"
+            "gemini": "https://gemini.google.com/app",
+            "grok": "https://grok.x.ai/",
+            "deepseek": "https://chat.deepseek.com/"
         }
         
-        # AI platform selectors
+        # Platform-specific selectors for common elements
         self.platform_selectors = {
-            "gpt": {
+            "chatgpt": {
                 "login_button": (By.XPATH, "//button[contains(text(), 'Log in')]"),
-                "email_input": (By.ID, "username"),
-                "password_input": (By.ID, "password"),
-                "continue_button": (By.XPATH, "//button[contains(text(), 'Continue')]"),
-                "prompt_textarea": (By.XPATH, "//textarea[contains(@placeholder, 'Message')]"),
-                "send_button": (By.XPATH, "//button[@data-testid='send-button']"),
-                "response_container": (By.XPATH, "//div[contains(@class, 'markdown')]"),
-                "new_chat_button": (By.XPATH, "//a[contains(text(), 'New chat')]")
-            },
-            "gemini": {
-                "login_button": (By.XPATH, "//a[contains(text(), 'Sign in')]"),
-                "prompt_textarea": (By.XPATH, "//textarea[contains(@placeholder, 'Enter')]"),
-                "send_button": (By.XPATH, "//button[@aria-label='Send message']"),
-                "response_container": (By.XPATH, "//div[contains(@class, 'response-container')]")
-            },
-            "deepseek": {
-                "login_button": (By.XPATH, "//button[contains(text(), 'Sign In')]"),
-                "prompt_textarea": (By.XPATH, "//textarea[contains(@placeholder, 'Send a message')]"),
-                "send_button": (By.XPATH, "//button[@type='submit']"),
-                "response_container": (By.XPATH, "//div[contains(@class, 'message')]")
+                "new_chat": (By.XPATH, "//a[contains(text(), 'New chat')]"),
+                "chat_input": (By.XPATH, "//textarea[@id='prompt-textarea']"),
+                "response_loading": (By.XPATH, "//div[contains(@class, 'result-streaming')]"),
+                "response_content": (By.XPATH, "//div[contains(@class, 'markdown')]"),
+                "username_field": (By.ID, "username"),
+                "password_field": (By.ID, "password"),
+                "logged_in_check": (By.XPATH, "//img[contains(@alt, 'User')]")
             },
             "claude": {
                 "login_button": (By.XPATH, "//button[contains(text(), 'Sign in')]"),
-                "prompt_textarea": (By.XPATH, "//textarea[contains(@placeholder, 'Message')]"),
-                "send_button": (By.XPATH, "//button[@aria-label='Send message']"),
-                "response_container": (By.XPATH, "//div[contains(@class, 'claude-response')]")
+                "new_chat": (By.XPATH, "//button[contains(text(), 'New chat')]"),
+                "chat_input": (By.XPATH, "//div[@role='textbox']"),
+                "response_loading": (By.XPATH, "//div[contains(@class, 'streaming')]"),
+                "response_content": (By.XPATH, "//div[contains(@class, 'prose')]"),
+                "email_field": (By.ID, "email"),
+                "password_field": (By.ID, "password"),
+                "logged_in_check": (By.XPATH, "//button[contains(@aria-label, 'User menu')]")
+            },
+            "gemini": {
+                "login_button": (By.XPATH, "//a[contains(text(), 'Sign in')]"),
+                "new_chat": (By.XPATH, "//div[contains(text(), 'New chat')]"),
+                "chat_input": (By.XPATH, "//textarea[@aria-label='Input box']"),
+                "response_loading": (By.XPATH, "//div[contains(@aria-label, 'Loading response')]"),
+                "response_content": (By.XPATH, "//div[contains(@aria-label, 'Gemini')]"),
+                "email_field": (By.ID, "identifierId"),
+                "password_field": (By.XPATH, "//input[@type='password']"),
+                "logged_in_check": (By.XPATH, "//img[contains(@alt, 'profile')]")
             },
             "grok": {
-                "login_button": (By.XPATH, "//a[contains(text(), 'Log in')]"),
-                "prompt_textarea": (By.XPATH, "//textarea[contains(@placeholder, 'Ask Grok')]"),
-                "send_button": (By.XPATH, "//button[@type='submit']"),
-                "response_container": (By.XPATH, "//div[contains(@class, 'Message')]")
+                "login_button": (By.XPATH, "//a[contains(@href, 'login')]"),
+                "new_chat": (By.XPATH, "//button[contains(text(), 'New Chat')]"),
+                "chat_input": (By.XPATH, "//textarea"),
+                "response_loading": (By.XPATH, "//div[contains(@class, 'typing-indicator')]"),
+                "response_content": (By.XPATH, "//div[contains(@class, 'message-content')]"),
+                "username_field": (By.ID, "username"),
+                "password_field": (By.ID, "password"),
+                "logged_in_check": (By.XPATH, "//div[contains(@class, 'user-profile')]")
+            },
+            "deepseek": {
+                "login_button": (By.XPATH, "//button[contains(text(), 'Sign In')]"),
+                "new_chat": (By.XPATH, "//button[contains(text(), 'New Chat')]"),
+                "chat_input": (By.XPATH, "//textarea"),
+                "response_loading": (By.XPATH, "//div[contains(@class, 'loading')]"),
+                "response_content": (By.XPATH, "//div[contains(@class, 'message-content')]"),
+                "email_field": (By.ID, "email"),
+                "password_field": (By.ID, "password"),
+                "logged_in_check": (By.XPATH, "//div[contains(@class, 'avatar')]")
             }
         }
         
-        # Ensure directories exist
+        # Create necessary directories
         os.makedirs(self.screenshot_dir, exist_ok=True)
-        os.makedirs(self.data_dir, exist_ok=True)
         os.makedirs(os.path.join(self.data_dir, "cookies"), exist_ok=True)
-    
+        
+        # Set up logging
+        self.logger.setLevel(logging.INFO)
+        
     def update_settings(self, settings):
         """Update the browser automation settings"""
         self.settings.update(settings)
@@ -169,7 +186,7 @@ class BrowserAutomation:
                 chrome_options.add_experimental_option("prefs", prefs)
                 
                 # Add user agent to make detection harder - use a modern Chrome version
-                chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+                chrome_options.add_argument(f"--user-agent={self.settings['user_agent']}")
                 
                 # Use fake browser version to avoid compatibility issues
                 chrome_options.add_argument("--disable-blink-features=AutomationControlled")
@@ -227,15 +244,14 @@ class BrowserAutomation:
         self.logger.info("Initializing mock browser driver as fallback")
         
         # Create a mock driver with expanded functionality
-        from selenium.webdriver.remote.webdriver import WebDriver
-        from selenium.webdriver.remote.webelement import WebElement
-        
         class MockDriver:
             def __init__(self):
                 self._current_url = "about:blank"
                 self._page_source = "<html><body><p>Mock Browser</p></body></html>"
+                self._title = "Mock Browser"
                 self.mock_elements = {}
                 self.switch_to = MockSwitchTo()
+                self.logger = logging.getLogger("MockDriver")
                 
             @property
             def current_url(self):
@@ -245,13 +261,23 @@ class BrowserAutomation:
             def page_source(self):
                 return self._page_source
                 
+            @property
+            def title(self):
+                return self._title
+                
             def get(self, url):
                 self._current_url = url
-                logging.info(f"Mock browser navigated to: {url}")
+                self.logger.info(f"Mock browser navigated to: {url}")
+                # Generate dynamic response for AI platform URLs
+                for platform, platform_url in self.platform_urls.items():
+                    if platform_url in url:
+                        self._page_source = f"<html><body><h1>Mock {platform.capitalize()} Platform</h1><p>This is a simulated page for {platform}</p></body></html>"
+                        self._title = f"{platform.capitalize()} - Mock Browser"
                 return None
                 
             def find_element(self, by, value):
                 element_key = f"{by}:{value}"
+                self.logger.info(f"Mock finding element: {by}={value}")
                 if element_key not in self.mock_elements:
                     mock_element = MockElement()
                     self.mock_elements[element_key] = mock_element
@@ -261,35 +287,46 @@ class BrowserAutomation:
                 return [self.find_element(by, value)]
                 
             def refresh(self):
-                logging.info("Mock browser refreshed")
+                self.logger.info("Mock browser refreshed")
                 return None
                 
             def quit(self):
-                logging.info("Mock browser closed")
+                self.logger.info("Mock browser closed")
                 return None
+                
+            def set_page_load_timeout(self, timeout):
+                self.logger.info(f"Mock set page load timeout: {timeout}s")
+                
+            def set_script_timeout(self, timeout):
+                self.logger.info(f"Mock set script timeout: {timeout}s")
                 
             def save_screenshot(self, filename):
                 try:
                     from PIL import Image
                     img = Image.new('RGB', (800, 600), color = (73, 109, 137))
                     img.save(filename)
-                    logging.info(f"Created blank screenshot at {filename}")
+                    self.logger.info(f"Created blank screenshot at {filename}")
                 except Exception:
                     with open(filename, 'w') as f:
                         f.write("Mock Screenshot")
-                    logging.info(f"Mock screenshot text saved: {filename}")
+                    self.logger.info(f"Mock screenshot text saved: {filename}")
                 return filename
                 
             def execute_script(self, script, *args):
-                logging.info(f"Mock executing script: {script[:50]}...")
+                self.logger.info(f"Mock executing script: {script[:50]}...")
+                # Return different mocked results based on script
+                if "return document.title" in script:
+                    return self._title
+                elif "return window.location.href" in script:
+                    return self._current_url
                 return None
                 
             def get_cookies(self):
-                logging.info("Mock get_cookies called")
+                self.logger.info("Mock get_cookies called")
                 return []
                 
             def add_cookie(self, cookie_dict):
-                logging.info(f"Mock add_cookie called with: {cookie_dict}")
+                self.logger.info(f"Mock add_cookie called with: {cookie_dict}")
                 return None
         
         class MockElement:
@@ -297,53 +334,82 @@ class BrowserAutomation:
                 self.location = {'x': 100, 'y': 100}
                 self.size = {'width': 100, 'height': 30}
                 self.text = 'Mock Element Text'
+                self.is_enabled_status = True
+                self.logger = logging.getLogger("MockElement")
                 
             def click(self):
-                logging.info("Mock element clicked")
+                self.logger.info("Mock element clicked")
                 return None
                 
             def send_keys(self, keys):
-                logging.info(f"Mock element received keys: {keys}")
+                self.logger.info(f"Mock element received keys: {keys}")
                 return None
                 
             def clear(self):
-                logging.info("Mock element cleared")
+                self.logger.info("Mock element cleared")
                 return None
                 
             def is_displayed(self):
                 return True
                 
+            def is_enabled(self):
+                return self.is_enabled_status
+                
+            def get_attribute(self, name):
+                self.logger.info(f"Mock get_attribute called: {name}")
+                if name == "href":
+                    return "https://example.com"
+                elif name == "class":
+                    return "mock-class"
+                return None
+                
         class MockSwitchTo:
             def __init__(self):
                 self.alert = MockAlert()
+                self.logger = logging.getLogger("MockSwitchTo")
                 
             def frame(self, frame_reference):
-                logging.info(f"Mock switched to frame: {frame_reference}")
+                self.logger.info(f"Mock switched to frame: {frame_reference}")
                 return None
                 
             def default_content(self):
-                logging.info("Mock switched to default content")
+                self.logger.info("Mock switched to default content")
                 return None
                 
         class MockAlert:
+            def __init__(self):
+                self.text = "Mock Alert Text"
+                self.logger = logging.getLogger("MockAlert")
+                
             def accept(self):
-                logging.info("Mock alert accepted")
+                self.logger.info("Mock alert accepted")
                 return None
                 
             def dismiss(self):
-                logging.info("Mock alert dismissed")
+                self.logger.info("Mock alert dismissed")
                 return None
-        
-        self.driver = MockDriver()
+                
+            def send_keys(self, keys):
+                self.logger.info(f"Mock alert received keys: {keys}")
+                return None
+                
+        # Initialize mock driver with improved mock functionality
+        mock_driver = MockDriver()
+        mock_driver.platform_urls = self.platform_urls  # Share platform URLs with mock
+        self.driver = mock_driver
         self.logger.warning("Using mock browser driver - functionality will be limited")
         return self.driver
     
     def close_driver(self):
         """Close the browser driver"""
         if self.driver:
-            self.driver.quit()
-            self.driver = None
-            self.logger.info("Browser driver closed")
+            try:
+                self.driver.quit()
+            except Exception as e:
+                self.logger.warning(f"Error closing driver: {str(e)}")
+            finally:
+                self.driver = None
+                self.logger.info("Browser driver closed")
     
     def navigate_to(self, url):
         """Navigate to the specified URL"""
@@ -364,6 +430,10 @@ class BrowserAutomation:
         if not timeout:
             timeout = self.settings.get("timeout", 30)
         
+        if not self.driver:
+            self.logger.error("Driver not initialized, cannot find element")
+            return None
+            
         try:
             element = WebDriverWait(self.driver, timeout).until(
                 EC.presence_of_element_located((locator_type, locator_value))
@@ -469,6 +539,10 @@ class BrowserAutomation:
     
     def handle_alert(self, accept=True):
         """Handle JavaScript alert/confirm/prompt dialog"""
+        if not self.driver:
+            self.logger.warning("Cannot handle alert - driver not initialized")
+            return False
+            
         try:
             WebDriverWait(self.driver, 3).until(EC.alert_is_present())
             alert = self.driver.switch_to.alert
@@ -485,6 +559,10 @@ class BrowserAutomation:
     
     def scroll_to_element(self, element):
         """Scroll to make an element visible"""
+        if not self.driver or not element:
+            self.logger.warning("Cannot scroll - driver not initialized or element is None")
+            return False
+            
         try:
             self.driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", element)
             time.sleep(0.5)  # Allow time for scrolling animation
@@ -495,6 +573,10 @@ class BrowserAutomation:
     
     def execute_js(self, script, *args):
         """Execute JavaScript in the browser context"""
+        if not self.driver:
+            self.logger.warning("Cannot execute JavaScript - driver not initialized")
+            return None
+            
         try:
             return self.driver.execute_script(script, *args)
         except Exception as e:
@@ -511,7 +593,11 @@ class BrowserAutomation:
         """Get all cookies from the current session"""
         if not self.driver:
             return []
-        return self.driver.get_cookies()
+        try:
+            return self.driver.get_cookies()
+        except Exception as e:
+            self.logger.error(f"Error getting cookies: {str(e)}")
+            return []
     
     def add_cookie(self, cookie_dict):
         """Add a cookie to the current session"""
@@ -526,6 +612,10 @@ class BrowserAutomation:
     
     def switch_to_frame(self, frame_reference):
         """Switch to an iframe"""
+        if not self.driver:
+            self.logger.warning("Cannot switch to frame - driver not initialized")
+            return False
+            
         try:
             self.driver.switch_to.frame(frame_reference)
             return True
@@ -535,6 +625,10 @@ class BrowserAutomation:
     
     def switch_to_default_content(self):
         """Switch back to the main document from a frame"""
+        if not self.driver:
+            self.logger.warning("Cannot switch to default content - driver not initialized")
+            return False
+            
         try:
             self.driver.switch_to.default_content()
             return True
@@ -631,30 +725,48 @@ class BrowserAutomation:
             return False
             
         try:
-            # Each platform has different indicators for being logged in
-            # For example, presence of prompt textarea
-            selectors = self.platform_selectors[platform]
-            prompt_textarea = selectors.get("prompt_textarea")
+            # First navigate to platform if not already there
+            current_url = self.driver.current_url
+            platform_url = self.platform_urls[platform]
             
-            if prompt_textarea:
-                element = self.find_element(prompt_textarea[0], prompt_textarea[1], timeout=5)
-                if element and element.is_displayed():
-                    self.logger.info(f"Detected logged in state for {platform}")
-                    return True
-                    
-            # If login button is visible, we're not logged in
-            login_button = selectors.get("login_button")
-            if login_button:
-                element = self.find_element(login_button[0], login_button[1], timeout=5)
-                if element and element.is_displayed():
-                    self.logger.info(f"Not logged in to {platform}")
+            if platform_url not in current_url:
+                self.navigate_to(platform_url)
+                time.sleep(2)  # Give time to load
+                
+            # Check for logged in indicator
+            logged_in_check = self.platform_selectors[platform]["logged_in_check"]
+            element = None
+            try:
+                element = WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located(logged_in_check)
+                )
+            except:
+                # If we don't see the logged in element, let's check if login button is present
+                login_button = self.platform_selectors[platform]["login_button"]
+                try:
+                    login_elem = WebDriverWait(self.driver, 3).until(
+                        EC.presence_of_element_located(login_button)
+                    )
+                    # If we found the login button, we're not logged in
+                    self.logger.info(f"Login button found for {platform}, not logged in")
                     return False
+                except:
+                    # If neither element found, let's assume the site is having issues
+                    self.logger.warning(f"Neither logged in nor login elements found for {platform}")
+                    # Check if we've got a mostly empty page or error page
+                    page_source = self.driver.page_source.lower()
+                    if "error" in page_source or "404" in page_source or "not found" in page_source:
+                        self.logger.warning(f"Error page detected for {platform}")
+                        return False
                     
-            # If we can't determine the state, assume not logged in
-            self.logger.warning(f"Could not determine login state for {platform}")
-            return False
+            if element:
+                self.logger.info(f"Logged in to {platform}")
+                return True
+            else:
+                self.logger.info(f"Not logged in to {platform}")
+                return False
         except Exception as e:
-            self.logger.error(f"Error checking login state for {platform}: {str(e)}")
+            self.logger.error(f"Error checking login for {platform}: {str(e)}")
             return False
             
     def login_to_platform(self, platform, username, password):
@@ -666,68 +778,63 @@ class BrowserAutomation:
             self.logger.error(f"Unknown platform: {platform}")
             return False
             
-        # First try to load cookies
-        self.navigate_to_platform(platform)
-        cookie_loaded = self.load_cookies(platform)
-        
-        # Check if already logged in
-        if self.is_logged_in(platform):
-            self.logger.info(f"Already logged in to {platform}")
-            return True
-            
-        # If not logged in with cookies, try manual login
         try:
-            self.logger.info(f"Attempting login to {platform}")
-            selectors = self.platform_selectors[platform]
+            # First check if already logged in
+            if self.is_logged_in(platform):
+                self.logger.info(f"Already logged in to {platform}")
+                return True
+                
+            # Navigate to platform
+            self.navigate_to(self.platform_urls[platform])
             
             # Click login button
-            login_button = selectors.get("login_button")
-            if login_button and not self.click_element(login_button[0], login_button[1]):
-                self.logger.error(f"Could not click login button for {platform}")
-                return False
-                
-            # Wait for human-like delay
-            self._human_delay()
+            self.click_element(*self.platform_selectors[platform]["login_button"])
+            time.sleep(2)  # Wait for login form
             
-            # Enter username/email
-            email_input = selectors.get("email_input")
-            if email_input and not self.send_keys(email_input[0], email_input[1], username):
-                self.logger.error(f"Could not enter username for {platform}")
-                return False
+            # Platform-specific login process
+            if platform == "chatgpt" or platform == "grok":
+                # Enter username/email
+                self.send_keys(*self.platform_selectors[platform]["username_field"], username)
+                # Submit username (usually a button or enter key)
+                self.click_element(By.XPATH, "//button[@type='submit']")
+                time.sleep(1)
+                # Enter password
+                self.send_keys(*self.platform_selectors[platform]["password_field"], password)
+                # Submit password
+                self.click_element(By.XPATH, "//button[@type='submit']")
+            elif platform == "claude" or platform == "deepseek":
+                # Enter email/username
+                self.send_keys(*self.platform_selectors[platform]["email_field"], username)
+                # Enter password
+                self.send_keys(*self.platform_selectors[platform]["password_field"], password)
+                # Submit form
+                self.click_element(By.XPATH, "//button[@type='submit']")
+            elif platform == "gemini":
+                # Enter email/username
+                self.send_keys(*self.platform_selectors[platform]["email_field"], username)
+                # Submit email
+                self.click_element(By.XPATH, "//button[contains(text(), 'Next')]")
+                time.sleep(2)
+                # Enter password
+                self.send_keys(*self.platform_selectors[platform]["password_field"], password)
+                # Submit password
+                self.click_element(By.XPATH, "//button[contains(text(), 'Next')]")
                 
-            # Some platforms have a continue button after email
-            continue_button = selectors.get("continue_button")
-            if continue_button:
-                self.click_element(continue_button[0], continue_button[1])
-                self._human_delay()
-                
-            # Enter password
-            password_input = selectors.get("password_input")
-            if password_input and not self.send_keys(password_input[0], password_input[1], password):
-                self.logger.error(f"Could not enter password for {platform}")
-                return False
-                
-            # Click submit/login button - might be the same selector or different
-            submit_button = selectors.get("submit_button", login_button)
-            if submit_button and not self.click_element(submit_button[0], submit_button[1]):
-                self.logger.error(f"Could not click submit button for {platform}")
-                return False
-                
-            # Wait for login to complete
+            # Wait for login process to complete
             time.sleep(5)
             
-            # Check if login was successful
+            # Save cookies for future sessions
+            self.save_cookies(platform)
+            
+            # Verify login
             if self.is_logged_in(platform):
                 self.logger.info(f"Successfully logged in to {platform}")
-                # Save the cookies for future use
-                self.save_cookies(platform)
                 return True
             else:
-                self.logger.error(f"Login to {platform} appears to have failed")
+                self.logger.warning(f"Login to {platform} may have failed")
                 return False
-                
         except Exception as e:
-            self.logger.error(f"Error during login to {platform}: {str(e)}")
+            self.logger.error(f"Error logging in to {platform}: {str(e)}")
             return False
             
     def send_prompt_to_platform(self, platform, prompt):
@@ -739,114 +846,140 @@ class BrowserAutomation:
             self.logger.error(f"Unknown platform: {platform}")
             return None
             
-        # Check if we're on the platform and logged in
-        if not self.is_logged_in(platform):
-            self.logger.error(f"Not logged in to {platform}, cannot send prompt")
-            return None
-            
         try:
-            self.logger.info(f"Sending prompt to {platform}")
-            selectors = self.platform_selectors[platform]
+            # Navigate to platform if not already there
+            current_url = self.driver.current_url
+            platform_url = self.platform_urls[platform]
             
-            # Send the prompt
-            prompt_textarea = selectors.get("prompt_textarea")
-            if not prompt_textarea or not self.send_keys(prompt_textarea[0], prompt_textarea[1], prompt):
-                self.logger.error(f"Could not enter prompt for {platform}")
+            if platform_url not in current_url:
+                self.navigate_to(platform_url)
+                
+            # Check if logged in
+            if not self.is_logged_in(platform):
+                self.logger.error(f"Not logged in to {platform}")
                 return None
                 
-            # Click send button
-            send_button = selectors.get("send_button")
-            if not send_button or not self.click_element(send_button[0], send_button[1]):
-                self.logger.error(f"Could not click send button for {platform}")
+            # For some platforms, click new chat if available
+            try:
+                self.click_element(*self.platform_selectors[platform]["new_chat"])
+                time.sleep(2)  # Wait for new chat to initialize
+            except:
+                self.logger.info(f"No new chat button found for {platform} or already in chat")
+                
+            # Enter prompt in chat input
+            chat_input_success = self.send_keys(*self.platform_selectors[platform]["chat_input"], prompt)
+            
+            if not chat_input_success:
+                self.logger.error(f"Failed to enter prompt for {platform}")
                 return None
                 
-            # Wait for response - this varies by platform
-            self._wait_for_response(platform)
+            # Submit prompt - platform specific
+            if platform == "chatgpt":
+                # ChatGPT uses the Enter key or a send button
+                self.click_element(By.XPATH, "//button[contains(@class, 'send')]")
+            elif platform == "claude":
+                # Claude usually has a send button
+                self.click_element(By.XPATH, "//button[contains(@aria-label, 'Send')]")
+            elif platform == "gemini":
+                # Gemini has a send button
+                self.click_element(By.XPATH, "//button[contains(@aria-label, 'Send')]")
+            elif platform == "grok":
+                # Grok usually has a send icon
+                self.click_element(By.XPATH, "//button[contains(@aria-label, 'Send message')]")
+            elif platform == "deepseek":
+                # DeepSeek has a send button
+                self.click_element(By.XPATH, "//button[contains(@aria-label, 'Send message')]")
+                
+            # Wait for response
+            response_text = self._wait_for_response(platform)
             
-            # Extract and return the response
-            return self._extract_response(platform)
+            # Take screenshot of the response
+            self.take_screenshot(f"{platform}_response_{int(time.time())}")
             
+            return response_text
         except Exception as e:
             self.logger.error(f"Error sending prompt to {platform}: {str(e)}")
             return None
             
     def _wait_for_response(self, platform):
         """Wait for AI platform to generate a response"""
-        if not self.driver:
-            return False
-            
-        selectors = self.platform_selectors.get(platform, {})
-        response_indicator = selectors.get("response_container")
-        
-        if not response_indicator:
-            # If no specific indicator, just wait a reasonable time
-            self.logger.info(f"No response indicator for {platform}, waiting fixed time")
-            time.sleep(15)  # Default wait time
-            return True
+        if not self.driver or platform not in self.platform_selectors:
+            return None
             
         try:
-            # First wait for the element to appear
-            element = self.find_element(response_indicator[0], response_indicator[1], timeout=10)
-            if not element:
-                self.logger.warning(f"Response container not found for {platform}")
-                time.sleep(15)  # Default wait time
-                return False
+            # First wait for loading indicator to appear
+            loading_selector = self.platform_selectors[platform]["response_loading"]
+            try:
+                WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located(loading_selector)
+                )
+                self.logger.info(f"Response generation started for {platform}")
+            except TimeoutException:
+                self.logger.warning(f"No loading indicator appeared for {platform}")
+                # Some platforms may not show loading indicator or it appeared and disappeared quickly
+                pass
                 
-            # Wait for response to stop changing
-            previous_text = ""
-            stable_count = 0
-            max_wait_time = 60  # Maximum wait time in seconds
+            # Then wait for it to disappear (response complete)
+            max_wait_time = 120  # Max 2 minutes for response
             start_time = time.time()
             
-            while stable_count < 3 and (time.time() - start_time) < max_wait_time:
-                current_text = element.text
-                
-                if current_text == previous_text and current_text.strip():
-                    stable_count += 1
-                else:
-                    stable_count = 0
+            while time.time() - start_time < max_wait_time:
+                try:
+                    loading_present = len(self.driver.find_elements(*loading_selector)) > 0
+                    if not loading_present:
+                        # Give a small delay to ensure response is fully rendered
+                        time.sleep(1)
+                        break
+                except:
+                    # If we can't find loading element, assume it's done
+                    break
                     
-                previous_text = current_text
-                time.sleep(2)
+                time.sleep(1)
                 
-            # Take a final screenshot of the response
-            self.take_screenshot(f"{platform}_response_{int(time.time())}")
-            
-            return True
+            # Extract response
+            return self._extract_response(platform)
         except Exception as e:
             self.logger.error(f"Error waiting for response from {platform}: {str(e)}")
-            time.sleep(15)  # Default wait time as fallback
-            return False
+            return None
             
     def _extract_response(self, platform):
         """Extract the AI's response from the page"""
-        if not self.driver:
-            return None
-            
-        selectors = self.platform_selectors.get(platform, {})
-        response_container = selectors.get("response_container")
-        
-        if not response_container:
-            self.logger.warning(f"No response container selector for {platform}")
+        if not self.driver or platform not in self.platform_selectors:
             return None
             
         try:
-            element = self.find_element(response_container[0], response_container[1])
-            if not element:
-                self.logger.warning(f"Response container not found for {platform}")
-                return None
-                
-            response_text = element.text.strip()
-            self.logger.info(f"Extracted response from {platform} ({len(response_text)} chars)")
+            # Get the response content based on platform's selector
+            response_selector = self.platform_selectors[platform]["response_content"]
             
-            return response_text
+            # Wait a bit for content to be fully rendered
+            time.sleep(2)
+            
+            try:
+                response_elements = self.driver.find_elements(*response_selector)
+                if not response_elements:
+                    self.logger.warning(f"No response elements found for {platform}")
+                    return None
+                    
+                # Usually the last element contains the most recent response
+                response_element = response_elements[-1]
+                response_text = response_element.text
+                
+                if not response_text:
+                    self.logger.warning(f"Empty response from {platform}")
+                    # Try to get innerHTML as fallback
+                    response_text = self.driver.execute_script("return arguments[0].innerHTML;", response_element)
+                    
+                return response_text
+            except NoSuchElementException:
+                self.logger.error(f"Response element not found for {platform}")
+                return None
         except Exception as e:
             self.logger.error(f"Error extracting response from {platform}: {str(e)}")
             return None
-            
+    
     def _human_delay(self):
         """Add a random delay to simulate human behavior"""
         min_time = self.settings.get("wait_time_min", 1.0)
         max_time = self.settings.get("wait_time_max", 3.0)
-        delay = min_time + random.random() * (max_time - min_time)
+        delay = min_time + ((max_time - min_time) * random.random())
         time.sleep(delay)

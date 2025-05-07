@@ -370,7 +370,10 @@ class AIController:
             
     def _generate_fallback_response(self, platform, prompt):
         """Generate a fallback response when browser automation fails"""
-        self.logger.info(f"Generating fallback response for {platform}")
+        self.logger.info(f"Generating detailed fallback response for {platform}")
+        
+        # Take a screenshot to capture the current state
+        screenshot_path = self.browser.take_screenshot(f"fallback_{platform}_{int(time.time())}")
         
         # Create a conversation in memory system to track the attempt
         conversation_id = self.memory_system.create_conversation(
@@ -382,31 +385,79 @@ class AIController:
         # Store the user prompt
         self.memory_system.add_message(conversation_id, prompt, is_user=True)
         
-        # Create more detailed and platform-specific fallback messages
+        # Create more detailed and context-specific fallback messages based on platform and failure type
         enhanced_fallbacks = {
-            "gpt": "ChatGPT is currently unavailable. This may be due to server load, network issues, or authentication requirements.",
-            "claude": "Claude is currently unavailable. This could be related to session management or authentication requirements.",
-            "gemini": "Gemini is currently unavailable. The web interface may have changed or authentication might be required.",
-            "deepseek": "DeepSeek is currently unavailable. This may be due to server maintenance or authentication requirements.",
-            "grok": "Grok is currently unavailable. This could be due to access limitations or authentication requirements."
+            "gpt": {
+                "navigation": "Unable to access ChatGPT (chat.openai.com). The site may be experiencing high traffic, undergoing maintenance, or have connection restrictions. Browser automation was unable to load the page properly.",
+                "login": "Unable to authenticate with ChatGPT. This could be due to changed login flows, CAPTCHA challenges, or account session issues. The system needs valid credentials to proceed.",
+                "interaction": "Connected to ChatGPT but encountered an issue with the chat interface. The site layout may have changed, or there might be a problem with the prompt submission mechanism.",
+                "response": "ChatGPT was accessible, but we couldn't properly retrieve its response. This may be due to changes in the response format or interface elements."
+            },
+            "claude": {
+                "navigation": "Unable to access Claude (claude.ai). The service may be experiencing technical difficulties or have geographical access restrictions. Browser automation couldn't establish a proper connection.",
+                "login": "Unable to authenticate with Claude. Anthropic may have updated their login process, added additional security measures, or the provided credentials may need verification.",
+                "interaction": "Connected to Claude but encountered an issue with the chat interface. The UI elements may have been updated or the interaction flow has changed.",
+                "response": "Claude was accessible, but we couldn't properly capture its response. The response structure or rendering may have changed."
+            },
+            "gemini": {
+                "navigation": "Unable to access Google's Gemini (gemini.google.com). This could be due to regional restrictions, service outages, or Google account requirements.",
+                "login": "Unable to sign in to Gemini with Google credentials. This may require additional authentication steps, account verification, or consent screens not currently handled.",
+                "interaction": "Connected to Gemini but encountered issues with the prompt interface. Google may have updated the UI or changed how inputs are processed.",
+                "response": "Gemini was accessible, but we couldn't capture its response correctly. The response format or display method may have changed."
+            },
+            "deepseek": {
+                "navigation": "Unable to access DeepSeek Chat (chat.deepseek.com). The service may have access limitations, be experiencing high traffic, or have changed its URL structure.",
+                "login": "Unable to authenticate with DeepSeek. The login process may have changed, or additional verification steps might be required.",
+                "interaction": "Connected to DeepSeek but encountered issues with the chat interface. The input mechanism or UI layout may have been updated.",
+                "response": "DeepSeek was accessible, but we couldn't properly extract the response. The response format or rendering has likely changed."
+            },
+            "grok": {
+                "navigation": "Unable to access Grok (grok.x.ai). The service may require X (Twitter) authentication, be experiencing technical issues, or have changed its domain.",
+                "login": "Unable to authenticate with Grok. This likely requires valid X (Twitter) credentials and possibly additional verification steps not currently handled.",
+                "interaction": "Connected to Grok but encountered issues with its interface. The chat components or interaction patterns may have been updated.",
+                "response": "Grok was accessible, but we couldn't properly capture its response. The response structure or rendering may have changed."
+            }
         }
         
-        # Get enhanced platform-specific message or use generic fallback
-        platform_msg = enhanced_fallbacks.get(
-            platform, 
-            f"{platform.capitalize()} is currently unavailable. This may be due to authentication or interface changes."
-        )
+        # Determine the specific failure type based on where we are in the process
+        failure_type = "navigation"  # Default assumption
+        current_url = self.browser.driver.current_url if self.browser.driver else "unknown"
         
-        # Build a more comprehensive response with troubleshooting details
+        # Check if we're on the platform's domain
+        platform_url = self.platforms[platform]["url"] if platform in self.platforms else ""
+        if platform_url and platform_url in current_url:
+            # We reached the site but couldn't do something there
+            if self._is_logged_in(platform):
+                # We're logged in, so either interaction or response issue
+                failure_type = "interaction"  # or "response" but harder to determine
+            else:
+                # We reached the site but couldn't log in
+                failure_type = "login"
+        
+        # Get the detailed platform-specific message for this failure type
+        if platform in enhanced_fallbacks:
+            platform_msg = enhanced_fallbacks[platform].get(
+                failure_type,
+                enhanced_fallbacks[platform].get("navigation")  # Default to navigation message
+            )
+        else:
+            platform_msg = f"{platform.capitalize()} is currently unavailable. This may be due to authentication or interface changes."
+        
+        # Include timestamp for troubleshooting
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Build a comprehensive and informative response with context and troubleshooting details
         response = (
-            f"⚠️ {platform_msg}\n\n"
-            f"I've recorded your prompt for future processing: '{prompt[:100]}{'...' if len(prompt) > 100 else ''}'\n\n"
-            f"Possible solutions:\n"
-            f"• Check your network connection\n"
-            f"• Try again in a few minutes\n"
+            f"⚠️ Unable to process request with {platform.upper()} ({timestamp})\n\n"
+            f"**Issue Details**: {platform_msg}\n\n"
+            f"**Your prompt** (saved for future processing):\n'{prompt[:150]}{'...' if len(prompt) > 150 else ''}'\n\n"
+            f"**Troubleshooting Recommendations**:\n"
+            f"• Check network connectivity to {platform_url}\n"
+            f"• Verify authentication credentials for {platform}\n"
+            f"• Try an alternative AI platform from the dashboard\n"
             f"• Consider using an API-based approach if available\n\n"
-            f"Technical details: Browser automation could not interact with the {platform} interface. "
-            f"This might be due to interface changes, authentication requirements, or connection issues."
+            f"**Technical Information**: Failure type: {failure_type}. Last URL: {current_url[:60]}{'...' if len(current_url) > 60 else ''}\n"
+            f"A screenshot has been saved for diagnostic purposes. The system will continue to monitor {platform} availability."
         )
         
         # Store the enhanced fallback response
