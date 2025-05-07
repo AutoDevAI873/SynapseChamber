@@ -1,1 +1,569 @@
-null
+{% extends 'layout.html' %}
+
+{% block title %}System Logs - Synapse Chamber{% endblock %}
+
+{% block styles %}
+<style>
+    .log-entry {
+        padding: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        transition: background-color 0.3s;
+    }
+    
+    .log-entry:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .log-info {
+        border-left: 4px solid #0d6efd;
+    }
+    
+    .log-warning {
+        border-left: 4px solid #ffc107;
+    }
+    
+    .log-error {
+        border-left: 4px solid #dc3545;
+    }
+    
+    .log-debug {
+        border-left: 4px solid #6c757d;
+    }
+    
+    .log-timestamp {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .log-message {
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    
+    .log-source {
+        font-size: 0.8rem;
+        font-family: monospace;
+        padding: 2px 4px;
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+    }
+    
+    .log-filter-btn.active {
+        opacity: 1;
+    }
+    
+    .log-filter-btn {
+        opacity: 0.6;
+        transition: opacity 0.3s;
+    }
+    
+    .log-filter-btn:hover {
+        opacity: 0.8;
+    }
+    
+    #logContainer {
+        max-height: calc(100vh - 280px);
+        overflow-y: auto;
+    }
+    
+    .filter-tag {
+        display: inline-block;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        padding: 3px 8px;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .filter-tag .close {
+        margin-left: 5px;
+        cursor: pointer;
+    }
+    
+    .auto-refresh-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+    }
+    
+    .refresh-active {
+        background-color: #10b981;
+        box-shadow: 0 0 5px #10b981;
+    }
+    
+    .refresh-paused {
+        background-color: #6c757d;
+    }
+    
+    .log-section {
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">System Logs</h1>
+        <div>
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <span class="auto-refresh-indicator refresh-active" id="refreshIndicator"></span>
+                    <span id="refreshStatus">Auto-refresh active</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary me-2" id="refreshLogsBtn">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary me-2" id="toggleRefreshBtn">
+                    <i class="fas fa-pause"></i> Pause
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="clearFiltersBtn">
+                    <i class="fas fa-times"></i> Clear Filters
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card bg-dark border-secondary mb-4">
+        <div class="card-header bg-dark border-secondary">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Log Filters</h5>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse">
+                    <i class="fas fa-filter"></i> Toggle Filters
+                </button>
+            </div>
+        </div>
+        <div class="collapse show" id="filtersCollapse">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Log Level</label>
+                        <div class="d-flex">
+                            <button type="button" class="btn btn-sm me-2 log-filter-btn log-level-filter active btn-info" data-level="info">
+                                <i class="fas fa-info-circle"></i> Info
+                            </button>
+                            <button type="button" class="btn btn-sm me-2 log-filter-btn log-level-filter active btn-warning" data-level="warning">
+                                <i class="fas fa-exclamation-triangle"></i> Warning
+                            </button>
+                            <button type="button" class="btn btn-sm me-2 log-filter-btn log-level-filter active btn-danger" data-level="error">
+                                <i class="fas fa-exclamation-circle"></i> Error
+                            </button>
+                            <button type="button" class="btn btn-sm log-filter-btn log-level-filter active btn-secondary" data-level="debug">
+                                <i class="fas fa-bug"></i> Debug
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Log Source</label>
+                        <div class="d-flex flex-wrap">
+                            <button type="button" class="btn btn-sm me-2 mb-2 log-filter-btn source-filter active btn-outline-primary" data-source="system">
+                                System
+                            </button>
+                            <button type="button" class="btn btn-sm me-2 mb-2 log-filter-btn source-filter active btn-outline-primary" data-source="browser">
+                                Browser
+                            </button>
+                            <button type="button" class="btn btn-sm me-2 mb-2 log-filter-btn source-filter active btn-outline-primary" data-source="ai">
+                                AI
+                            </button>
+                            <button type="button" class="btn btn-sm me-2 mb-2 log-filter-btn source-filter active btn-outline-primary" data-source="memory">
+                                Memory
+                            </button>
+                            <button type="button" class="btn btn-sm me-2 mb-2 log-filter-btn source-filter active btn-outline-primary" data-source="training">
+                                Training
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Time Range</label>
+                        <select class="form-select bg-dark text-light" id="timeRangeFilter">
+                            <option value="15m">Last 15 minutes</option>
+                            <option value="1h">Last hour</option>
+                            <option value="6h">Last 6 hours</option>
+                            <option value="24h" selected>Last 24 hours</option>
+                            <option value="7d">Last 7 days</option>
+                            <option value="all">All time</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Search</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-dark text-light" id="searchFilter" placeholder="Search logs...">
+                            <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="activeFilters" class="mt-2">
+                    <!-- Active filters will be shown here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card bg-dark border-secondary">
+        <div class="card-header bg-dark border-secondary">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Log Entries</h5>
+                <span class="badge bg-secondary" id="logCount">0 entries</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div id="logContainer" class="p-0">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted">Loading system logs...</p>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer bg-dark border-secondary text-center">
+            <button type="button" class="btn btn-outline-primary" id="loadMoreBtn">
+                <i class="fas fa-plus-circle"></i> Load More
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const logContainer = document.getElementById('logContainer');
+        const refreshLogsBtn = document.getElementById('refreshLogsBtn');
+        const toggleRefreshBtn = document.getElementById('toggleRefreshBtn');
+        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchFilter = document.getElementById('searchFilter');
+        const timeRangeFilter = document.getElementById('timeRangeFilter');
+        const logCount = document.getElementById('logCount');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        const refreshIndicator = document.getElementById('refreshIndicator');
+        const refreshStatus = document.getElementById('refreshStatus');
+        const activeFilters = document.getElementById('activeFilters');
+        
+        let autoRefreshInterval;
+        let isAutoRefreshActive = true;
+        let currentPage = 1;
+        let activeLogLevels = ['info', 'warning', 'error', 'debug'];
+        let activeLogSources = ['system', 'browser', 'ai', 'memory', 'training'];
+        let searchTerm = '';
+        let timeRange = '24h';
+        
+        // Initialize
+        fetchLogs();
+        startAutoRefresh();
+        
+        // Set up event listeners
+        refreshLogsBtn.addEventListener('click', function() {
+            currentPage = 1;
+            fetchLogs(true);
+        });
+        
+        toggleRefreshBtn.addEventListener('click', function() {
+            if (isAutoRefreshActive) {
+                stopAutoRefresh();
+                toggleRefreshBtn.innerHTML = '<i class="fas fa-play"></i> Resume';
+                refreshIndicator.classList.remove('refresh-active');
+                refreshIndicator.classList.add('refresh-paused');
+                refreshStatus.textContent = 'Auto-refresh paused';
+            } else {
+                startAutoRefresh();
+                toggleRefreshBtn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+                refreshIndicator.classList.remove('refresh-paused');
+                refreshIndicator.classList.add('refresh-active');
+                refreshStatus.textContent = 'Auto-refresh active';
+            }
+        });
+        
+        clearFiltersBtn.addEventListener('click', function() {
+            resetFilters();
+            fetchLogs(true);
+        });
+        
+        // Set up log level filter buttons
+        document.querySelectorAll('.log-level-filter').forEach(button => {
+            button.addEventListener('click', function() {
+                const level = this.getAttribute('data-level');
+                this.classList.toggle('active');
+                
+                if (this.classList.contains('active')) {
+                    if (!activeLogLevels.includes(level)) {
+                        activeLogLevels.push(level);
+                    }
+                } else {
+                    activeLogLevels = activeLogLevels.filter(l => l !== level);
+                }
+                
+                currentPage = 1;
+                fetchLogs(true);
+                updateActiveFilters();
+            });
+        });
+        
+        // Set up log source filter buttons
+        document.querySelectorAll('.source-filter').forEach(button => {
+            button.addEventListener('click', function() {
+                const source = this.getAttribute('data-source');
+                this.classList.toggle('active');
+                
+                if (this.classList.contains('active')) {
+                    if (!activeLogSources.includes(source)) {
+                        activeLogSources.push(source);
+                    }
+                } else {
+                    activeLogSources = activeLogSources.filter(s => s !== source);
+                }
+                
+                currentPage = 1;
+                fetchLogs(true);
+                updateActiveFilters();
+            });
+        });
+        
+        // Set up time range filter
+        timeRangeFilter.addEventListener('change', function() {
+            timeRange = this.value;
+            currentPage = 1;
+            fetchLogs(true);
+            updateActiveFilters();
+        });
+        
+        // Set up search
+        searchBtn.addEventListener('click', function() {
+            searchTerm = searchFilter.value.trim();
+            currentPage = 1;
+            fetchLogs(true);
+            updateActiveFilters();
+        });
+        
+        searchFilter.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                searchTerm = searchFilter.value.trim();
+                currentPage = 1;
+                fetchLogs(true);
+                updateActiveFilters();
+            }
+        });
+        
+        // Set up load more button
+        loadMoreBtn.addEventListener('click', function() {
+            currentPage++;
+            fetchLogs(false);
+        });
+        
+        function startAutoRefresh() {
+            isAutoRefreshActive = true;
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            autoRefreshInterval = setInterval(function() {
+                fetchLogs(true);
+            }, 30000); // Refresh every 30 seconds
+        }
+        
+        function stopAutoRefresh() {
+            isAutoRefreshActive = false;
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+        
+        function resetFilters() {
+            activeLogLevels = ['info', 'warning', 'error', 'debug'];
+            activeLogSources = ['system', 'browser', 'ai', 'memory', 'training'];
+            searchTerm = '';
+            timeRange = '24h';
+            
+            // Reset UI
+            document.querySelectorAll('.log-level-filter').forEach(btn => {
+                btn.classList.add('active');
+            });
+            
+            document.querySelectorAll('.source-filter').forEach(btn => {
+                btn.classList.add('active');
+            });
+            
+            timeRangeFilter.value = '24h';
+            searchFilter.value = '';
+            updateActiveFilters();
+        }
+        
+        function updateActiveFilters() {
+            activeFilters.innerHTML = '';
+            
+            if (searchTerm) {
+                addFilterTag('Search', searchTerm, () => {
+                    searchTerm = '';
+                    searchFilter.value = '';
+                    fetchLogs(true);
+                    updateActiveFilters();
+                });
+            }
+            
+            if (timeRange !== '24h') {
+                const timeRangeText = timeRangeFilter.options[timeRangeFilter.selectedIndex].text;
+                addFilterTag('Time', timeRangeText, () => {
+                    timeRange = '24h';
+                    timeRangeFilter.value = '24h';
+                    fetchLogs(true);
+                    updateActiveFilters();
+                });
+            }
+            
+            // Only show source filters if not all are selected
+            if (activeLogSources.length < 5) {
+                addFilterTag('Sources', activeLogSources.join(', '), null);
+            }
+            
+            // Only show level filters if not all are selected
+            if (activeLogLevels.length < 4) {
+                addFilterTag('Levels', activeLogLevels.join(', '), null);
+            }
+        }
+        
+        function addFilterTag(type, value, onRemove) {
+            const tag = document.createElement('div');
+            tag.className = 'filter-tag';
+            
+            let tagContent = `<strong>${type}:</strong> ${value}`;
+            
+            if (onRemove) {
+                tagContent += '<span class="close">×</span>';
+            }
+            
+            tag.innerHTML = tagContent;
+            
+            if (onRemove) {
+                tag.querySelector('.close').addEventListener('click', onRemove);
+            }
+            
+            activeFilters.appendChild(tag);
+        }
+        
+        function fetchLogs(replace = false) {
+            // Show loading state
+            if (replace) {
+                logContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="text-muted">Loading system logs...</p>
+                    </div>
+                `;
+            } else {
+                loadMoreBtn.disabled = true;
+                loadMoreBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...';
+            }
+            
+            // Prepare query parameters
+            const params = new URLSearchParams({
+                page: currentPage,
+                levels: activeLogLevels.join(','),
+                sources: activeLogSources.join(','),
+                time_range: timeRange
+            });
+            
+            if (searchTerm) {
+                params.append('search', searchTerm);
+            }
+            
+            // Fetch logs from API
+            fetch(`/api/logs?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update UI with logs
+                    displayLogs(data, replace);
+                    
+                    // Update log count
+                    logCount.textContent = `${data.total} entries`;
+                    
+                    // Update load more button
+                    if (data.logs.length < data.page_size || data.logs.length === 0) {
+                        loadMoreBtn.style.display = 'none';
+                    } else {
+                        loadMoreBtn.style.display = 'inline-block';
+                        loadMoreBtn.disabled = false;
+                        loadMoreBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Load More';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching logs:', error);
+                    if (replace) {
+                        logContainer.innerHTML = `
+                            <div class="text-center py-5">
+                                <div class="text-danger mb-3">
+                                    <i class="fas fa-exclamation-circle fa-3x"></i>
+                                </div>
+                                <p class="text-muted">Failed to load logs. Please try again.</p>
+                            </div>
+                        `;
+                    } else {
+                        loadMoreBtn.disabled = false;
+                        loadMoreBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Load More';
+                    }
+                });
+        }
+        
+        function displayLogs(data, replace) {
+            if (replace) {
+                logContainer.innerHTML = '';
+            }
+            
+            // Check if no logs
+            if (data.logs.length === 0) {
+                logContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="text-muted mb-3">
+                            <i class="fas fa-search fa-3x"></i>
+                        </div>
+                        <p class="text-muted">No logs found matching your filters.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create and append log entries
+            data.logs.forEach(log => {
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry log-${log.type}`;
+                
+                // Format timestamp
+                const timestamp = new Date(log.timestamp);
+                const formattedTime = timestamp.toLocaleString();
+                
+                logEntry.innerHTML = `
+                    <div class="d-flex justify-content-between mb-1">
+                        <div>
+                            <span class="badge ${getLogTypeClass(log.type)} me-2">${log.type.toUpperCase()}</span>
+                            <span class="log-source">${log.source}</span>
+                        </div>
+                        <span class="log-timestamp">${formattedTime}</span>
+                    </div>
+                    <div class="log-message">${log.message}</div>
+                `;
+                
+                logContainer.appendChild(logEntry);
+            });
+        }
+        
+        function getLogTypeClass(type) {
+            switch (type) {
+                case 'info': return 'bg-info text-dark';
+                case 'warning': return 'bg-warning text-dark';
+                case 'error': return 'bg-danger';
+                case 'debug': return 'bg-secondary';
+                default: return 'bg-primary';
+            }
+        }
+    });
+</script>
+{% endblock %}

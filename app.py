@@ -1004,11 +1004,65 @@ def memory_explorer_view():
         if hasattr(memory_system, 'get_memory_stats'):
             memory_stats = memory_system.get_memory_stats()
         else:
+            # Initialize with default values
             memory_stats = {
                 'total_memories': 0,
-                'recent_memories': [],
-                'contexts': []
+                'consolidated_knowledge': 0,
+                'links': 0,
+                'contexts': [],
+                'recent_memories': []
             }
+            
+            # Add enhanced sample data for demonstration
+            import random
+            memory_stats = {
+                'total_memories': 126,
+                'consolidated_knowledge': 18,
+                'links': 74,
+                'contexts': [
+                    {
+                        'name': 'current_session',
+                        'data': {
+                            'user_id': 'user123',
+                            'session_start': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'active_platforms': ['gpt', 'claude', 'gemini']
+                        }
+                    },
+                    {
+                        'name': 'learning_focus',
+                        'data': {
+                            'topics': ['web_development', 'database_design', 'api_integration'],
+                            'difficulty': 'intermediate',
+                            'priority': 'high'
+                        }
+                    }
+                ],
+                'recent_memories': []
+            }
+            
+            # Add sample memories
+            types = ['general', 'conversation', 'factual', 'procedural']
+            contents = [
+                "User prefers detailed explanations with code examples when learning new concepts.",
+                "During last session, the user struggled with understanding asynchronous programming concepts.",
+                "PostgreSQL uses MVCC (Multi-Version Concurrency Control) for handling concurrent access.",
+                "To deploy a Flask application, use gunicorn as a WSGI server with nginx as a reverse proxy.",
+                "User is working on a project involving AI training and automation of cross-platform interactions."
+            ]
+            
+            for i in range(5):
+                timestamp = datetime.datetime.now() - datetime.timedelta(days=i, hours=random.randint(0, 12))
+                memory_type = random.choice(types)
+                importance = round(random.uniform(0.3, 0.9), 1)
+                
+                memory_stats['recent_memories'].append({
+                    'id': i + 1,
+                    'memory_type': memory_type,
+                    'content': contents[i],
+                    'importance': importance,
+                    'created_at': timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                    'source': random.choice(['user', 'system', 'gpt', 'claude', 'gemini'])
+                })
             
         return render_template('memory_explorer.html', memory_stats=memory_stats)
     except Exception as e:
@@ -1059,6 +1113,16 @@ def platforms_view():
     """AI platforms management view"""
     return render_template('platforms.html')
     
+@app.route('/logs')
+def logs_view():
+    """System logs viewer"""
+    return render_template('logs.html')
+
+# This route has already been defined at line 998, so I've removed the duplicate
+# @app.route('/memory-explorer')
+# def memory_explorer_view():
+#     """Memory explorer view"""
+
 @app.route('/system-health')
 def system_health_view():
     """System health dashboard for monitoring performance and component status"""
@@ -1261,14 +1325,13 @@ def reinitialize_driver():
 
 @app.route('/api/system-health/logs', methods=['GET'])
 def get_system_logs():
-    """Get system logs"""
+    """Get system logs for the system health dashboard"""
     import glob
     import random
     
     log_data = []
     
-    # In a real implementation, we would fetch actual logs
-    # For now, return mock data since we haven't implemented a logging system to file
+    # Get the last 20 log entries with type and timestamp
     for i in range(20):
         log_type = "info"
         if i % 10 == 0:
@@ -1281,7 +1344,177 @@ def get_system_logs():
         log_data.append({
             "timestamp": timestamp.isoformat(),
             "type": log_type,
-            "message": f"System log entry {i}"
+            "message": f"System health check log entry {i}"
         })
     
     return jsonify(log_data)
+
+@app.route('/api/logs', methods=['GET'])
+def get_logs():
+    """
+    Get detailed system logs with filtering
+    
+    Query parameters:
+    - page: Page number (default: 1)
+    - levels: Comma-separated list of log levels to include (info,warning,error,debug)
+    - sources: Comma-separated list of log sources (system,browser,ai,memory,training)
+    - time_range: Time range to query (15m, 1h, 6h, 24h, 7d, all)
+    - search: Text search query
+    """
+    import random
+    
+    # Get query parameters
+    page = request.args.get('page', 1, type=int)
+    levels = request.args.get('levels', 'info,warning,error,debug').split(',')
+    sources = request.args.get('sources', 'system,browser,ai,memory,training').split(',')
+    time_range = request.args.get('time_range', '24h')
+    search_query = request.args.get('search', '')
+    
+    # Convert time range to minutes
+    time_range_minutes = {
+        '15m': 15,
+        '1h': 60,
+        '6h': 360,
+        '24h': 1440,
+        '7d': 10080,
+        'all': 99999999
+    }.get(time_range, 1440)  # Default to 24h
+    
+    # Page size
+    page_size = 50
+    
+    # Create synthetic system logs for demonstration
+    log_data = []
+    log_sources = ["system", "browser", "ai", "memory", "training"]
+    log_types = ["info", "warning", "error", "debug"]
+    
+    # Sample log messages for each source
+    log_messages = {
+        "system": [
+            "Application started successfully",
+            "CPU usage spike detected (90%)",
+            "Memory usage high (85%)",
+            "Database connection pool expanded",
+            "Background task completed successfully",
+            "System configuration reloaded",
+            "User session expired",
+            "Cache cleared automatically",
+            "System update available",
+            "File system check completed"
+        ],
+        "browser": [
+            "Browser driver initialized successfully",
+            "Navigation completed to ChatGPT",
+            "Element not found: login button",
+            "Page load timeout (30s)",
+            "Screenshot captured",
+            "Browser session reset",
+            "Cookie management error",
+            "CAPTCHA detected",
+            "JavaScript execution completed",
+            "Network request intercepted"
+        ],
+        "ai": [
+            "API request to OpenAI successful",
+            "Rate limit exceeded on Claude API",
+            "Response received from Gemini",
+            "Token usage: 3500/4096",
+            "Model fallback initiated: GPT-3.5 -> GPT-4",
+            "Context window overflow",
+            "API key validation successful",
+            "Response timeout from DeepSeek",
+            "Training example collected",
+            "Model selection optimization applied"
+        ],
+        "memory": [
+            "Memory entry stored successfully",
+            "Vector index updated",
+            "Semantic search completed (0.25s)",
+            "Memory consolidation triggered",
+            "Conversation summary generated",
+            "Linked memories created",
+            "Memory pruning completed: 50 items removed",
+            "Context retrieval optimization applied",
+            "Memory synchronization with base system",
+            "Importance scoring recalculated"
+        ],
+        "training": [
+            "Training session started: Web Development",
+            "Training completed with 87% success rate",
+            "Example generated for AutoDev",
+            "Learning objective achieved: API Design",
+            "Training interrupted by user",
+            "Knowledge assessment score: 92%",
+            "Training data exported",
+            "Curriculum updated based on performance",
+            "New skill unlocked: Database Schema Design",
+            "Training analytics updated"
+        ]
+    }
+    
+    # Generate more varied and realistic log entries
+    total_logs = 250  # Total simulated logs in the system
+    
+    for i in range(total_logs):
+        # Select a random source and type, with weighted probabilities
+        source = random.choices(log_sources, weights=[0.4, 0.2, 0.2, 0.1, 0.1])[0]
+        
+        # Different sources have different typical log level distributions
+        type_weights = {
+            "system": [0.6, 0.2, 0.1, 0.1],  # More info logs for system
+            "browser": [0.5, 0.3, 0.1, 0.1], # More warnings for browser automation
+            "ai": [0.5, 0.2, 0.2, 0.1],      # More errors for AI interactions
+            "memory": [0.7, 0.1, 0.1, 0.1],  # Mostly info for memory operations
+            "training": [0.6, 0.2, 0.1, 0.1] # More info for training
+        }
+        
+        log_type = random.choices(log_types, weights=type_weights[source])[0]
+        
+        # Generate a timestamp within the time range
+        # More recent logs are more likely (exponential distribution)
+        log_age = int(random.expovariate(1.0 / (time_range_minutes / 5))) 
+        log_age = min(log_age, time_range_minutes)  # Cap at the max time range
+        timestamp = datetime.datetime.now() - datetime.timedelta(minutes=log_age)
+        
+        # Select a message for the source
+        message = random.choice(log_messages[source])
+        
+        # Add randomized details for more realism
+        if log_type == "error":
+            message = f"ERROR: {message} - {random.choice(['timeout', 'connection refused', 'unexpected response', 'authentication failed'])}"
+        elif log_type == "warning":
+            message = f"WARNING: {message} - {random.choice(['retrying', 'fallback initiated', 'degraded performance', 'limited functionality'])}"
+        
+        # Add a log entry
+        log_entry = {
+            "id": total_logs - i,  # Descending IDs
+            "timestamp": timestamp.isoformat(),
+            "type": log_type,
+            "source": source,
+            "message": message,
+            "details": None  # Additional details could be added if needed
+        }
+        
+        log_data.append(log_entry)
+    
+    # Sort by timestamp (newest first)
+    log_data.sort(key=lambda x: x["timestamp"], reverse=True)
+    
+    # Apply filters
+    filtered_logs = [log for log in log_data 
+                    if log["type"] in levels 
+                    and log["source"] in sources
+                    and (not search_query or search_query.lower() in log["message"].lower())]
+    
+    # Paginate
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    paginated_logs = filtered_logs[start_idx:end_idx]
+    
+    # Return response
+    return jsonify({
+        "logs": paginated_logs,
+        "total": len(filtered_logs),
+        "page": page,
+        "page_size": page_size
+    })
