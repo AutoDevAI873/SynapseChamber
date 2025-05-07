@@ -8,6 +8,10 @@
       {
         "timestamp": "2025-05-07T09:27:21.425683",
         "value": 44.233210525958306
+      },
+      {
+        "timestamp": "2025-05-07T14:50:55.844836",
+        "value": 49.92696495060486
       }
     ],
     "response_times": [],
@@ -19,6 +23,10 @@
       {
         "timestamp": "2025-05-07T09:27:21.425736",
         "value": 356.72146599628024
+      },
+      {
+        "timestamp": "2025-05-07T14:50:55.844892",
+        "value": 298.80807603143376
       }
     ],
     "error_rates": [
@@ -29,6 +37,10 @@
       {
         "timestamp": "2025-05-07T09:27:21.425744",
         "value": 2.783174251543206
+      },
+      {
+        "timestamp": "2025-05-07T14:50:55.844903",
+        "value": 0.2768834431919953
       }
     ],
     "uptime": []
@@ -47,7 +59,7 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 120.38363432207109,
+    "avg_session_duration": 140.07219063526827,
     "session_history": [
       {
         "id": 6,
@@ -112,7 +124,8 @@
     "session_frequency": [],
     "feature_usage": {
       "training": 1,
-      "recommendations": 1
+      "recommendations": 1,
+      "logs": 1
     },
     "interaction_patterns": [
       {
@@ -126,8 +139,14 @@
         "hour": 9,
         "day_of_week": 2,
         "feature": "recommendations"
+      },
+      {
+        "timestamp": "2025-05-07T14:50:57.153755",
+        "hour": 14,
+        "day_of_week": 2,
+        "feature": "logs"
       }
     ]
   },
-  "last_updated": "2025-05-07T09:27:23.970882"
+  "last_updated": "2025-05-07T14:50:57.153782"
 }
