@@ -825,10 +825,5 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.35.5/dist/apexcharts.min.js"></script>
 
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-<script>
-  // Initialize dashboard when the DOM is loaded
-  document.addEventListener('DOMContentLoaded', function() {
-    initializeDashboard();
-  });
-</script>
+<!-- Dashboard is automatically initialized in dashboard.js -->
 {% endblock %}
