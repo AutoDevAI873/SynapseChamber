@@ -315,8 +315,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('detail-thread-id').textContent = threadId;
                     document.getElementById('detail-topic').textContent = sessionData.topic || 'N/A';
                     document.getElementById('detail-goal').textContent = sessionData.goal || 'N/A';
-                    document.getElementById('detail-created').textContent = 
-                        new Date(sessionData.timestamp || Date.now()).toLocaleString();
+                    // Handle timestamp which might be a string or a date
+                    let createdText;
+                    try {
+                        createdText = new Date(sessionData.timestamp || Date.now()).toLocaleString();
+                    } catch (e) {
+                        createdText = sessionData.timestamp || 'N/A';
+                    }
+                    document.getElementById('detail-created').textContent = createdText;
                     document.getElementById('detail-status').textContent = 
                         capitalizeFirstLetter(sessionData.status || 'N/A');
                     

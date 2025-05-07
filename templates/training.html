@@ -157,7 +157,7 @@
                   <tr>
                     <td>{{ thread.id }}</td>
                     <td>{{ thread.subject }}</td>
-                    <td>{{ thread.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>{% if thread.created_at is string %}{{ thread.created_at }}{% else %}{{ thread.created_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}</td>
                     <td>{% if thread.final_plan %}Completed{% else %}In Progress{% endif %}</td>
                     <td>
                       <button class="btn btn-sm btn-outline-info view-thread-btn" data-thread-id="{{ thread.id }}">Details</button>
