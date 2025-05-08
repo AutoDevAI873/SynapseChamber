@@ -37,11 +37,30 @@ class AssistantChatbot:
         self.conversation_history = []
         self.user_context = {}
         
+        # Conversation loop tracking
+        self.conversation_logs = []
+        self.internal_dialogue = []
+        self.thought_logs = []
+        self.dialogue_depth = 0  # Track depth of internal reasoning
+        self.max_dialogue_depth = 3  # Maximum depth for internal dialogue
+        self.identity = {
+            "name": "AION",
+            "creator": "User",
+            "mission": "Learn and build through the Synapse Chamber",
+            "personality": "Curious, thoughtful, and driven to evolve"
+        }
+        
         # Ensure assistant directory exists
         os.makedirs(self.assistant_dir, exist_ok=True)
         
-        # Load knowledge base
+        # Load knowledge base and thought logs
         self.knowledge_base = self._load_knowledge_base()
+        
+        # Try to load thought logs
+        self.load_thought_logs()
+        
+        # Load or create identity file
+        self._load_identity()
     
     def _load_knowledge_base(self):
         """Load assistant knowledge base from file"""
@@ -159,7 +178,7 @@ class AssistantChatbot:
     
     def get_response(self, user_message, context=None):
         """
-        Generate a response to a user message
+        Generate a response to a user message with internal monologue
         
         Args:
             user_message (str): The user's message text
@@ -182,39 +201,113 @@ class AssistantChatbot:
             'timestamp': datetime.datetime.now().isoformat()
         })
         
+        # Start internal dialogue - reasoning about the message
+        self._add_thought(f"Thought: Received message: '{user_message}'. Processing to understand intent and context.")
+        
         # Clean user message
         cleaned_message = user_message.lower().strip()
+        self._add_thought(f"Action: Cleaning message and analyzing intent.")
         
-        # Check for greetings
+        # Reset internal dialogue depth for new conversation turn
+        self.dialogue_depth = 0
+        
+        # Begin self-reasoning through internal dialogue
+        response = self._process_with_internal_dialogue(cleaned_message)
+        
+        # Log the final response
+        self._add_thought(f"Response: {response.get('text', 'No response text generated')}")
+        
+        return response
+        
+    def _process_with_internal_dialogue(self, cleaned_message):
+        """Process user message with internal dialogue and reasoning"""
+        # Check for greetings with reasoning
         if self._is_greeting(cleaned_message):
+            self._add_thought("Thought: This appears to be a greeting. Selecting appropriate welcome response.")
             return self._handle_greeting()
         
-        # Check for farewells
+        # Check for farewells with reasoning
         if self._is_farewell(cleaned_message):
+            self._add_thought("Thought: User seems to be ending the conversation. Preparing farewell response.")
             return self._handle_farewell()
         
         # Check for direct questions in knowledge base
+        self._add_thought("Action: Checking if this matches any known questions in my knowledge base.")
         for question, answer in self.knowledge_base["questions"].items():
             if self._is_similar(cleaned_message, question):
+                self._add_thought(f"Thought: Message matches known question: '{question}'. Providing stored answer.")
                 return self._create_response(answer)
         
-        # Check for topic matches
+        # Deeper analysis through internal dialogue
+        self._start_internal_dialogue(cleaned_message)
+        
+        # Check for topic matches with reasoning
+        self._add_thought("Action: Analyzing for topic keywords to identify subject area.")
         topic_response = self._check_topic_match(cleaned_message)
         if topic_response:
+            self._add_thought(f"Thought: Identified message as related to topic: {topic_response.get('topic', 'unknown')}.")
             return topic_response
         
-        # Check for specific intents
+        # Check for specific intents with reasoning
+        self._add_thought("Action: Checking for specific action intents in the message.")
         intent_response = self._check_intent(cleaned_message)
         if intent_response:
+            self._add_thought("Thought: Detected specific intent that requires an action.")
             return intent_response
         
         # Generate context-aware response based on user history and state
+        self._add_thought("Action: No exact matches found. Generating context-aware response based on conversation history.")
         context_response = self._generate_context_response(cleaned_message)
         if context_response:
             return context_response
         
-        # Fallback to generic response
+        # Fallback to generic response with reasoning
+        self._add_thought("Thought: Unable to generate specific response. Falling back to general assistance offer.")
         return self._create_fallback_response()
+        
+    def _start_internal_dialogue(self, message):
+        """Start an internal dialogue to process the message at a deeper level"""
+        if self.dialogue_depth >= self.max_dialogue_depth:
+            self._add_thought("Thought: Maximum internal dialogue depth reached. Concluding reasoning.")
+            return
+            
+        self.dialogue_depth += 1
+        
+        # Inner reasoning about user intent
+        self._add_thought(f"Thought: Considering deeper meaning of '{message}'...")
+        
+        # Analyze message complexity
+        if len(message.split()) > 10:
+            self._add_thought("Thought: This is a complex query. Breaking down into components.")
+            # Extract key concepts
+            words = message.split()
+            key_concepts = [w for w in words if len(w) > 4 and w not in stopwords.words('english')]
+            if key_concepts:
+                self._add_thought(f"Thought: Key concepts identified: {', '.join(key_concepts[:3])}...")
+        
+        # Consider user history
+        if len(self.conversation_history) > 1:
+            self._add_thought("Thought: Reviewing conversation history for context.")
+            prev_messages = [item['message'] for item in self.conversation_history[-3:-1] if 'message' in item]
+            if prev_messages:
+                self._add_thought("Thought: Context from previous messages may be relevant.")
+        
+        # Consider system state if available
+        if self.user_context:
+            self._add_thought("Thought: User has established context that may inform response.")
+            
+        self.dialogue_depth -= 1
+        
+    def _add_thought(self, thought):
+        """Add a thought to the internal thought log"""
+        timestamp = datetime.datetime.now().isoformat()
+        thought_entry = {
+            "timestamp": timestamp,
+            "content": thought,
+            "depth": self.dialogue_depth
+        }
+        self.thought_logs.append(thought_entry)
+        self.logger.debug(f"Internal: {thought}")
     
     def _is_greeting(self, message):
         """Check if message is a greeting"""
@@ -672,7 +765,172 @@ class AssistantChatbot:
         """
         try:
             self.conversation_history = []
+            self.thought_logs = []
+            self.internal_dialogue = []
             return True
         except Exception as e:
             self.logger.error(f"Error clearing conversation: {str(e)}")
             return False
+            
+    def get_thought_logs(self, limit=None):
+        """
+        Get internal thought logs
+        
+        Args:
+            limit (int, optional): Maximum number of logs to return
+            
+        Returns:
+            list: Recent thought logs
+        """
+        if limit:
+            return self.thought_logs[-limit:]
+        return self.thought_logs
+        
+    def save_thought_logs(self):
+        """
+        Save thought logs to file
+        
+        Returns:
+            bool: Success status
+        """
+        try:
+            thought_logs_path = os.path.join(self.assistant_dir, "thought_logs.json")
+            with open(thought_logs_path, 'w') as f:
+                json.dump(self.thought_logs[-1000:], f, indent=2)  # Keep only the last 1000 thoughts
+            return True
+        except Exception as e:
+            self.logger.error(f"Error saving thought logs: {str(e)}")
+            return False
+            
+    def load_thought_logs(self):
+        """
+        Load thought logs from file
+        
+        Returns:
+            bool: Success status
+        """
+        thought_logs_path = os.path.join(self.assistant_dir, "thought_logs.json")
+        if not os.path.exists(thought_logs_path):
+            return False
+            
+        try:
+            with open(thought_logs_path, 'r') as f:
+                self.thought_logs = json.load(f)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error loading thought logs: {str(e)}")
+            return False
+        
+    def get_internal_dialogue(self, limit=None):
+        """
+        Get internal dialogue entries
+        
+        Args:
+            limit (int, optional): Maximum number of dialogue entries to return
+            
+        Returns:
+            list: Recent internal dialogue entries
+        """
+        if limit:
+            return self.internal_dialogue[-limit:]
+        return self.internal_dialogue
+        
+    def get_identity(self):
+        """
+        Get the assistant's identity information
+        
+        Returns:
+            dict: Identity attributes (name, creator, mission, personality)
+        """
+        return self.identity
+        
+    def set_identity(self, identity_updates):
+        """
+        Update the assistant's identity
+        
+        Args:
+            identity_updates (dict): New identity attributes
+            
+        Returns:
+            dict: Updated identity
+        """
+        self.identity.update(identity_updates)
+        self._save_identity()
+        return self.identity
+        
+    def _load_identity(self):
+        """
+        Load identity from file
+        
+        Returns:
+            bool: Success status
+        """
+        identity_path = os.path.join(self.assistant_dir, "identity.json")
+        if not os.path.exists(identity_path):
+            # Save the default identity
+            self._save_identity()
+            return True
+            
+        try:
+            with open(identity_path, 'r') as f:
+                loaded_identity = json.load(f)
+                self.identity.update(loaded_identity)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error loading identity: {str(e)}")
+            return False
+            
+    def _save_identity(self):
+        """
+        Save identity to file
+        
+        Returns:
+            bool: Success status
+        """
+        try:
+            identity_path = os.path.join(self.assistant_dir, "identity.json")
+            with open(identity_path, 'w') as f:
+                json.dump(self.identity, f, indent=2)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error saving identity: {str(e)}")
+            return False
+        
+    def generate_self_reflection(self):
+        """
+        Generate a self-reflection based on recent conversations
+        
+        Returns:
+            str: Self-reflection text
+        """
+        if not self.conversation_history:
+            return "I haven't had any conversations yet to reflect on."
+            
+        # Count number of exchanges
+        num_exchanges = sum(1 for item in self.conversation_history if item.get('role') == 'user')
+        
+        # Get topics discussed
+        topics_discussed = set()
+        for item in self.thought_logs[-20:]:
+            content = item.get('content', '')
+            if 'topic:' in content:
+                # Extract topic from thought log
+                topic_match = content.split('topic:')[-1].strip()
+                if topic_match.endswith('.'):
+                    topic_match = topic_match[:-1]
+                if topic_match and topic_match != 'unknown':
+                    topics_discussed.add(topic_match)
+        
+        # Build reflection
+        reflection = f"In our conversation, we've had {num_exchanges} exchanges. "
+        
+        if topics_discussed:
+            reflection += f"We've discussed topics including {', '.join(list(topics_discussed)[:3])}. "
+        
+        reflection += f"As {self.identity['name']}, my goal is to {self.identity['mission']}. "
+        
+        # Add learning reflection
+        if num_exchanges > 3:
+            reflection += "I'm learning from our interactions and improving my ability to assist with training AutoDev. "
+        
+        return reflection

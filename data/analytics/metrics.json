@@ -60,6 +60,14 @@
       {
         "timestamp": "2025-05-08T09:29:49.463721",
         "value": 36.64334896123015
+      },
+      {
+        "timestamp": "2025-05-08T13:39:52.428839",
+        "value": 59.74949992072558
+      },
+      {
+        "timestamp": "2025-05-08T14:31:06.154115",
+        "value": 37.42220683703261
       }
     ],
     "response_times": [],
@@ -123,6 +131,14 @@
       {
         "timestamp": "2025-05-08T09:29:49.463781",
         "value": 150.09424696235408
+      },
+      {
+        "timestamp": "2025-05-08T13:39:52.428895",
+        "value": 430.84844857178695
+      },
+      {
+        "timestamp": "2025-05-08T14:31:06.154173",
+        "value": 237.13390148188986
       }
     ],
     "error_rates": [
@@ -185,6 +201,14 @@
       {
         "timestamp": "2025-05-08T09:29:49.463789",
         "value": 4.216109164413618
+      },
+      {
+        "timestamp": "2025-05-08T13:39:52.428902",
+        "value": 4.3074890497238565
+      },
+      {
+        "timestamp": "2025-05-08T14:31:06.154182",
+        "value": 3.5223260064912103
       }
     ],
     "uptime": []
@@ -203,7 +227,7 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 201.53274392211532,
+    "avg_session_duration": 67.10778290474462,
     "session_history": [
       {
         "id": 6,
@@ -268,9 +292,9 @@
     ],
     "session_frequency": [],
     "feature_usage": {
-      "training": 4,
+      "training": 5,
       "recommendations": 3,
-      "logs": 3,
+      "logs": 4,
       "settings": 2,
       "dashboard": 3
     },
@@ -364,8 +388,20 @@
         "hour": 9,
         "day_of_week": 3,
         "feature": "training"
+      },
+      {
+        "timestamp": "2025-05-08T13:39:53.734556",
+        "hour": 13,
+        "day_of_week": 3,
+        "feature": "training"
+      },
+      {
+        "timestamp": "2025-05-08T14:31:07.597992",
+        "hour": 14,
+        "day_of_week": 3,
+        "feature": "logs"
       }
     ]
   },
-  "last_updated": "2025-05-08T09:29:50.787694"
+  "last_updated": "2025-05-08T14:31:07.598013"
 }
