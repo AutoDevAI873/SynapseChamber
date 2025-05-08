@@ -135,6 +135,32 @@ def terminal():
     """Interactive terminal interface for command-line interactions"""
     return render_template('terminal.html')
     
+@app.route('/ai_conversations')
+def ai_conversations():
+    """AI-to-AI Conversation Manager interface"""
+    try:
+        # Get recent conversations for display
+        recent_conversations = ai_conversation_manager.get_recent_conversations(limit=10)
+        
+        # Get available platforms
+        available_platforms = ai_conversation_manager.available_platforms
+        
+        # Get conversation templates
+        conversation_templates = [
+            {"id": "knowledge_sharing", "name": "Knowledge Sharing", "description": "AI platforms share expertise on a specific topic"},
+            {"id": "problem_solving", "name": "Problem Solving", "description": "AI platforms collaborate to solve a problem"},
+            {"id": "creative_ideation", "name": "Creative Ideation", "description": "AI platforms generate innovative ideas on a topic"},
+            {"id": "critical_analysis", "name": "Critical Analysis", "description": "AI platforms critically analyze a concept or approach"}
+        ]
+        
+        return render_template('ai_conversations.html', 
+                              recent_conversations=recent_conversations,
+                              platforms=available_platforms,
+                              templates=conversation_templates)
+    except Exception as e:
+        logger.error(f"Error rendering AI conversations page: {str(e)}")
+        return render_template('ai_conversations.html', error=str(e))
+
 @app.route('/memory')
 def memory_explorer():
     """Advanced memory explorer for visualizing and managing the memory system"""
@@ -331,6 +357,101 @@ def save_settings():
         return jsonify({"status": "success"})
     except Exception as e:
         logger.error(f"Error saving settings: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# AI Conversation Manager API routes
+@app.route('/api/ai_conversation/start', methods=['POST'])
+def start_ai_conversation():
+    """Start a new AI-to-AI conversation"""
+    try:
+        data = request.json
+        topic = data.get('topic')
+        template_type = data.get('template_type', 'knowledge_sharing')
+        platforms = data.get('platforms')
+        specific_params = data.get('specific_params', {})
+        
+        if not topic:
+            return jsonify({"status": "error", "message": "Topic is required"}), 400
+            
+        # Start the conversation
+        result = ai_conversation_manager.start_conversation(
+            topic=topic,
+            template_type=template_type,
+            platforms=platforms,
+            specific_params=specific_params
+        )
+        
+        return jsonify({"status": "success", "result": result})
+    except Exception as e:
+        logger.error(f"Error starting AI conversation: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/ai_conversation/get/<conversation_id>')
+def get_ai_conversation(conversation_id):
+    """Get data for a specific AI conversation"""
+    try:
+        conversation = ai_conversation_manager.get_conversation(conversation_id)
+        if not conversation:
+            return jsonify({"status": "error", "message": "Conversation not found"}), 404
+            
+        return jsonify({"status": "success", "conversation": conversation})
+    except Exception as e:
+        logger.error(f"Error retrieving AI conversation: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/ai_conversation/recent')
+def get_recent_ai_conversations():
+    """Get recent AI conversations"""
+    try:
+        limit = request.args.get('limit', default=10, type=int)
+        conversations = ai_conversation_manager.get_recent_conversations(limit=limit)
+        return jsonify({"status": "success", "conversations": conversations})
+    except Exception as e:
+        logger.error(f"Error retrieving recent AI conversations: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/ai_conversation/insights')
+def get_ai_conversation_insights():
+    """Get insights from AI conversations by topic"""
+    try:
+        topic = request.args.get('topic', '')
+        limit = request.args.get('limit', default=20, type=int)
+        insights = ai_conversation_manager.get_insights_by_topic(topic, limit=limit)
+        return jsonify({"status": "success", "insights": insights})
+    except Exception as e:
+        logger.error(f"Error retrieving AI conversation insights: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/ai_conversation/schedule', methods=['POST'])
+def schedule_ai_conversation():
+    """Schedule an AI conversation for future execution"""
+    try:
+        data = request.json
+        topic = data.get('topic')
+        template_type = data.get('template_type', 'knowledge_sharing')
+        platforms = data.get('platforms')
+        specific_params = data.get('specific_params', {})
+        schedule_time = data.get('schedule_time')
+        
+        if not topic:
+            return jsonify({"status": "error", "message": "Topic is required"}), 400
+            
+        # Convert schedule_time string to datetime if provided
+        if schedule_time:
+            schedule_time = datetime.datetime.fromisoformat(schedule_time)
+            
+        # Schedule the conversation
+        result = ai_conversation_manager.schedule_conversation(
+            topic=topic,
+            template_type=template_type,
+            platforms=platforms,
+            specific_params=specific_params,
+            schedule_time=schedule_time
+        )
+        
+        return jsonify({"status": "success", "result": result})
+    except Exception as e:
+        logger.error(f"Error scheduling AI conversation: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # Training API routes

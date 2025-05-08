@@ -1,0 +1,797 @@
+{% extends 'layout.html' %}
+
+{% block title %}AI-to-AI Conversations{% endblock %}
+
+{% block styles %}
+<style>
+  .platform-badge {
+    display: inline-block;
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    margin-right: 5px;
+    margin-bottom: 5px;
+  }
+  
+  .conversation-card {
+    margin-bottom: 20px;
+    border-radius: 8px;
+    transition: transform 0.2s;
+  }
+  
+  .conversation-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .template-card {
+    cursor: pointer;
+    height: 100%;
+    transition: transform 0.2s;
+  }
+  
+  .template-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .template-card.active {
+    border: 2px solid var(--bs-info);
+  }
+  
+  .nav-tabs .nav-link.active {
+    background-color: transparent;
+    border-bottom: 2px solid var(--bs-info);
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-weight: bold;
+  }
+  
+  .insights-list {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+  
+  .conversation-detail {
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  .platform-column {
+    max-height: 75vh;
+    overflow-y: auto;
+  }
+  
+  #conversation-detail-modal .modal-dialog {
+    max-width: 90%;
+  }
+  
+  .response-box {
+    border: 1px solid var(--bs-border-color);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    background-color: var(--bs-dark);
+  }
+  
+  .insight-badge {
+    font-size: 0.8rem;
+    margin-right: 8px;
+  }
+  
+  .platform-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+  }
+  
+  .platform-response {
+    margin-bottom: 30px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  {% if error %}
+  <div class="alert alert-danger">
+    Error: {{ error }}
+  </div>
+  {% endif %}
+  
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>AI-to-AI Conversations</h2>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#new-conversation-modal">
+      <i class="bi bi-plus-circle"></i> New Conversation
+    </button>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      <ul class="nav nav-tabs mb-4" id="conversation-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="recent-tab" data-bs-toggle="tab" data-bs-target="#recent" type="button" role="tab" aria-controls="recent" aria-selected="true">Recent Conversations</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="insights-tab" data-bs-toggle="tab" data-bs-target="#insights" type="button" role="tab" aria-controls="insights" aria-selected="false">Insights</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="scheduled-tab" data-bs-toggle="tab" data-bs-target="#scheduled" type="button" role="tab" aria-controls="scheduled" aria-selected="false">Scheduled</button>
+        </li>
+      </ul>
+      
+      <div class="tab-content" id="conversation-tabs-content">
+        <div class="tab-pane fade show active" id="recent" role="tabpanel" aria-labelledby="recent-tab">
+          <div class="row">
+            {% if recent_conversations %}
+              {% for conversation in recent_conversations %}
+                <div class="col-md-6 mb-4">
+                  <div class="card conversation-card h-100" data-conversation-id="{{ conversation.id }}">
+                    <div class="card-body">
+                      <h5 class="card-title">{{ conversation.topic }}</h5>
+                      <h6 class="card-subtitle mb-2 text-muted">
+                        {{ conversation.start_time.split('T')[0] }} 
+                        <span class="badge {% if conversation.status == 'completed' %}bg-success{% elif conversation.status == 'error' %}bg-danger{% else %}bg-info{% endif %}">{{ conversation.status }}</span>
+                      </h6>
+                      <p class="card-text small">
+                        {% for platform in conversation.platforms %}
+                          <span class="platform-badge" style="background-color: 
+                            {% if platform == 'gpt' %}#10a37f{% elif platform == 'claude' %}#8e44ad{% elif platform == 'gemini' %}#4285f4{% elif platform == 'deepseek' %}#e67e22{% elif platform == 'grok' %}#e74c3c{% else %}#777777{% endif %};">
+                            {{ platform }}
+                          </span>
+                        {% endfor %}
+                      </p>
+                      <p class="card-text">
+                        {{ conversation.summary[:100] }}{% if conversation.summary|length > 100 %}...{% endif %}
+                      </p>
+                      <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">{{ conversation.response_count }} responses</small>
+                        <button class="btn btn-sm btn-outline-info view-conversation-btn">View Details</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="col">
+                <div class="alert alert-info">
+                  No conversations yet. Start your first AI-to-AI conversation by clicking "New Conversation".
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="tab-pane fade" id="insights" role="tabpanel" aria-labelledby="insights-tab">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Conversation Insights</h5>
+                <div class="input-group" style="max-width: 300px;">
+                  <input type="text" id="insight-search" class="form-control" placeholder="Search by topic...">
+                  <button class="btn btn-outline-info" type="button" id="search-insights-btn">Search</button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body insights-list" id="insights-container">
+              <div class="text-center py-5">
+                <div class="spinner-border text-info" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading insights...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="tab-pane fade" id="scheduled" role="tabpanel" aria-labelledby="scheduled-tab">
+          <div class="text-center py-5">
+            <p>Scheduled conversations feature coming soon.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">AI Platform Status</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            {% for platform in platforms %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                  <span class="platform-badge" style="background-color: 
+                    {% if platform == 'gpt' %}#10a37f{% elif platform == 'claude' %}#8e44ad{% elif platform == 'gemini' %}#4285f4{% elif platform == 'deepseek' %}#e67e22{% elif platform == 'grok' %}#e74c3c{% else %}#777777{% endif %};">
+                    {{ platform }}
+                  </span>
+                  {{ platform|capitalize }}
+                </span>
+                <span class="badge bg-success">Available</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="mb-0">Recent Topics</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex flex-wrap">
+            <span class="badge bg-secondary me-2 mb-2">Natural Language Processing</span>
+            <span class="badge bg-secondary me-2 mb-2">Code Generation</span>
+            <span class="badge bg-secondary me-2 mb-2">Machine Learning</span>
+            <span class="badge bg-secondary me-2 mb-2">Prompt Engineering</span>
+            <span class="badge bg-secondary me-2 mb-2">Problem Solving</span>
+            <span class="badge bg-secondary me-2 mb-2">Creative Writing</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="mb-0">Statistics</h5>
+        </div>
+        <div class="card-body">
+          <canvas id="platforms-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Conversation Modal -->
+<div class="modal fade" id="new-conversation-modal" tabindex="-1" aria-labelledby="new-conversation-label" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="new-conversation-label">Start New AI-to-AI Conversation</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="new-conversation-form">
+          <div class="mb-3">
+            <label for="conversation-topic" class="form-label">Conversation Topic</label>
+            <input type="text" class="form-control" id="conversation-topic" placeholder="e.g., Advanced Prompt Engineering Techniques" required>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Conversation Template</label>
+            <div class="row">
+              {% for template in templates %}
+                <div class="col-md-6 mb-3">
+                  <div class="card template-card" data-template-id="{{ template.id }}">
+                    <div class="card-body">
+                      <h5 class="card-title">{{ template.name }}</h5>
+                      <p class="card-text">{{ template.description }}</p>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+            <input type="hidden" id="selected-template" value="knowledge_sharing">
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Select AI Platforms</label>
+            <div class="d-flex flex-wrap">
+              {% for platform in platforms %}
+                <div class="form-check form-check-inline mb-2 me-3">
+                  <input class="form-check-input" type="checkbox" id="platform-{{ platform }}" value="{{ platform }}" checked>
+                  <label class="form-check-label" for="platform-{{ platform }}">
+                    <span class="platform-badge" style="background-color: 
+                      {% if platform == 'gpt' %}#10a37f{% elif platform == 'claude' %}#8e44ad{% elif platform == 'gemini' %}#4285f4{% elif platform == 'deepseek' %}#e67e22{% elif platform == 'grok' %}#e74c3c{% else %}#777777{% endif %};">
+                      {{ platform }}
+                    </span>
+                    {{ platform|capitalize }}
+                  </label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="specific-aspect" class="form-label">Specific Aspect (Optional)</label>
+            <input type="text" class="form-control" id="specific-aspect" placeholder="e.g., Best practices for zero-shot learning">
+            <div class="form-text">Narrow down the conversation to a specific aspect of the topic.</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="start-conversation-btn">Start Conversation</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Conversation Detail Modal -->
+<div class="modal fade" id="conversation-detail-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="conversation-detail-title">Conversation Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-md-9">
+              <div class="conversation-detail p-4" id="conversation-detail-content">
+                <div class="text-center py-5">
+                  <div class="spinner-border text-info" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <p class="mt-2">Loading conversation details...</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 border-start p-0">
+              <div class="p-4">
+                <h5>Conversation Insights</h5>
+                <div id="conversation-insights">
+                  <p class="text-muted">No insights available</p>
+                </div>
+                
+                <hr>
+                
+                <h5>Summary</h5>
+                <div id="conversation-summary">
+                  <p class="text-muted">No summary available</p>
+                </div>
+                
+                <hr>
+                
+                <h5>Metadata</h5>
+                <ul class="list-group list-group-flush" id="conversation-metadata">
+                  <li class="list-group-item d-flex justify-content-between">
+                    <span>Topic:</span>
+                    <span id="meta-topic">-</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between">
+                    <span>Template:</span>
+                    <span id="meta-template">-</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between">
+                    <span>Status:</span>
+                    <span id="meta-status">-</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between">
+                    <span>Started:</span>
+                    <span id="meta-started">-</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between">
+                    <span>Completed:</span>
+                    <span id="meta-completed">-</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize platform comparison chart
+    const ctx = document.getElementById('platforms-chart').getContext('2d');
+    const platformsChart = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: ['Accuracy', 'Creativity', 'Speed', 'Detail', 'Reasoning'],
+        datasets: [
+          {
+            label: 'GPT',
+            data: [85, 90, 70, 88, 92],
+            backgroundColor: 'rgba(16, 163, 127, 0.2)',
+            borderColor: 'rgba(16, 163, 127, 1)',
+            pointBackgroundColor: 'rgba(16, 163, 127, 1)',
+            pointBorderColor: '#fff',
+          },
+          {
+            label: 'Claude',
+            data: [82, 80, 75, 90, 88],
+            backgroundColor: 'rgba(142, 68, 173, 0.2)',
+            borderColor: 'rgba(142, 68, 173, 1)',
+            pointBackgroundColor: 'rgba(142, 68, 173, 1)',
+            pointBorderColor: '#fff',
+          },
+          {
+            label: 'Gemini',
+            data: [88, 78, 85, 80, 86],
+            backgroundColor: 'rgba(66, 133, 244, 0.2)',
+            borderColor: 'rgba(66, 133, 244, 1)',
+            pointBackgroundColor: 'rgba(66, 133, 244, 1)',
+            pointBorderColor: '#fff',
+          }
+        ]
+      },
+      options: {
+        elements: {
+          line: {
+            borderWidth: 2
+          }
+        },
+        scales: {
+          r: {
+            angleLines: {
+              color: 'rgba(255, 255, 255, 0.2)'
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.2)'
+            },
+            ticks: {
+              color: 'rgba(255, 255, 255, 0.8)',
+              backdropColor: 'transparent'
+            },
+            pointLabels: {
+              color: 'rgba(255, 255, 255, 0.8)'
+            }
+          }
+        }
+      }
+    });
+    
+    // Template card selection
+    const templateCards = document.querySelectorAll('.template-card');
+    templateCards.forEach(card => {
+      card.addEventListener('click', function() {
+        templateCards.forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('selected-template').value = this.dataset.templateId;
+      });
+    });
+    
+    // Activate the first template by default
+    if (templateCards.length > 0) {
+      templateCards[0].classList.add('active');
+    }
+    
+    // Start conversation button
+    document.getElementById('start-conversation-btn').addEventListener('click', function() {
+      const topic = document.getElementById('conversation-topic').value;
+      if (!topic) {
+        alert('Please enter a conversation topic');
+        return;
+      }
+      
+      const templateType = document.getElementById('selected-template').value;
+      
+      // Get selected platforms
+      const selectedPlatforms = [];
+      document.querySelectorAll('input[type="checkbox"][id^="platform-"]:checked').forEach(checkbox => {
+        selectedPlatforms.push(checkbox.value);
+      });
+      
+      if (selectedPlatforms.length === 0) {
+        alert('Please select at least one AI platform');
+        return;
+      }
+      
+      // Get specific aspect if provided
+      const specificAspect = document.getElementById('specific-aspect').value;
+      const specificParams = {};
+      if (specificAspect) {
+        specificParams.specific_aspect = specificAspect;
+      }
+      
+      // Show loading state
+      const startBtn = document.getElementById('start-conversation-btn');
+      const originalText = startBtn.textContent;
+      startBtn.disabled = true;
+      startBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Starting...';
+      
+      // Make API request to start conversation
+      fetch('/api/ai_conversation/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          topic: topic,
+          template_type: templateType,
+          platforms: selectedPlatforms,
+          specific_params: specificParams
+        }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          // Close modal
+          $('#new-conversation-modal').modal('hide');
+          
+          // Reset form
+          document.getElementById('new-conversation-form').reset();
+          templateCards.forEach(c => c.classList.remove('active'));
+          if (templateCards.length > 0) {
+            templateCards[0].classList.add('active');
+          }
+          
+          // Show success message
+          alert('Conversation started successfully! Refresh the page to see the results.');
+          
+          // If conversation is complete, show details
+          if (data.result && data.result.status === 'completed') {
+            showConversationDetails(data.result.id);
+          }
+        } else {
+          alert('Error: ' + (data.message || 'Failed to start conversation'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error starting conversation: ' + error.message);
+      })
+      .finally(() => {
+        // Reset button state
+        startBtn.disabled = false;
+        startBtn.textContent = originalText;
+      });
+    });
+    
+    // View conversation details
+    document.querySelectorAll('.conversation-card').forEach(card => {
+      card.addEventListener('click', function(event) {
+        // Only trigger if the button itself wasn't clicked (since it has its own event handler)
+        if (!event.target.classList.contains('view-conversation-btn')) {
+          const conversationId = this.dataset.conversationId;
+          showConversationDetails(conversationId);
+        }
+      });
+    });
+    
+    document.querySelectorAll('.view-conversation-btn').forEach(btn => {
+      btn.addEventListener('click', function(event) {
+        event.stopPropagation(); // Prevent card click event from firing
+        const conversationId = this.closest('.conversation-card').dataset.conversationId;
+        showConversationDetails(conversationId);
+      });
+    });
+    
+    // Function to show conversation details
+    function showConversationDetails(conversationId) {
+      // Show modal
+      const detailModal = new bootstrap.Modal(document.getElementById('conversation-detail-modal'));
+      detailModal.show();
+      
+      // Reset content and show loading spinner
+      document.getElementById('conversation-detail-content').innerHTML = `
+        <div class="text-center py-5">
+          <div class="spinner-border text-info" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">Loading conversation details...</p>
+        </div>
+      `;
+      
+      // Fetch conversation details
+      fetch(`/api/ai_conversation/get/${conversationId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            const conversation = data.conversation;
+            
+            // Update modal title
+            document.getElementById('conversation-detail-title').textContent = conversation.topic;
+            
+            // Update metadata
+            document.getElementById('meta-topic').textContent = conversation.topic;
+            document.getElementById('meta-template').textContent = conversation.template_type;
+            document.getElementById('meta-status').textContent = conversation.status;
+            
+            // Format dates
+            const startTime = new Date(conversation.start_time);
+            document.getElementById('meta-started').textContent = startTime.toLocaleString();
+            
+            if (conversation.end_time) {
+              const endTime = new Date(conversation.end_time);
+              document.getElementById('meta-completed').textContent = endTime.toLocaleString();
+            } else {
+              document.getElementById('meta-completed').textContent = 'In progress';
+            }
+            
+            // Update summary
+            if (conversation.summary) {
+              document.getElementById('conversation-summary').innerHTML = `<p>${conversation.summary}</p>`;
+            }
+            
+            // Update insights
+            if (conversation.insights && conversation.insights.length > 0) {
+              const insightsHtml = conversation.insights.map(insight => `
+                <div class="mb-3">
+                  <div class="d-flex align-items-center mb-1">
+                    <span class="insight-badge platform-badge" style="background-color: 
+                      ${insight.platform === 'gpt' ? '#10a37f' : 
+                       insight.platform === 'claude' ? '#8e44ad' : 
+                       insight.platform === 'gemini' ? '#4285f4' : 
+                       insight.platform === 'deepseek' ? '#e67e22' : 
+                       insight.platform === 'grok' ? '#e74c3c' : '#777777'};">
+                      ${insight.platform}
+                    </span>
+                    <small class="text-muted">${insight.source_type === 'cross_pollination' ? 'Cross-Platform' : 'Initial'}</small>
+                  </div>
+                  <p>${insight.text}</p>
+                </div>
+              `).join('');
+              document.getElementById('conversation-insights').innerHTML = insightsHtml;
+            } else {
+              document.getElementById('conversation-insights').innerHTML = '<p class="text-muted">No insights available</p>';
+            }
+            
+            // Render conversation content
+            let contentHtml = `
+              <div class="alert alert-info mb-4">
+                <strong>Initial Prompt:</strong> ${conversation.initial_prompt}
+              </div>
+              
+              <div class="row">
+            `;
+            
+            // Create a column for each platform
+            for (const platform in conversation.responses) {
+              contentHtml += `
+                <div class="col-md-${12 / Object.keys(conversation.responses).length} platform-column">
+                  <div class="card mb-4">
+                    <div class="card-header">
+                      <span class="platform-badge" style="background-color: 
+                        ${platform === 'gpt' ? '#10a37f' : 
+                         platform === 'claude' ? '#8e44ad' : 
+                         platform === 'gemini' ? '#4285f4' : 
+                         platform === 'deepseek' ? '#e67e22' : 
+                         platform === 'grok' ? '#e74c3c' : '#777777'};">
+                        ${platform}
+                      </span>
+                      <strong>${platform.toUpperCase()} Responses</strong>
+                    </div>
+                    <div class="card-body">
+              `;
+              
+              // Add each response for this platform
+              conversation.responses[platform].forEach((response, index) => {
+                contentHtml += `
+                  <div class="platform-response">
+                    <h6 class="mb-2">
+                      ${index === 0 ? 'Initial Response' : 
+                        response.source_platform ? `Response to ${response.source_platform.toUpperCase()}'s input` : 
+                        'Follow-up Response'}
+                    </h6>
+                    <div class="response-box">
+                      ${response.response.replace(/\n/g, '<br>')}
+                    </div>
+                  </div>
+                `;
+              });
+              
+              contentHtml += `
+                    </div>
+                  </div>
+                </div>
+              `;
+            }
+            
+            contentHtml += `</div>`;
+            
+            document.getElementById('conversation-detail-content').innerHTML = contentHtml;
+          } else {
+            document.getElementById('conversation-detail-content').innerHTML = `
+              <div class="alert alert-danger">
+                Error: ${data.message || 'Failed to load conversation details'}
+              </div>
+            `;
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          document.getElementById('conversation-detail-content').innerHTML = `
+            <div class="alert alert-danger">
+              Error loading conversation details: ${error.message}
+            </div>
+          `;
+        });
+    }
+    
+    // Search insights
+    document.getElementById('search-insights-btn').addEventListener('click', function() {
+      const topic = document.getElementById('insight-search').value;
+      loadInsights(topic);
+    });
+    
+    // Load insights when tab is clicked
+    document.getElementById('insights-tab').addEventListener('click', function() {
+      loadInsights('');
+    });
+    
+    function loadInsights(topic) {
+      // Show loading state
+      document.getElementById('insights-container').innerHTML = `
+        <div class="text-center py-5">
+          <div class="spinner-border text-info" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2">Loading insights...</p>
+        </div>
+      `;
+      
+      // Fetch insights
+      fetch(`/api/ai_conversation/insights?topic=${encodeURIComponent(topic)}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            if (data.insights && data.insights.length > 0) {
+              const insightsHtml = data.insights.map(insight => `
+                <div class="card mb-3">
+                  <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                      <span class="insight-badge platform-badge" style="background-color: 
+                        ${insight.platform === 'gpt' ? '#10a37f' : 
+                         insight.platform === 'claude' ? '#8e44ad' : 
+                         insight.platform === 'gemini' ? '#4285f4' : 
+                         insight.platform === 'deepseek' ? '#e67e22' : 
+                         insight.platform === 'grok' ? '#e74c3c' : '#777777'};">
+                        ${insight.platform}
+                      </span>
+                      <small class="text-muted">${insight.source_type === 'cross_pollination' ? 'Cross-Platform' : 'Initial'}</small>
+                    </div>
+                    <p class="mb-2">${insight.text}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small class="text-muted">From: ${insight.conversation_topic}</small>
+                      <button class="btn btn-sm btn-outline-info view-conversation-insight-btn" 
+                              data-conversation-id="${insight.conversation_id}">
+                        View Conversation
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `).join('');
+              document.getElementById('insights-container').innerHTML = insightsHtml;
+              
+              // Add event listeners to view conversation buttons
+              document.querySelectorAll('.view-conversation-insight-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                  const conversationId = this.dataset.conversationId;
+                  showConversationDetails(conversationId);
+                });
+              });
+            } else {
+              document.getElementById('insights-container').innerHTML = `
+                <div class="alert alert-info">
+                  No insights found for "${topic || 'any topic'}". Try starting a new conversation or searching with different keywords.
+                </div>
+              `;
+            }
+          } else {
+            document.getElementById('insights-container').innerHTML = `
+              <div class="alert alert-danger">
+                Error: ${data.message || 'Failed to load insights'}
+              </div>
+            `;
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          document.getElementById('insights-container').innerHTML = `
+            <div class="alert alert-danger">
+              Error loading insights: ${error.message}
+            </div>
+          `;
+        });
+    }
+  });
+</script>
+{% endblock %}
