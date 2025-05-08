@@ -86,14 +86,14 @@
         "value": 50.93056646791432
       },
       {
-        "timestamp": "2025-05-08T14:56:26.725354",
-        "value": 80.3
+        "timestamp": "2025-05-08T14:57:11.404046",
+        "value": 80.2
       }
     ],
     "response_times": [
       {
-        "timestamp": "2025-05-08T14:56:26.725354",
-        "value": 0.0
+        "timestamp": "2025-05-08T14:57:11.404046",
+        "value": 0.8635395891274242
       }
     ],
     "api_latency": [
@@ -182,8 +182,8 @@
         "value": 65.01756425685575
       },
       {
-        "timestamp": "2025-05-08T14:56:26.725354",
-        "value": 123.51030303411461
+        "timestamp": "2025-05-08T14:57:11.404046",
+        "value": 268.78922594562954
       }
     ],
     "error_rates": [
@@ -272,8 +272,8 @@
         "value": 0.4424558263590045
       },
       {
-        "timestamp": "2025-05-08T14:56:26.725354",
-        "value": 1.4106130850992575
+        "timestamp": "2025-05-08T14:57:11.404046",
+        "value": 4.386554737972581
       }
     ],
     "uptime": [],
@@ -283,8 +283,8 @@
         "value": 23.726782803071824
       },
       {
-        "timestamp": "2025-05-08T14:56:26.725354",
-        "value": 0.0
+        "timestamp": "2025-05-08T14:57:11.404046",
+        "value": 39.1
       }
     ],
     "disk_usage": [
@@ -293,7 +293,7 @@
         "value": 55.73974689272185
       },
       {
-        "timestamp": "2025-05-08T14:56:26.725354",
+        "timestamp": "2025-05-08T14:57:11.404046",
         "value": 49.9
       }
     ]
@@ -312,7 +312,7 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 106.5924836976815,
+    "avg_session_duration": 98.21202903386063,
     "session_history": [
       {
         "id": 6,
@@ -377,9 +377,9 @@
     ],
     "session_frequency": [],
     "feature_usage": {
-      "training": 8,
+      "training": 7,
       "recommendations": 5,
-      "logs": 4,
+      "logs": 5,
       "settings": 2,
       "dashboard": 3
     },
@@ -511,12 +511,12 @@
         "feature": "training"
       },
       {
-        "timestamp": "2025-05-08T14:56:28.070845",
+        "timestamp": "2025-05-08T14:57:12.631608",
         "hour": 14,
         "day_of_week": 3,
-        "feature": "training"
+        "feature": "logs"
       }
     ]
   },
-  "last_updated": "2025-05-08T14:56:28.070868"
+  "last_updated": "2025-05-08T14:57:12.631626"
 }
