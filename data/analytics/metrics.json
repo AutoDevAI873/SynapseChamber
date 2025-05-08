@@ -44,6 +44,10 @@
       {
         "timestamp": "2025-05-07T15:24:04.985845",
         "value": 73.07100760681435
+      },
+      {
+        "timestamp": "2025-05-08T09:21:40.678950",
+        "value": 74.56032524198024
       }
     ],
     "response_times": [],
@@ -91,6 +95,10 @@
       {
         "timestamp": "2025-05-07T15:24:04.985896",
         "value": 216.86714404912843
+      },
+      {
+        "timestamp": "2025-05-08T09:21:40.679009",
+        "value": 248.50761886516273
       }
     ],
     "error_rates": [
@@ -137,6 +145,10 @@
       {
         "timestamp": "2025-05-07T15:24:04.985902",
         "value": 3.9493358544744464
+      },
+      {
+        "timestamp": "2025-05-08T09:21:40.679019",
+        "value": 4.640333719359503
       }
     ],
     "uptime": []
@@ -155,7 +167,7 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 179.54737348023636,
+    "avg_session_duration": 258.70567223047715,
     "session_history": [
       {
         "id": 6,
@@ -215,7 +227,8 @@
   },
   "user_engagement": {
     "active_days": [
-      "2025-05-07"
+      "2025-05-07",
+      "2025-05-08"
     ],
     "session_frequency": [],
     "feature_usage": {
@@ -223,7 +236,7 @@
       "recommendations": 3,
       "logs": 2,
       "settings": 2,
-      "dashboard": 2
+      "dashboard": 3
     },
     "interaction_patterns": [
       {
@@ -291,8 +304,14 @@
         "hour": 15,
         "day_of_week": 2,
         "feature": "recommendations"
+      },
+      {
+        "timestamp": "2025-05-08T09:21:42.334462",
+        "hour": 9,
+        "day_of_week": 3,
+        "feature": "dashboard"
       }
     ]
   },
-  "last_updated": "2025-05-07T15:24:08.564646"
+  "last_updated": "2025-05-08T09:21:42.334479"
 }

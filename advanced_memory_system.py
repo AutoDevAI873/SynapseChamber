@@ -762,13 +762,16 @@ class AdvancedMemorySystem:
         finally:
             self._return_db_connection(conn)
     
-    def store_context(self, context_name, context_data):
+    def store_context(self, context_name, context_data, metadata=None, source=None, priority=0.5):
         """
         Store a memory context (for context-aware retrieval)
         
         Args:
             context_name (str): Name/identifier for the context
             context_data (dict): Context data
+            metadata (dict, optional): Additional metadata about the context
+            source (str, optional): Source of the context (user, system, platform name)
+            priority (float, optional): Priority score (0.0-1.0) for context importance
             
         Returns:
             int: Context ID, or None if failed
@@ -791,29 +794,93 @@ class AdvancedMemorySystem:
                 
                 existing = cursor.fetchone()
                 
+                # Add version tracking for context history
+                version = 1
+                
+                # Prepare metadata with enhanced tracking
+                enhanced_metadata = metadata or {}
+                
+                # Add source information if provided
+                if source:
+                    enhanced_metadata['source'] = source
+                
+                # Add context tracking information
+                enhanced_metadata['priority'] = priority
+                enhanced_metadata['accessed_count'] = 0
+                enhanced_metadata['last_accessed'] = None
+                
                 if existing:
-                    # Update existing context
+                    # Get existing metadata to update version
+                    cursor.execute("""
+                        SELECT context_data, context_name FROM memory_contexts
+                        WHERE id = %s
+                    """, (existing[0],))
+                    
+                    existing_data = cursor.fetchone()
+                    if existing_data and existing_data[0]:
+                        try:
+                            existing_json = json.loads(existing_data[0])
+                            existing_meta = existing_json.get('_metadata', {})
+                            version = existing_meta.get('version', 0) + 1
+                            
+                            # Preserve access count if it exists
+                            if 'accessed_count' in existing_meta:
+                                enhanced_metadata['accessed_count'] = existing_meta['accessed_count']
+                            
+                            # Preserve last accessed timestamp if it exists
+                            if 'last_accessed' in existing_meta:
+                                enhanced_metadata['last_accessed'] = existing_meta['last_accessed']
+                        except Exception as json_err:
+                            self.logger.warning(f"Error parsing existing context metadata: {str(json_err)}")
+                    
+                    # Update existing context with version tracking
+                    enhanced_metadata['version'] = version
+                    enhanced_metadata['updated_at'] = datetime.datetime.now().isoformat()
+                    
+                    # Add metadata to context data
+                    context_data_with_meta = {
+                        'data': context_data,
+                        '_metadata': enhanced_metadata
+                    }
+                    
                     cursor.execute("""
                         UPDATE memory_contexts
                         SET context_data = %s, updated_at = CURRENT_TIMESTAMP
                         WHERE id = %s
                         RETURNING id
-                    """, (json.dumps(context_data), existing[0]))
+                    """, (json.dumps(context_data_with_meta), existing[0]))
                     
                     context_id = cursor.fetchone()[0]
+                    self.logger.info(f"Updated context {context_name} (version {version}) with ID {context_id}")
                 else:
+                    # Initialize metadata for new context
+                    enhanced_metadata['version'] = version
+                    enhanced_metadata['created_at'] = datetime.datetime.now().isoformat()
+                    enhanced_metadata['updated_at'] = datetime.datetime.now().isoformat()
+                    
+                    # Add metadata to context data
+                    context_data_with_meta = {
+                        'data': context_data,
+                        '_metadata': enhanced_metadata
+                    }
+                    
                     # Insert new context
                     cursor.execute("""
                         INSERT INTO memory_contexts
                         (context_name, context_data)
                         VALUES (%s, %s)
                         RETURNING id
-                    """, (context_name, json.dumps(context_data)))
+                    """, (context_name, json.dumps(context_data_with_meta)))
                     
                     context_id = cursor.fetchone()[0]
+                    self.logger.info(f"Created new context {context_name} (version {version}) with ID {context_id}")
                 
                 conn.commit()
-                self.logger.info(f"Stored context {context_name} with ID {context_id}")
+                
+                # Add the context to the memory links graph if enabled
+                if context_id and context_data.get('related_memories'):
+                    self._link_context_to_memories(conn, context_id, context_data.get('related_memories'))
+                
                 return context_id
         except Exception as e:
             conn.rollback()
@@ -821,6 +888,40 @@ class AdvancedMemorySystem:
             return None
         finally:
             self._return_db_connection(conn)
+            
+    def _link_context_to_memories(self, conn, context_id, memory_ids):
+        """
+        Create links between a context and related memories
+        
+        Args:
+            conn: Database connection
+            context_id (int): ID of the context
+            memory_ids (list): List of memory IDs to link to the context
+        """
+        if not memory_ids or not isinstance(memory_ids, list):
+            return
+            
+        try:
+            with conn.cursor() as cursor:
+                # Create links for each memory ID
+                for memory_id in memory_ids:
+                    # Skip invalid IDs
+                    if not memory_id:
+                        continue
+                        
+                    # Create a link using memory_links table
+                    cursor.execute("""
+                        INSERT INTO memory_links
+                        (source_id, target_id, link_type, weight)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT DO NOTHING
+                    """, (memory_id, context_id, 'context_association', 0.8))
+                    
+            conn.commit()
+            self.logger.info(f"Linked context {context_id} to {len(memory_ids)} memories")
+        except Exception as e:
+            conn.rollback()
+            self.logger.error(f"Error linking context to memories: {str(e)}")
     
     def get_context(self, context_name):
         """
