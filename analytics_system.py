@@ -19,18 +19,27 @@ class AnalyticsSystem:
     and generates visualizations for the dashboard
     """
     
-    def __init__(self, memory_system):
+    def __init__(self, memory_system, performance_monitor=None):
         self.logger = logging.getLogger(__name__)
         self.memory_system = memory_system
         self.analytics_dir = "data/analytics"
         self.metrics = {}
         self.last_metrics_update = None
+        self.performance_monitor = performance_monitor
         
         # Ensure analytics directory exists
         os.makedirs(self.analytics_dir, exist_ok=True)
         
         # Initialize metrics storage
         self._init_metrics()
+        
+        # Start performance monitoring if monitor is provided
+        if self.performance_monitor and not self.performance_monitor.monitoring:
+            try:
+                self.performance_monitor.start_monitoring()
+                self.logger.info("Started performance monitoring")
+            except Exception as e:
+                self.logger.error(f"Failed to start performance monitoring: {str(e)}")
         
     def _init_metrics(self):
         """Initialize metrics structure"""
@@ -145,9 +154,68 @@ class AnalyticsSystem:
     
     def _update_system_performance(self):
         """Update system performance metrics"""
-        # This would normally use system monitoring tools
-        # For now, we'll use simulated data
-        
+        # If we have an integrated performance monitor, use its data
+        if hasattr(self, 'performance_monitor') and self.performance_monitor:
+            try:
+                # Get current metrics from the performance monitor
+                current_metrics = self.performance_monitor.get_current_metrics()
+                timestamp = datetime.datetime.now().isoformat()
+                
+                # Update memory usage from real data
+                if 'memory' in current_metrics and 'usage_percent' in current_metrics['memory']:
+                    mem_usage = {'timestamp': timestamp, 'value': current_metrics['memory']['usage_percent']}
+                    self.metrics['system_performance']['memory_usage'].append(mem_usage)
+                else:
+                    # Fallback to simulated data
+                    mem_usage = {'timestamp': timestamp, 'value': np.random.uniform(30, 80)}
+                    self.metrics['system_performance']['memory_usage'].append(mem_usage)
+                
+                # Update API latency (we don't have direct API latency in performance monitor, use simulated)
+                api_latency = {'timestamp': timestamp, 'value': np.random.uniform(50, 500)}
+                self.metrics['system_performance']['api_latency'].append(api_latency)
+                
+                # Update error rate (using network errors or disk errors as proxy if available)
+                if 'network' in current_metrics and 'errors' in current_metrics['network']:
+                    error_value = current_metrics['network']['errors']
+                    error_rate = {'timestamp': timestamp, 'value': min(5.0, error_value)}  # Cap at 5%
+                else:
+                    # Fallback to simulated data
+                    error_rate = {'timestamp': timestamp, 'value': np.random.uniform(0, 5)}
+                
+                self.metrics['system_performance']['error_rates'].append(error_rate)
+                
+                # Add response times if available
+                if 'network' in current_metrics and 'bytes_recv' in current_metrics['network']:
+                    response_time = {'timestamp': timestamp, 'value': current_metrics['network']['bytes_recv'] / 1024}  # KB
+                    if 'response_times' in self.metrics['system_performance']:
+                        self.metrics['system_performance']['response_times'].append(response_time)
+                
+                # Add CPU usage
+                if 'cpu' in current_metrics and 'usage_percent' in current_metrics['cpu']:
+                    cpu_usage = {'timestamp': timestamp, 'value': current_metrics['cpu']['usage_percent']}
+                    if 'cpu_usage' not in self.metrics['system_performance']:
+                        self.metrics['system_performance']['cpu_usage'] = []
+                    self.metrics['system_performance']['cpu_usage'].append(cpu_usage)
+                
+                # Add disk usage
+                if 'disk' in current_metrics and 'usage_percent' in current_metrics['disk']:
+                    disk_usage = {'timestamp': timestamp, 'value': current_metrics['disk']['usage_percent']}
+                    if 'disk_usage' not in self.metrics['system_performance']:
+                        self.metrics['system_performance']['disk_usage'] = []
+                    self.metrics['system_performance']['disk_usage'].append(disk_usage)
+                
+                self.logger.debug("Updated system performance metrics from performance monitor")
+                
+            except Exception as e:
+                self.logger.error(f"Error getting metrics from performance monitor: {str(e)}")
+                # Fall back to simulated data in case of error
+                self._update_system_performance_simulated()
+        else:
+            # No performance monitor, use simulated data
+            self._update_system_performance_simulated()
+    
+    def _update_system_performance_simulated(self):
+        """Update system performance metrics with simulated data"""
         # Record memory usage (simulated)
         mem_usage = {'timestamp': datetime.datetime.now().isoformat(), 'value': np.random.uniform(30, 80)}
         self.metrics['system_performance']['memory_usage'].append(mem_usage)
@@ -171,6 +239,28 @@ class AnalyticsSystem:
         # Limit history length
         if len(self.metrics['system_performance']['error_rates']) > 1000:
             self.metrics['system_performance']['error_rates'] = self.metrics['system_performance']['error_rates'][-1000:]
+        
+        # Add CPU usage if not present
+        if 'cpu_usage' not in self.metrics['system_performance']:
+            self.metrics['system_performance']['cpu_usage'] = []
+        
+        cpu_usage = {'timestamp': datetime.datetime.now().isoformat(), 'value': np.random.uniform(10, 90)}
+        self.metrics['system_performance']['cpu_usage'].append(cpu_usage)
+        
+        # Limit history length
+        if len(self.metrics['system_performance']['cpu_usage']) > 1000:
+            self.metrics['system_performance']['cpu_usage'] = self.metrics['system_performance']['cpu_usage'][-1000:]
+            
+        # Add disk usage if not present
+        if 'disk_usage' not in self.metrics['system_performance']:
+            self.metrics['system_performance']['disk_usage'] = []
+        
+        disk_usage = {'timestamp': datetime.datetime.now().isoformat(), 'value': np.random.uniform(30, 70)}
+        self.metrics['system_performance']['disk_usage'].append(disk_usage)
+        
+        # Limit history length
+        if len(self.metrics['system_performance']['disk_usage']) > 1000:
+            self.metrics['system_performance']['disk_usage'] = self.metrics['system_performance']['disk_usage'][-1000:]
     
     def _update_training_metrics(self):
         """Update training metrics from thread data"""

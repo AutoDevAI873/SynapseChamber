@@ -76,6 +76,14 @@
       {
         "timestamp": "2025-05-08T14:38:48.752481",
         "value": 31.501155435192526
+      },
+      {
+        "timestamp": "2025-05-08T14:43:28.624568",
+        "value": 63.76475157653489
+      },
+      {
+        "timestamp": "2025-05-08T14:52:11.844663",
+        "value": 50.93056646791432
       }
     ],
     "response_times": [],
@@ -155,6 +163,14 @@
       {
         "timestamp": "2025-05-08T14:38:48.752565",
         "value": 286.1232195347779
+      },
+      {
+        "timestamp": "2025-05-08T14:43:28.624644",
+        "value": 473.64468194595617
+      },
+      {
+        "timestamp": "2025-05-08T14:52:11.844710",
+        "value": 65.01756425685575
       }
     ],
     "error_rates": [
@@ -233,9 +249,29 @@
       {
         "timestamp": "2025-05-08T14:38:48.752576",
         "value": 2.607551850919087
+      },
+      {
+        "timestamp": "2025-05-08T14:43:28.624655",
+        "value": 4.257464566266454
+      },
+      {
+        "timestamp": "2025-05-08T14:52:11.844715",
+        "value": 0.4424558263590045
       }
     ],
-    "uptime": []
+    "uptime": [],
+    "cpu_usage": [
+      {
+        "timestamp": "2025-05-08T14:52:11.844720",
+        "value": 23.726782803071824
+      }
+    ],
+    "disk_usage": [
+      {
+        "timestamp": "2025-05-08T14:52:11.844724",
+        "value": 55.73974689272185
+      }
+    ]
   },
   "training_metrics": {
     "sessions_total": 6,
@@ -251,7 +287,7 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 112.84189534346537,
+    "avg_session_duration": 188.33943012320566,
     "session_history": [
       {
         "id": 6,
@@ -316,8 +352,8 @@
     ],
     "session_frequency": [],
     "feature_usage": {
-      "training": 6,
-      "recommendations": 4,
+      "training": 7,
+      "recommendations": 5,
       "logs": 4,
       "settings": 2,
       "dashboard": 3
@@ -436,8 +472,20 @@
         "hour": 14,
         "day_of_week": 3,
         "feature": "recommendations"
+      },
+      {
+        "timestamp": "2025-05-08T14:43:29.996643",
+        "hour": 14,
+        "day_of_week": 3,
+        "feature": "recommendations"
+      },
+      {
+        "timestamp": "2025-05-08T14:52:13.258209",
+        "hour": 14,
+        "day_of_week": 3,
+        "feature": "training"
       }
     ]
   },
-  "last_updated": "2025-05-08T14:38:54.080704"
+  "last_updated": "2025-05-08T14:52:13.258232"
 }
