@@ -59,6 +59,7 @@ from gamification_system import GamificationSystem
 from assistant_chatbot import AssistantChatbot
 from advanced_memory_system import AdvancedMemorySystem
 from self_training_system import SelfTrainingSystem
+from ai_conversation_manager import AIConversationManager
 
 # Create advanced components
 recommendation_engine = RecommendationEngine(memory_system)
@@ -67,6 +68,7 @@ gamification_system = GamificationSystem(memory_system)
 advanced_memory = AdvancedMemorySystem(memory_system)
 assistant = AssistantChatbot(memory_system, recommendation_engine, analytics_system, gamification_system)
 self_training = SelfTrainingSystem(training_manager, memory_system, analytics_system, ai_controller)
+ai_conversation_manager = AIConversationManager(memory_system, browser_automation)
 
 # Enable self-training (starts a background thread)
 try:
