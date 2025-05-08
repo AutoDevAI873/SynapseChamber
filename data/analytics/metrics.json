@@ -100,6 +100,10 @@
       {
         "timestamp": "2025-05-08T15:06:33.343092",
         "value": 85.4
+      },
+      {
+        "timestamp": "2025-05-08T15:08:13.189499",
+        "value": 83.6
       }
     ],
     "response_times": [
@@ -118,6 +122,10 @@
       {
         "timestamp": "2025-05-08T15:06:33.343092",
         "value": 3.5748893362835745
+      },
+      {
+        "timestamp": "2025-05-08T15:08:13.189499",
+        "value": 0.0
       }
     ],
     "api_latency": [
@@ -220,6 +228,10 @@
       {
         "timestamp": "2025-05-08T15:06:33.343092",
         "value": 389.0805048132638
+      },
+      {
+        "timestamp": "2025-05-08T15:08:13.189499",
+        "value": 435.98652129013215
       }
     ],
     "error_rates": [
@@ -322,6 +334,10 @@
       {
         "timestamp": "2025-05-08T15:06:33.343092",
         "value": 0.6144505141227619
+      },
+      {
+        "timestamp": "2025-05-08T15:08:13.189499",
+        "value": 2.5564306780366506
       }
     ],
     "uptime": [],
@@ -345,6 +361,10 @@
       {
         "timestamp": "2025-05-08T15:06:33.343092",
         "value": 49.3
+      },
+      {
+        "timestamp": "2025-05-08T15:08:13.189499",
+        "value": 0.0
       }
     ],
     "disk_usage": [
@@ -367,6 +387,10 @@
       {
         "timestamp": "2025-05-08T15:06:33.343092",
         "value": 50.0
+      },
+      {
+        "timestamp": "2025-05-08T15:08:13.189499",
+        "value": 50.0
       }
     ]
   },
@@ -384,7 +408,7 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 210.76407304692705,
+    "avg_session_duration": 193.47039549040022,
     "session_history": [
       {
         "id": 6,
@@ -452,7 +476,7 @@
       "training": 7,
       "recommendations": 6,
       "logs": 6,
-      "settings": 2,
+      "settings": 3,
       "dashboard": 4
     },
     "interaction_patterns": [
@@ -605,8 +629,14 @@
         "hour": 15,
         "day_of_week": 3,
         "feature": "recommendations"
+      },
+      {
+        "timestamp": "2025-05-08T15:08:14.442026",
+        "hour": 15,
+        "day_of_week": 3,
+        "feature": "settings"
       }
     ]
   },
-  "last_updated": "2025-05-08T15:06:34.644684"
+  "last_updated": "2025-05-08T15:08:14.442047"
 }

@@ -254,41 +254,161 @@ def get_recent_commands():
     ]
     return jsonify({"status": "success", "commands": recent_commands})
     
+# File operation APIs used by the dock component and code editor
 @app.route('/api/files/list', methods=['GET'])
 def get_file_list():
     """List files for the code editor file explorer"""
-    path = request.args.get('path', '/')
-    # This would normally list files from the filesystem
-    files = [
-        {"name": "main.py", "type": "file", "path": "/main.py", "language": "python"},
-        {"name": "app.py", "type": "file", "path": "/app.py", "language": "python"},
-        {"name": "templates", "type": "directory", "path": "/templates"}
-    ]
-    return jsonify({"status": "success", "files": files})
-    
-@app.route('/api/files/get', methods=['GET'])
-def get_file_content():
-    """Get file content for the code editor"""
-    path = request.args.get('path')
-    if not path:
-        return jsonify({"status": "error", "message": "Path is required"}), 400
+    try:
+        base_path = os.path.abspath('.')
+        path = request.args.get('path', base_path)
         
-    # This would normally read from the actual file
-    content = "# Sample file content\nprint('Hello, world!')"
-    return jsonify({"status": "success", "content": content})
+        # Ensure the path is within the project directory
+        if not os.path.abspath(path).startswith(base_path):
+            return jsonify({"status": "error", "message": "Invalid path"}), 400
+            
+        # Get all files and directories in the path
+        items = []
+        for item in os.listdir(path):
+            if item.startswith('.'):
+                continue  # Skip hidden files
+                
+            item_path = os.path.join(path, item)
+            item_type = "dir" if os.path.isdir(item_path) else "file"
+            
+            # Determine language for code files
+            language = None
+            if item_type == "file":
+                ext = os.path.splitext(item)[1].lower()
+                if ext == '.py':
+                    language = 'python'
+                elif ext == '.js':
+                    language = 'javascript'
+                elif ext == '.html':
+                    language = 'html'
+                elif ext == '.css':
+                    language = 'css'
+                elif ext == '.json':
+                    language = 'json'
+                elif ext == '.md':
+                    language = 'markdown'
+                
+            # Create the item entry
+            file_entry = {
+                "name": item,
+                "type": item_type,
+                "path": os.path.relpath(item_path, base_path)
+            }
+            
+            if language:
+                file_entry["language"] = language
+                
+            # If it's a directory, get its children
+            if item_type == "dir":
+                children = []
+                try:
+                    for child in os.listdir(item_path):
+                        if child.startswith('.'):
+                            continue
+                        
+                        child_path = os.path.join(item_path, child)
+                        child_type = "dir" if os.path.isdir(child_path) else "file"
+                        
+                        child_entry = {
+                            "name": child,
+                            "type": child_type,
+                            "path": os.path.relpath(child_path, base_path)
+                        }
+                        children.append(child_entry)
+                    
+                    file_entry["children"] = children
+                except (PermissionError, OSError) as e:
+                    app.logger.error(f"Error listing directory contents: {e}")
+            
+            items.append(file_entry)
+            
+        return jsonify({"status": "success", "files": items})
+    except Exception as e:
+        app.logger.error(f"Error listing files: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    
+@app.route('/api/files/open', methods=['GET'])
+def open_file():
+    """Get file content for the code editor"""
+    try:
+        base_path = os.path.abspath('.')
+        path = request.args.get('path')
+        
+        if not path:
+            return jsonify({"status": "error", "message": "Path is required"}), 400
+            
+        file_path = os.path.join(base_path, path.lstrip('/'))
+        
+        # Security check - ensure the file is within the project directory
+        if not os.path.abspath(file_path).startswith(base_path):
+            return jsonify({"status": "error", "message": "Invalid path"}), 400
+            
+        if not os.path.isfile(file_path):
+            return jsonify({"status": "error", "message": "File not found"}), 404
+            
+        # Determine language from file extension
+        ext = os.path.splitext(file_path)[1].lower()
+        language = "text"
+        if ext == '.py':
+            language = 'python'
+        elif ext == '.js':
+            language = 'javascript'
+        elif ext == '.html':
+            language = 'html'
+        elif ext == '.css':
+            language = 'css'
+        elif ext == '.json':
+            language = 'json'
+        elif ext == '.md':
+            language = 'markdown'
+            
+        # Read file content
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+        return jsonify({
+            "status": "success",
+            "content": content,
+            "language": language,
+            "path": path
+        })
+    except Exception as e:
+        app.logger.error(f"Error opening file: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
     
 @app.route('/api/files/save', methods=['POST'])
 def save_file():
     """Save file content from the code editor"""
-    data = request.json
-    path = data.get('path')
-    content = data.get('content')
-    
-    if not path or content is None:
-        return jsonify({"status": "error", "message": "Path and content are required"}), 400
+    try:
+        base_path = os.path.abspath('.')
+        data = request.json
+        path = data.get('path')
+        content = data.get('content')
         
-    # This would normally save to the actual file
-    return jsonify({"status": "success"})
+        if not path or content is None:
+            return jsonify({"status": "error", "message": "Path and content are required"}), 400
+            
+        file_path = os.path.join(base_path, path.lstrip('/'))
+        
+        # Security check - ensure the file is within the project directory
+        if not os.path.abspath(file_path).startswith(base_path):
+            return jsonify({"status": "error", "message": "Invalid path"}), 400
+            
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            
+        # Save the file
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+            
+        return jsonify({"status": "success", "message": "File saved successfully"})
+    except Exception as e:
+        app.logger.error(f"Error saving file: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/ai_interaction')
 def ai_interaction():
@@ -884,83 +1004,13 @@ def sync_memory():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # File System API routes
-@app.route('/api/files/list')
-def list_files():
-    """List files in the project"""
-    try:
-        base_path = os.path.abspath('.')
-        path = request.args.get('path', base_path)
-        
-        # Security check
-        requested_path = os.path.abspath(path)
-        if not requested_path.startswith(base_path):
-            return jsonify({"status": "error", "message": "Access denied"}), 403
-        
-        # Generate file tree structure
-        files = []
-        
-        for root, dirs, filenames in os.walk(requested_path):
-            # Skip hidden folders and files
-            dirs[:] = [d for d in dirs if not d.startswith('.')]
-            
-            # Create relative path from the base path
-            rel_path = os.path.relpath(root, base_path)
-            if rel_path == '.':
-                rel_path = ''
-            
-            # Current directory as a node
-            current_dir = {
-                'name': os.path.basename(root) or '/',
-                'path': rel_path or '/',
-                'type': 'dir',
-                'children': []
-            }
-            
-            # Add files
-            for filename in sorted([f for f in filenames if not f.startswith('.')]):
-                file_path = os.path.join(rel_path, filename)
-                current_dir['children'].append({
-                    'name': filename,
-                    'path': file_path,
-                    'type': 'file'
-                })
-            
-            # Add to files list if this is the requested directory
-            if root == requested_path:
-                files = current_dir['children']
-                
-                # Add directories as separate entries
-                for dirname in sorted(dirs):
-                    dir_path = os.path.join(rel_path, dirname)
-                    # Get subdirectories and files
-                    sub_entries = []
-                    sub_path = os.path.join(requested_path, dirname)
-                    
-                    if os.path.isdir(sub_path):
-                        for sub_entry in sorted(os.listdir(sub_path)):
-                            if not sub_entry.startswith('.'):
-                                entry_path = os.path.join(dir_path, sub_entry)
-                                entry_type = 'dir' if os.path.isdir(os.path.join(sub_path, sub_entry)) else 'file'
-                                sub_entries.append({
-                                    'name': sub_entry,
-                                    'path': entry_path,
-                                    'type': entry_type
-                                })
-                    
-                    files.append({
-                        'name': dirname,
-                        'path': dir_path,
-                        'type': 'dir',
-                        'children': sub_entries
-                    })
-        
-        return jsonify({"status": "success", "files": files})
-    except Exception as e:
-        logger.error(f"Error listing files: {str(e)}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+# This is a comment to indicate this route was removed to fix duplicate route errors
+# The route '/api/files/list' is already defined earlier in the file
+# Similarly, '/api/files/open' is also defined earlier
+# TODO: Consolidate file operation routes in one section
 
-@app.route('/api/files/open')
-def open_file():
+# @app.route('/api/files/open')
+def open_file_duplicate():
     """Open a file and return its content"""
     try:
         base_path = os.path.abspath('.')
