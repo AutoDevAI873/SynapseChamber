@@ -485,25 +485,108 @@ class SelfTrainingSystem:
             
         topic_lower = topic.lower()
         
-        # Simple mapping based on keywords
-        if 'natural language' in topic_lower or 'nlp' in topic_lower:
-            return 'natural_language_processing'
-        elif 'api' in topic_lower:
-            return 'api_integration'
-        elif 'error' in topic_lower:
-            return 'error_handling'
-        elif 'file' in topic_lower:
-            return 'file_operations'
-        elif 'automat' in topic_lower or 'browser' in topic_lower:
-            return 'automation'
-        elif 'reason' in topic_lower or 'logic' in topic_lower:
-            return 'reasoning'
-        elif 'problem' in topic_lower or 'solve' in topic_lower:
-            return 'problem_solving'
-        elif 'improve' in topic_lower or 'learn' in topic_lower:
-            return 'self_improvement'
+        # Enhanced capability areas with more granular classification
+        capability_mapping = {
+            # Language Capabilities
+            'natural_language_processing': [
+                'natural language', 'nlp', 'language understanding', 'linguistics',
+                'text analysis', 'sentiment', 'parsing', 'language model'
+            ],
+            'creative_writing': [
+                'story', 'write', 'novel', 'creative', 'fiction', 'poem', 'narrative'
+            ],
+            'language_translation': [
+                'translate', 'translation', 'multilingual', 'language conversion'
+            ],
             
-        # Default
+            # Technical Capabilities
+            'code_generation': [
+                'code', 'programming', 'function', 'algorithm', 'development', 'software',
+                'class', 'method', 'implementation'
+            ],
+            'api_integration': [
+                'api', 'endpoint', 'integration', 'interface', 'service', 'request'
+            ],
+            'error_handling': [
+                'error', 'exception', 'handling', 'recovery', 'failure', 'fault'
+            ],
+            'file_operations': [
+                'file', 'io', 'read', 'write', 'save', 'load', 'storage'
+            ],
+            
+            # System Capabilities
+            'automation': [
+                'automat', 'browser', 'script', 'batch', 'workflow', 'process'
+            ],
+            'debugging': [
+                'debug', 'diagnose', 'fix', 'troubleshoot', 'issue', 'bug'
+            ],
+            'testing': [
+                'test', 'validation', 'verify', 'assertion', 'quality', 'unit test'
+            ],
+            
+            # Analytical Capabilities
+            'reasoning': [
+                'reason', 'logic', 'deduction', 'inference', 'critical thinking',
+                'analysis', 'evaluate'
+            ],
+            'problem_solving': [
+                'problem', 'solve', 'solution', 'resolve', 'approach', 'strategy'
+            ],
+            'decision_making': [
+                'decision', 'choose', 'select', 'prioritize', 'judgment', 'assessment'
+            ],
+            
+            # Learning Capabilities
+            'self_improvement': [
+                'improve', 'learn', 'adapt', 'growth', 'evolve', 'self-correction'
+            ],
+            'knowledge_acquisition': [
+                'knowledge', 'learn', 'study', 'research', 'explore', 'discover'
+            ],
+            'pattern_recognition': [
+                'pattern', 'recognize', 'identify', 'correlate', 'trend', 'similarity'
+            ],
+            
+            # Domain Capabilities
+            'domain_knowledge': [
+                'domain', 'specialized', 'field', 'industry', 'specific', 'expert'
+            ],
+            'research': [
+                'research', 'investigate', 'analyze', 'study', 'examine', 'inquiry'
+            ],
+            'data_analysis': [
+                'data', 'analysis', 'statistics', 'metrics', 'insights', 'analytics'
+            ],
+            
+            # Interaction Capabilities
+            'human_interaction': [
+                'interaction', 'communication', 'human', 'interface', 'dialogue', 'conversation'
+            ],
+            'instruction_following': [
+                'instruction', 'direction', 'guidance', 'command', 'follow', 'execute'
+            ],
+            'explanation': [
+                'explain', 'clarify', 'elaborate', 'describe', 'detail', 'simplify'
+            ]
+        }
+        
+        # Find the best matching capability area
+        best_match = None
+        max_matches = 0
+        
+        for capability, keywords in capability_mapping.items():
+            # Count how many keywords match the topic
+            matches = sum(1 for keyword in keywords if keyword in topic_lower)
+            if matches > max_matches:
+                max_matches = matches
+                best_match = capability
+        
+        # If we found a match, return it
+        if max_matches > 0:
+            return best_match
+        
+        # Default capability area if no match found
         return 'general'
     
     def _perform_gap_analysis(self):

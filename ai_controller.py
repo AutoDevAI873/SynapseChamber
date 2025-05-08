@@ -14,6 +14,75 @@ class AIController:
         self.captcha_solver = captcha_solver
         self.memory_system = memory_system
         
+        # Platform synergy tracking
+        self.platform_strengths = {
+            "gpt": {
+                "coding": 0.85,
+                "reasoning": 0.90,
+                "creativity": 0.80,
+                "technical_precision": 0.85,
+                "instruction_following": 0.87
+            },
+            "gemini": {
+                "coding": 0.82,
+                "reasoning": 0.88,
+                "creativity": 0.83,
+                "technical_precision": 0.80,
+                "multimodal": 0.92
+            },
+            "deepseek": {
+                "coding": 0.90,
+                "reasoning": 0.85,
+                "creativity": 0.75,
+                "technical_precision": 0.92,
+                "problem_solving": 0.88
+            },
+            "claude": {
+                "coding": 0.80,
+                "reasoning": 0.92,
+                "creativity": 0.85,
+                "safety": 0.95,
+                "instruction_following": 0.90
+            },
+            "grok": {
+                "coding": 0.80,
+                "reasoning": 0.82,
+                "creativity": 0.88,
+                "technical_precision": 0.78,
+                "problem_solving": 0.84
+            }
+        }
+        
+        # Track platform performance over time
+        self.platform_performance_history = {}
+        
+        # Cross-platform synergy metrics
+        self.cross_platform_synergy = {
+            ("gpt", "claude"): 0.85,
+            ("gpt", "gemini"): 0.80,
+            ("gpt", "deepseek"): 0.82,
+            ("gpt", "grok"): 0.75,
+            ("claude", "gemini"): 0.78,
+            ("claude", "deepseek"): 0.80,
+            ("claude", "grok"): 0.76,
+            ("gemini", "deepseek"): 0.77,
+            ("gemini", "grok"): 0.75,
+            ("deepseek", "grok"): 0.72
+        }
+        
+        # Topic specialization mapping
+        self.topic_specializations = {
+            "code_generation": ["deepseek", "gpt", "claude"],
+            "debug_assistance": ["deepseek", "gpt", "claude"],
+            "algorithm_design": ["deepseek", "gpt", "claude"],
+            "creative_writing": ["claude", "gpt", "gemini"],
+            "safety_critical": ["claude", "gemini"],
+            "data_analysis": ["gpt", "gemini", "deepseek"],
+            "reasoning": ["claude", "gpt", "gemini"],
+            "multimodal": ["gemini", "gpt"],
+            "problem_solving": ["deepseek", "claude", "gpt"]
+        }
+        
         # Predefined fallback responses for when browser automation fails
         self.fallback_responses = {
             "gpt": "I'm sorry, I couldn't connect to OpenAI's ChatGPT at the moment due to technical issues. Please try again later or consider trying a different AI platform.",
@@ -92,13 +161,162 @@ class AIController:
             }
         }
     
-    def interact_with_ai(self, platform, prompt, subject=None, goal=None):
+    def recommend_platform(self, prompt, task_type=None):
+        """
+        Recommend the best AI platform for a given prompt and task type
+        
+        Args:
+            prompt (str): The prompt to be sent to the AI
+            task_type (str, optional): Type of task (coding, reasoning, creativity, etc.)
+            
+        Returns:
+            list: Ranked list of platform recommendations
+        """
+        # Extract keywords from prompt to determine task type if not provided
+        if not task_type:
+            task_type = self._detect_task_type(prompt)
+            
+        # If task is a known topic specialization, use predefined ranking
+        if task_type in self.topic_specializations:
+            return self.topic_specializations[task_type]
+            
+        # Else, rank platforms based on their strength for the task type
+        rankings = []
+        for platform, strengths in self.platform_strengths.items():
+            # Calculate score for this platform based on relevant strengths
+            if task_type in strengths:
+                score = strengths[task_type]
+            else:
+                # Use average of strengths if specific task type not found
+                score = sum(strengths.values()) / len(strengths)
+            
+            rankings.append((platform, score))
+            
+        # Sort by score (highest first)
+        rankings.sort(key=lambda x: x[1], reverse=True)
+        
+        # Return just the platform names in ranked order
+        return [r[0] for r in rankings]
+    
+    def _detect_task_type(self, prompt):
+        """
+        Detect the type of task from a prompt
+        
+        Args:
+            prompt (str): The prompt to analyze
+            
+        Returns:
+            str: Detected task type
+        """
+        prompt_lower = prompt.lower()
+        
+        # Check for coding tasks
+        if any(keyword in prompt_lower for keyword in ['code', 'function', 'class', 'program', 'algorithm', 'implement']):
+            return 'coding'
+            
+        # Check for creative tasks
+        if any(keyword in prompt_lower for keyword in ['write', 'create', 'generate', 'story', 'article', 'poem']):
+            return 'creativity'
+            
+        # Check for reasoning tasks
+        if any(keyword in prompt_lower for keyword in ['explain', 'why', 'analyze', 'understand', 'reason']):
+            return 'reasoning'
+            
+        # Check for technical precision tasks
+        if any(keyword in prompt_lower for keyword in ['technical', 'precise', 'exact', 'detail', 'specification']):
+            return 'technical_precision'
+            
+        # Check for problem-solving tasks
+        if any(keyword in prompt_lower for keyword in ['solve', 'solution', 'problem', 'fix', 'debug', 'error']):
+            return 'problem_solving'
+            
+        # Default to reasoning as a general-purpose category
+        return 'reasoning'
+    
+    def update_platform_performance(self, platform, task_type, success_score):
+        """
+        Update platform performance metrics based on interaction results
+        
+        Args:
+            platform (str): The AI platform used
+            task_type (str): Type of task attempted
+            success_score (float): Success score (0.0-1.0)
+            
+        Returns:
+            dict: Updated performance metrics
+        """
+        # Initialize platform history if needed
+        if platform not in self.platform_performance_history:
+            self.platform_performance_history[platform] = {
+                'total_interactions': 0,
+                'success_rate': 0.0,
+                'task_success': {},
+                'recent_scores': []
+            }
+            
+        # Update platform history
+        history = self.platform_performance_history[platform]
+        history['total_interactions'] += 1
+        
+        # Update task-specific success rate
+        if task_type not in history['task_success']:
+            history['task_success'][task_type] = {
+                'attempts': 0,
+                'success_rate': 0.0
+            }
+            
+        task_history = history['task_success'][task_type]
+        task_history['attempts'] += 1
+        
+        # Update rolling average (last 10 attempts)
+        task_history['success_rate'] = ((task_history['success_rate'] * (task_history['attempts'] - 1)) + 
+                                        success_score) / task_history['attempts']
+        
+        # Add to recent scores (keep last 10)
+        history['recent_scores'].append((task_type, success_score, time.time()))
+        if len(history['recent_scores']) > 10:
+            history['recent_scores'].pop(0)
+            
+        # Update overall success rate
+        recent_scores = [score for _, score, _ in history['recent_scores']]
+        history['success_rate'] = sum(recent_scores) / len(recent_scores) if recent_scores else 0
+        
+        # Update platform strength based on performance
+        if platform in self.platform_strengths and task_type in self.platform_strengths[platform]:
+            current_strength = self.platform_strengths[platform][task_type]
+            # Gradual adaptation: 90% previous strength, 10% new performance
+            self.platform_strengths[platform][task_type] = (current_strength * 0.9) + (success_score * 0.1)
+            
+        return history
+
+    def interact_with_ai(self, platform, prompt, subject=None, goal=None, task_type=None):
         """
         Main method to interact with an AI platform
-        Returns a dictionary with the conversation data
+        
+        Args:
+            platform (str): The AI platform to use
+            prompt (str): The prompt to send
+            subject (str, optional): Subject of the conversation
+            goal (str, optional): Goal of the interaction
+            task_type (str, optional): Type of task (coding, reasoning, etc.)
+            
+        Returns:
+            dict: Conversation data
         """
         if platform not in self.platforms:
             raise ValueError(f"Unsupported AI platform: {platform}")
+        
+        # Detect task type if not provided
+        if not task_type:
+            task_type = self._detect_task_type(prompt)
+            
+        # Check if this platform is optimal for the task
+        platform_ranking = self.recommend_platform(prompt, task_type)
+        is_optimal = platform == platform_ranking[0]
+        
+        if not is_optimal:
+            self.logger.info(f"Note: {platform} is ranked #{platform_ranking.index(platform)+1} for {task_type} tasks. "
+                            f"Consider using {platform_ranking[0]} for optimal results.")
         
         platform_config = self.platforms[platform]
         
@@ -109,21 +327,33 @@ class AIController:
                 if driver is None:
                     # Return simulated response if browser fails to initialize
                     self.logger.warning("Browser failed to initialize, returning simulated response")
-                    return self._generate_fallback_response(platform, prompt)
+                    return self._generate_fallback_response(platform, prompt, task_type)
             
             # Create a new conversation in the memory system
             conversation_id = self.memory_system.create_conversation(platform, subject, goal)
             
+            # Store task context in memory
+            context_data = {
+                "platform": platform,
+                "task_type": task_type,
+                "is_optimal_platform": is_optimal,
+                "platform_ranking": platform_ranking,
+                "prompt_length": len(prompt),
+                "timestamp": time.time()
+            }
+            
+            self.memory_system.store_context(f"task_context_{conversation_id}", context_data)
+            
             # Try to navigate to the platform; use fallback if it fails
             if not self.browser.navigate_to(platform_config["url"]):
                 self.logger.warning(f"Failed to navigate to {platform}, returning simulated response")
-                return self._generate_fallback_response(platform, prompt)
+                return self._generate_fallback_response(platform, prompt, task_type)
             
             # Handle login if required
             if platform_config["login_required"]:
                 if not self._handle_login(platform):
                     self.logger.warning(f"Failed to log in to {platform}, returning simulated response")
-                    return self._generate_fallback_response(platform, prompt)
+                    return self._generate_fallback_response(platform, prompt, task_type)
             
             # Handle any CAPTCHA challenges
             self._check_for_captcha()
@@ -131,12 +361,24 @@ class AIController:
             # Send the prompt to the AI
             result = self._send_prompt(platform, prompt, conversation_id)
             
+            # Update platform performance metrics if successful
+            if result.get("status") == "success":
+                # Simple success score of 1.0 for successful completions
+                self.update_platform_performance(platform, task_type, 1.0)
+            else:
+                # Lower score for errors
+                self.update_platform_performance(platform, task_type, 0.3)
+            
             return result
             
         except Exception as e:
             self.logger.error(f"Error interacting with {platform}: {str(e)}")
             self.logger.error(traceback.format_exc())
             screenshot_path = self.browser.take_screenshot(f"error_{platform}_{int(time.time())}")
+            
+            # Update metrics for failure
+            self.update_platform_performance(platform, task_type, 0.0)
+            
             return {
                 "status": "error",
                 "message": str(e),
