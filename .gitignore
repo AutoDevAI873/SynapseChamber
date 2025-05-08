@@ -1,0 +1,10 @@
+
+.env
+__pycache__/
+*.pyc
+instance/
+.config/
+data/
+static/screenshots/
+.cache/
+*.log
