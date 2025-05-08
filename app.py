@@ -60,10 +60,12 @@ from assistant_chatbot import AssistantChatbot
 from advanced_memory_system import AdvancedMemorySystem
 from self_training_system import SelfTrainingSystem
 from ai_conversation_manager import AIConversationManager
+from system_performance_monitor import SystemPerformanceMonitor
 
 # Create advanced components
+performance_monitor = SystemPerformanceMonitor()
 recommendation_engine = RecommendationEngine(memory_system)
-analytics_system = AnalyticsSystem(memory_system)
+analytics_system = AnalyticsSystem(memory_system, performance_monitor)
 gamification_system = GamificationSystem(memory_system)
 advanced_memory = AdvancedMemorySystem(memory_system)
 assistant = AssistantChatbot(memory_system, recommendation_engine, analytics_system, gamification_system)
@@ -321,6 +323,27 @@ def training():
 def dashboard():
     """Analytics Dashboard for visualizing training performance and metrics"""
     return render_template('dashboard.html')
+
+@app.route('/system-monitoring')
+def system_monitoring():
+    """System monitoring dashboard for visualizing system performance metrics"""
+    try:
+        # Get performance metrics from the performance monitor
+        metrics = performance_monitor.get_current_metrics()
+        
+        # Get performance report with insights
+        report = performance_monitor.get_performance_report()
+        
+        # Get historical data for charts
+        history_data = performance_monitor.get_performance_history(time_range='hour')
+        
+        return render_template('system_monitoring.html', 
+                            metrics=metrics,
+                            report=report,
+                            history=history_data)
+    except Exception as e:
+        logger.error(f"Error rendering system monitoring page: {str(e)}")
+        return render_template('system_monitoring.html', error=str(e))
 
 # API Routes
 @app.route('/api/start_interaction', methods=['POST'])
@@ -618,6 +641,63 @@ def get_chart_data(chart_type):
         return jsonify({"status": "success", "data": data})
     except Exception as e:
         logger.error(f"Error generating chart data: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# System Performance Monitoring API routes
+@app.route('/api/system_performance/current')
+def get_system_performance_data():
+    """Get current system performance metrics"""
+    try:
+        # Get current metrics from the system performance monitor
+        metrics = performance_monitor.get_current_metrics()
+        return jsonify({"status": "success", "metrics": metrics})
+    except Exception as e:
+        logger.error(f"Error getting system performance data: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/system_performance/history')
+def get_system_performance_history():
+    """Get historical system performance data for charts"""
+    try:
+        # Get time range from query parameters (hour, day, week, all)
+        time_range = request.args.get('time_range', 'hour')
+        category = request.args.get('category', None)
+        metric = request.args.get('metric', None)
+        
+        # Get historical data from the system performance monitor
+        history = performance_monitor.get_performance_history(category, metric, time_range)
+        return jsonify({"status": "success", "history": history})
+    except Exception as e:
+        logger.error(f"Error getting system performance history: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/system_performance/report')
+def get_system_performance_report():
+    """Get comprehensive system performance report with insights"""
+    try:
+        # Get performance report from the system performance monitor
+        report = performance_monitor.get_performance_report()
+        return jsonify({"status": "success", "report": report})
+    except Exception as e:
+        logger.error(f"Error getting system performance report: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/api/system_performance/set_threshold', methods=['POST'])
+def set_system_performance_threshold():
+    """Set a threshold for a specific performance metric"""
+    try:
+        data = request.json
+        metric = data.get('metric')
+        value = data.get('value')
+        
+        if not metric or value is None:
+            return jsonify({"status": "error", "message": "Metric and value are required"}), 400
+            
+        # Set the threshold in the system performance monitor
+        result = performance_monitor.set_threshold(metric, float(value))
+        return jsonify({"status": "success", "result": result})
+    except Exception as e:
+        logger.error(f"Error setting system performance threshold: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # Recommendation API routes

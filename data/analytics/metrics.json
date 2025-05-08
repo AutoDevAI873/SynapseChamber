@@ -84,9 +84,18 @@
       {
         "timestamp": "2025-05-08T14:52:11.844663",
         "value": 50.93056646791432
+      },
+      {
+        "timestamp": "2025-05-08T14:56:26.725354",
+        "value": 80.3
       }
     ],
-    "response_times": [],
+    "response_times": [
+      {
+        "timestamp": "2025-05-08T14:56:26.725354",
+        "value": 0.0
+      }
+    ],
     "api_latency": [
       {
         "timestamp": "2025-05-07T09:24:04.872553",
@@ -171,6 +180,10 @@
       {
         "timestamp": "2025-05-08T14:52:11.844710",
         "value": 65.01756425685575
+      },
+      {
+        "timestamp": "2025-05-08T14:56:26.725354",
+        "value": 123.51030303411461
       }
     ],
     "error_rates": [
@@ -257,6 +270,10 @@
       {
         "timestamp": "2025-05-08T14:52:11.844715",
         "value": 0.4424558263590045
+      },
+      {
+        "timestamp": "2025-05-08T14:56:26.725354",
+        "value": 1.4106130850992575
       }
     ],
     "uptime": [],
@@ -264,12 +281,20 @@
       {
         "timestamp": "2025-05-08T14:52:11.844720",
         "value": 23.726782803071824
+      },
+      {
+        "timestamp": "2025-05-08T14:56:26.725354",
+        "value": 0.0
       }
     ],
     "disk_usage": [
       {
         "timestamp": "2025-05-08T14:52:11.844724",
         "value": 55.73974689272185
+      },
+      {
+        "timestamp": "2025-05-08T14:56:26.725354",
+        "value": 49.9
       }
     ]
   },
@@ -287,7 +312,7 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 188.33943012320566,
+    "avg_session_duration": 106.5924836976815,
     "session_history": [
       {
         "id": 6,
@@ -352,7 +377,7 @@
     ],
     "session_frequency": [],
     "feature_usage": {
-      "training": 7,
+      "training": 8,
       "recommendations": 5,
       "logs": 4,
       "settings": 2,
@@ -484,8 +509,14 @@
         "hour": 14,
         "day_of_week": 3,
         "feature": "training"
+      },
+      {
+        "timestamp": "2025-05-08T14:56:28.070845",
+        "hour": 14,
+        "day_of_week": 3,
+        "feature": "training"
       }
     ]
   },
-  "last_updated": "2025-05-08T14:52:13.258232"
+  "last_updated": "2025-05-08T14:56:28.070868"
 }

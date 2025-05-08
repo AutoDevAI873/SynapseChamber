@@ -1,0 +1,897 @@
+{% extends 'layout.html' %}
+
+{% block title %}System Monitoring | Synapse Chamber{% endblock %}
+
+{% block styles %}
+<style>
+    .status-card {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .status-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .status-indicator {
+        height: 12px;
+        width: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    
+    .status-healthy {
+        background-color: var(--bs-success);
+    }
+    
+    .status-warning {
+        background-color: var(--bs-warning);
+    }
+    
+    .status-critical {
+        background-color: var(--bs-danger);
+    }
+    
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+    
+    .metric-label {
+        font-size: 0.9rem;
+        color: var(--bs-secondary);
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 250px;
+        width: 100%;
+    }
+
+    .performance-card {
+        height: 100%;
+    }
+
+    .resource-gauge {
+        position: relative;
+        height: 120px;
+        margin: 0 auto;
+        width: 90%;
+    }
+
+    .process-table {
+        font-size: 0.85rem;
+    }
+
+    .process-row {
+        transition: background-color 0.2s;
+    }
+
+    .process-row:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .process-table .badge {
+        font-size: 0.75rem;
+    }
+
+    .disk-space-bar {
+        height: 25px;
+        border-radius: 12.5px;
+        margin-bottom: 5px;
+    }
+
+    .network-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+    }
+
+    .network-stat {
+        text-align: center;
+        flex: 1;
+    }
+
+    .network-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .network-label {
+        font-size: 0.8rem;
+        color: var(--bs-secondary);
+    }
+
+    .threshold-marker {
+        position: absolute;
+        height: 100%;
+        width: 2px;
+        background-color: #FF4500;
+        z-index: 10;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-tachometer-alt me-2"></i> System Performance Monitoring</h1>
+        <button id="refreshBtn" class="btn btn-outline-primary">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-dark status-card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <span id="cpuStatusIndicator" class="status-indicator status-healthy"></span>
+                        CPU Usage
+                    </h5>
+                    <div class="d-flex flex-column">
+                        <div class="metric-value" id="cpuUsageValue">
+                            {% if metrics and metrics.cpu and metrics.cpu.usage_percent is defined %}
+                                {{ "%.1f"|format(metrics.cpu.usage_percent) }}%
+                            {% else %}
+                                --
+                            {% endif %}
+                        </div>
+                        <div class="metric-label">Current Usage</div>
+                    </div>
+                    <div class="progress mt-2" style="height: 8px;">
+                        <div id="cpuProgressBar" class="progress-bar" role="progressbar" style="width: 
+                            {% if metrics and metrics.cpu and metrics.cpu.usage_percent is defined %}
+                                {{ metrics.cpu.usage_percent }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        ">
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted" id="cpuDetails">
+                            {% if metrics and metrics.cpu %}
+                                Cores: {{ metrics.cpu.count or '--' }}
+                            {% else %}
+                                Cores: --
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-dark status-card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <span id="memoryStatusIndicator" class="status-indicator status-healthy"></span>
+                        Memory
+                    </h5>
+                    <div class="d-flex flex-column">
+                        <div class="metric-value" id="memoryUsageValue">
+                            {% if metrics and metrics.memory and metrics.memory.usage_percent is defined %}
+                                {{ "%.1f"|format(metrics.memory.usage_percent) }}%
+                            {% else %}
+                                --
+                            {% endif %}
+                        </div>
+                        <div class="metric-label">Memory Usage</div>
+                    </div>
+                    <div class="progress mt-2" style="height: 8px;">
+                        <div id="memoryProgressBar" class="progress-bar" role="progressbar" style="width: 
+                            {% if metrics and metrics.memory and metrics.memory.usage_percent is defined %}
+                                {{ metrics.memory.usage_percent }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        ">
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted" id="memoryDetails">
+                            {% if metrics and metrics.memory %}
+                                {{ metrics.memory.used_gb|default('--', true) }} GB / {{ metrics.memory.total_gb|default('--', true) }} GB
+                            {% else %}
+                                -- GB / -- GB
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-dark status-card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <span id="diskStatusIndicator" class="status-indicator status-healthy"></span>
+                        Disk
+                    </h5>
+                    <div class="d-flex flex-column">
+                        <div class="metric-value" id="diskUsageValue">
+                            {% if metrics and metrics.disk and metrics.disk.usage_percent is defined %}
+                                {{ "%.1f"|format(metrics.disk.usage_percent) }}%
+                            {% else %}
+                                --
+                            {% endif %}
+                        </div>
+                        <div class="metric-label">Disk Usage</div>
+                    </div>
+                    <div class="progress mt-2" style="height: 8px;">
+                        <div id="diskProgressBar" class="progress-bar" role="progressbar" style="width: 
+                            {% if metrics and metrics.disk and metrics.disk.usage_percent is defined %}
+                                {{ metrics.disk.usage_percent }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        ">
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted" id="diskDetails">
+                            {% if metrics and metrics.disk %}
+                                {{ metrics.disk.used_gb|default('--', true) }} GB / {{ metrics.disk.total_gb|default('--', true) }} GB
+                            {% else %}
+                                -- GB / -- GB
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-dark status-card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <span id="networkStatusIndicator" class="status-indicator status-healthy"></span>
+                        Network
+                    </h5>
+                    <div class="network-stats">
+                        <div class="network-stat">
+                            <div class="network-value" id="networkSentValue">
+                                {% if metrics and metrics.network and metrics.network.bytes_sent is defined %}
+                                    {{ (metrics.network.bytes_sent / 1024)|round|int }} KB
+                                {% else %}
+                                    -- KB
+                                {% endif %}
+                            </div>
+                            <div class="network-label">Sent</div>
+                        </div>
+                        <div class="network-stat">
+                            <div class="network-value" id="networkRecvValue">
+                                {% if metrics and metrics.network and metrics.network.bytes_recv is defined %}
+                                    {{ (metrics.network.bytes_recv / 1024)|round|int }} KB
+                                {% else %}
+                                    -- KB
+                                {% endif %}
+                            </div>
+                            <div class="network-label">Received</div>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted" id="networkDetails">
+                            {% if metrics and metrics.network and metrics.network.errors is defined %}
+                                Errors: {{ metrics.network.errors|default(0) }}
+                            {% else %}
+                                Errors: 0
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card bg-dark status-card">
+                <div class="card-header">
+                    <h5 class="mb-0">Performance History</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="performanceChartTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="cpu-tab" data-bs-toggle="tab" data-bs-target="#cpu-chart" type="button" role="tab">CPU</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="memory-tab" data-bs-toggle="tab" data-bs-target="#memory-chart" type="button" role="tab">Memory</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="disk-tab" data-bs-toggle="tab" data-bs-target="#disk-chart" type="button" role="tab">Disk</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="network-tab" data-bs-toggle="tab" data-bs-target="#network-chart" type="button" role="tab">Network</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content py-3" id="performanceChartTabContent">
+                        <div class="tab-pane fade show active" id="cpu-chart" role="tabpanel">
+                            <div class="chart-container">
+                                <canvas id="cpuHistoryChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="memory-chart" role="tabpanel">
+                            <div class="chart-container">
+                                <canvas id="memoryHistoryChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="disk-chart" role="tabpanel">
+                            <div class="chart-container">
+                                <canvas id="diskHistoryChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="network-chart" role="tabpanel">
+                            <div class="chart-container">
+                                <canvas id="networkHistoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-4">
+            <div class="card bg-dark status-card">
+                <div class="card-header">
+                    <h5 class="mb-0">System Report</h5>
+                </div>
+                <div class="card-body">
+                    {% if report %}
+                    <div class="mb-3">
+                        <h6>System Summary</h6>
+                        <div class="alert alert-{{ report.status_class|default('info') }} py-2">
+                            {{ report.status_message|default('No report available') }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6>Performance Insights</h6>
+                        <ul class="list-group list-group-flush bg-transparent">
+                            {% for insight in report.insights|default([]) %}
+                            <li class="list-group-item bg-transparent text-light">{{ insight }}</li>
+                            {% else %}
+                            <li class="list-group-item bg-transparent text-light">No insights available</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h6>System Uptime</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Uptime</span>
+                            <span id="uptime">{{ report.uptime|default('--') }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span>Boot Time</span>
+                            <span id="bootTime">{{ report.boot_time|default('--') }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-secondary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card bg-dark status-card">
+                <div class="card-header">
+                    <h5 class="mb-0">Top Processes</h5>
+                </div>
+                <div class="card-body">
+                    {% if metrics and metrics.processes %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover table-sm process-table">
+                            <thead>
+                                <tr>
+                                    <th>PID</th>
+                                    <th>Name</th>
+                                    <th>CPU %</th>
+                                    <th>Memory %</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for process in metrics.processes|default([]) %}
+                                <tr class="process-row">
+                                    <td>{{ process.pid }}</td>
+                                    <td>{{ process.name }}</td>
+                                    <td>{{ "%.1f"|format(process.cpu_percent) }}%</td>
+                                    <td>{{ "%.1f"|format(process.memory_percent) }}%</td>
+                                    <td>
+                                        <span class="badge bg-{{ process.status_class|default('secondary') }}">
+                                            {{ process.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No process data available</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-secondary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card bg-dark status-card">
+                <div class="card-header">
+                    <h5 class="mb-0">Threshold Alerts</h5>
+                </div>
+                <div class="card-body">
+                    {% if metrics and metrics.thresholds %}
+                    <ul class="list-group list-group-flush bg-transparent">
+                        {% for threshold in metrics.thresholds|default([]) %}
+                        <li class="list-group-item bg-transparent text-light d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="status-indicator status-{{ threshold.status }}"></span>
+                                {{ threshold.name }}
+                            </div>
+                            <div>
+                                <span class="badge bg-{{ threshold.status_class }}">{{ threshold.value }}</span>
+                                <small class="text-muted ms-2">Threshold: {{ threshold.threshold_value }}</small>
+                            </div>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item bg-transparent text-light">
+                            No threshold alerts configured
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-secondary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+
+<script>
+    // Global chart references
+    let cpuHistoryChart = null;
+    let memoryHistoryChart = null;
+    let diskHistoryChart = null;
+    let networkHistoryChart = null;
+    
+    // Chart color customization
+    const chartColors = {
+        cpuBackground: 'rgba(54, 162, 235, 0.2)',
+        cpuBorder: 'rgba(54, 162, 235, 1)',
+        memoryBackground: 'rgba(75, 192, 192, 0.2)',
+        memoryBorder: 'rgba(75, 192, 192, 1)',
+        diskBackground: 'rgba(255, 159, 64, 0.2)',
+        diskBorder: 'rgba(255, 159, 64, 1)',
+        networkSentBackground: 'rgba(153, 102, 255, 0.2)',
+        networkSentBorder: 'rgba(153, 102, 255, 1)',
+        networkRecvBackground: 'rgba(255, 99, 132, 0.2)',
+        networkRecvBorder: 'rgba(255, 99, 132, 1)',
+        gridLines: 'rgba(255, 255, 255, 0.1)'
+    };
+    
+    // Initialize the system monitoring dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize error handler
+        if (typeof SynapseErrorHandler !== 'undefined') {
+            const errorHandler = new SynapseErrorHandler();
+            errorHandler.init();
+        }
+        
+        // Initialize tooltips
+        if (typeof SynapseTooltips !== 'undefined') {
+            const tooltips = new SynapseTooltips();
+            tooltips.init();
+        }
+        
+        // Initialize charts
+        initCharts();
+        
+        // Update charts with initial data
+        updateCharts();
+        
+        // Setup refresh button
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Refreshing...';
+            
+            // Refresh data from the server
+            fetch('/api/system_performance/current')
+                .then(response => response.json())
+                .then(data => {
+                    updateDashboard(data);
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+                })
+                .catch(error => {
+                    console.error('Error fetching performance data:', error);
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+                    
+                    if (typeof SynapseErrorHandler !== 'undefined') {
+                        SynapseErrorHandler.showError('Failed to fetch performance data. Please try again.');
+                    }
+                });
+        });
+        
+        // Auto-refresh every 30 seconds
+        setInterval(function() {
+            fetch('/api/system_performance/current')
+                .then(response => response.json())
+                .then(data => {
+                    updateDashboard(data);
+                })
+                .catch(error => {
+                    console.error('Error in auto-refresh:', error);
+                });
+        }, 30000);
+    });
+    
+    // Initialize charts
+    function initCharts() {
+        // CPU history chart
+        const cpuChartCtx = document.getElementById('cpuHistoryChart').getContext('2d');
+        cpuHistoryChart = new Chart(cpuChartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'CPU Usage (%)',
+                    data: [],
+                    backgroundColor: chartColors.cpuBackground,
+                    borderColor: chartColors.cpuBorder,
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: {
+                            color: chartColors.gridLines
+                        },
+                        ticks: {
+                            color: '#fff'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: chartColors.gridLines
+                        },
+                        ticks: {
+                            color: '#fff',
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Memory history chart
+        const memoryChartCtx = document.getElementById('memoryHistoryChart').getContext('2d');
+        memoryHistoryChart = new Chart(memoryChartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Memory Usage (%)',
+                    data: [],
+                    backgroundColor: chartColors.memoryBackground,
+                    borderColor: chartColors.memoryBorder,
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: {
+                            color: chartColors.gridLines
+                        },
+                        ticks: {
+                            color: '#fff'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: chartColors.gridLines
+                        },
+                        ticks: {
+                            color: '#fff',
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Disk history chart
+        const diskChartCtx = document.getElementById('diskHistoryChart').getContext('2d');
+        diskHistoryChart = new Chart(diskChartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Disk Usage (%)',
+                    data: [],
+                    backgroundColor: chartColors.diskBackground,
+                    borderColor: chartColors.diskBorder,
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: {
+                            color: chartColors.gridLines
+                        },
+                        ticks: {
+                            color: '#fff'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: chartColors.gridLines
+                        },
+                        ticks: {
+                            color: '#fff',
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Network history chart
+        const networkChartCtx = document.getElementById('networkHistoryChart').getContext('2d');
+        networkHistoryChart = new Chart(networkChartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Sent (KB)',
+                        data: [],
+                        backgroundColor: chartColors.networkSentBackground,
+                        borderColor: chartColors.networkSentBorder,
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 2
+                    },
+                    {
+                        label: 'Received (KB)',
+                        data: [],
+                        backgroundColor: chartColors.networkRecvBackground,
+                        borderColor: chartColors.networkRecvBorder,
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#fff'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: chartColors.gridLines
+                        },
+                        ticks: {
+                            color: '#fff'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: chartColors.gridLines
+                        },
+                        ticks: {
+                            color: '#fff',
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Update charts with current data
+    function updateCharts() {
+        // Fetch historical data from the server
+        fetch('/api/system_performance/history')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.history) {
+                    // Update CPU chart
+                    if (data.history.cpu) {
+                        const cpuData = data.history.cpu;
+                        cpuHistoryChart.data.labels = cpuData.timestamps;
+                        cpuHistoryChart.data.datasets[0].data = cpuData.values;
+                        cpuHistoryChart.update();
+                    }
+                    
+                    // Update Memory chart
+                    if (data.history.memory) {
+                        const memoryData = data.history.memory;
+                        memoryHistoryChart.data.labels = memoryData.timestamps;
+                        memoryHistoryChart.data.datasets[0].data = memoryData.values;
+                        memoryHistoryChart.update();
+                    }
+                    
+                    // Update Disk chart
+                    if (data.history.disk) {
+                        const diskData = data.history.disk;
+                        diskHistoryChart.data.labels = diskData.timestamps;
+                        diskHistoryChart.data.datasets[0].data = diskData.values;
+                        diskHistoryChart.update();
+                    }
+                    
+                    // Update Network chart
+                    if (data.history.network) {
+                        const networkData = data.history.network;
+                        networkHistoryChart.data.labels = networkData.timestamps;
+                        
+                        if (networkData.sent) {
+                            networkHistoryChart.data.datasets[0].data = networkData.sent.map(val => val / 1024); // Convert to KB
+                        }
+                        
+                        if (networkData.received) {
+                            networkHistoryChart.data.datasets[1].data = networkData.received.map(val => val / 1024); // Convert to KB
+                        }
+                        
+                        networkHistoryChart.update();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching historical data:', error);
+            });
+    }
+    
+    // Update dashboard with new data
+    function updateDashboard(data) {
+        if (data.status !== 'success') {
+            return;
+        }
+        
+        const metrics = data.metrics;
+        
+        // Update CPU section
+        if (metrics.cpu) {
+            const cpuUsage = metrics.cpu.usage_percent || 0;
+            document.getElementById('cpuUsageValue').textContent = cpuUsage.toFixed(1) + '%';
+            document.getElementById('cpuProgressBar').style.width = cpuUsage + '%';
+            document.getElementById('cpuDetails').textContent = 'Cores: ' + (metrics.cpu.count || '--');
+            
+            // Update CPU status indicator
+            const cpuStatusIndicator = document.getElementById('cpuStatusIndicator');
+            cpuStatusIndicator.className = 'status-indicator ' + 
+                (cpuUsage > 90 ? 'status-critical' : (cpuUsage > 70 ? 'status-warning' : 'status-healthy'));
+        }
+        
+        // Update Memory section
+        if (metrics.memory) {
+            const memoryUsage = metrics.memory.usage_percent || 0;
+            document.getElementById('memoryUsageValue').textContent = memoryUsage.toFixed(1) + '%';
+            document.getElementById('memoryProgressBar').style.width = memoryUsage + '%';
+            document.getElementById('memoryDetails').textContent = 
+                (metrics.memory.used_gb || '--') + ' GB / ' + (metrics.memory.total_gb || '--') + ' GB';
+            
+            // Update Memory status indicator
+            const memoryStatusIndicator = document.getElementById('memoryStatusIndicator');
+            memoryStatusIndicator.className = 'status-indicator ' + 
+                (memoryUsage > 90 ? 'status-critical' : (memoryUsage > 70 ? 'status-warning' : 'status-healthy'));
+        }
+        
+        // Update Disk section
+        if (metrics.disk) {
+            const diskUsage = metrics.disk.usage_percent || 0;
+            document.getElementById('diskUsageValue').textContent = diskUsage.toFixed(1) + '%';
+            document.getElementById('diskProgressBar').style.width = diskUsage + '%';
+            document.getElementById('diskDetails').textContent = 
+                (metrics.disk.used_gb || '--') + ' GB / ' + (metrics.disk.total_gb || '--') + ' GB';
+            
+            // Update Disk status indicator
+            const diskStatusIndicator = document.getElementById('diskStatusIndicator');
+            diskStatusIndicator.className = 'status-indicator ' + 
+                (diskUsage > 90 ? 'status-critical' : (diskUsage > 70 ? 'status-warning' : 'status-healthy'));
+        }
+        
+        // Update Network section
+        if (metrics.network) {
+            document.getElementById('networkSentValue').textContent = 
+                Math.round((metrics.network.bytes_sent || 0) / 1024) + ' KB';
+            document.getElementById('networkRecvValue').textContent = 
+                Math.round((metrics.network.bytes_recv || 0) / 1024) + ' KB';
+            document.getElementById('networkDetails').textContent = 
+                'Errors: ' + (metrics.network.errors || 0);
+            
+            // Update Network status indicator
+            const networkStatusIndicator = document.getElementById('networkStatusIndicator');
+            networkStatusIndicator.className = 'status-indicator ' + 
+                (metrics.network.errors > 10 ? 'status-critical' : (metrics.network.errors > 3 ? 'status-warning' : 'status-healthy'));
+        }
+        
+        // Update charts
+        updateCharts();
+    }
+</script>
+{% endblock %}
