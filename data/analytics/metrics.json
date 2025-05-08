@@ -104,6 +104,10 @@
       {
         "timestamp": "2025-05-08T15:08:13.189499",
         "value": 83.6
+      },
+      {
+        "timestamp": "2025-05-08T15:13:21.494175",
+        "value": 84.3
       }
     ],
     "response_times": [
@@ -125,6 +129,10 @@
       },
       {
         "timestamp": "2025-05-08T15:08:13.189499",
+        "value": 0.0
+      },
+      {
+        "timestamp": "2025-05-08T15:13:21.494175",
         "value": 0.0
       }
     ],
@@ -232,6 +240,10 @@
       {
         "timestamp": "2025-05-08T15:08:13.189499",
         "value": 435.98652129013215
+      },
+      {
+        "timestamp": "2025-05-08T15:13:21.494175",
+        "value": 283.1917960081033
       }
     ],
     "error_rates": [
@@ -338,6 +350,10 @@
       {
         "timestamp": "2025-05-08T15:08:13.189499",
         "value": 2.5564306780366506
+      },
+      {
+        "timestamp": "2025-05-08T15:13:21.494175",
+        "value": 3.591913634008736
       }
     ],
     "uptime": [],
@@ -365,6 +381,10 @@
       {
         "timestamp": "2025-05-08T15:08:13.189499",
         "value": 0.0
+      },
+      {
+        "timestamp": "2025-05-08T15:13:21.494175",
+        "value": 0.0
       }
     ],
     "disk_usage": [
@@ -391,6 +411,10 @@
       {
         "timestamp": "2025-05-08T15:08:13.189499",
         "value": 50.0
+      },
+      {
+        "timestamp": "2025-05-08T15:13:21.494175",
+        "value": 50.0
       }
     ]
   },
@@ -408,7 +432,7 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 193.47039549040022,
+    "avg_session_duration": 87.33052070822647,
     "session_history": [
       {
         "id": 6,
@@ -474,7 +498,7 @@
     "session_frequency": [],
     "feature_usage": {
       "training": 7,
-      "recommendations": 6,
+      "recommendations": 7,
       "logs": 6,
       "settings": 3,
       "dashboard": 4
@@ -635,8 +659,14 @@
         "hour": 15,
         "day_of_week": 3,
         "feature": "settings"
+      },
+      {
+        "timestamp": "2025-05-08T15:13:22.996883",
+        "hour": 15,
+        "day_of_week": 3,
+        "feature": "recommendations"
       }
     ]
   },
-  "last_updated": "2025-05-08T15:08:14.442047"
+  "last_updated": "2025-05-08T15:13:22.996900"
 }
