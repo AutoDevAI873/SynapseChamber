@@ -781,12 +781,10 @@
 {% block extra_js %}
 <!-- Monaco Editor -->
 <script>
-    // This is a dummy loader that will only work when Monaco is loaded externally
+    // Set up Monaco loader
     var require = { paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } };
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.nls.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -800,313 +798,315 @@ if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
 `;
     
-    // Initialize editor
-    const editor = monaco.editor.create(editorContainer, {
-        value: sampleCode,
-        language: 'python',
-        theme: 'vs-dark',
-        automaticLayout: true,
-        minimap: {
-            enabled: true
-        },
-        fontSize: 14,
-        tabSize: 4,
-        insertSpaces: true,
-        lineNumbers: 'on',
-        roundedSelection: true,
-        scrollBeyondLastLine: false,
-        wordWrap: 'on',
-        renderLineHighlight: 'all',
-        folding: true,
-        suggestOnTriggerCharacters: true
-    });
-    
-    // Cursor position change event
-    editor.onDidChangeCursorPosition(e => {
-        document.querySelector('.editor-status div:first-child').textContent = `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
-    });
-    
-    // Content change event
-    editor.onDidChangeModelContent(e => {
-        document.querySelector('.editor-tab.active').classList.add('modified');
-        document.querySelector('.editor-container').classList.add('editor-modified');
-    });
-    
-    // Handle window resize
-    window.addEventListener('resize', () => {
-        editor.layout();
-    });
-    
-    // Toggle terminal
-    document.getElementById('toggleTerminalBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.querySelector('.editor-terminal').classList.toggle('open');
-        editor.layout();
-    });
-    
-    // Close terminal
-    document.getElementById('closeTerminalBtn').addEventListener('click', function() {
-        document.querySelector('.editor-terminal').classList.remove('open');
-        editor.layout();
-    });
-    
-    // Clear terminal
-    document.getElementById('clearTerminalBtn').addEventListener('click', function() {
-        document.getElementById('terminalContent').innerHTML = '';
-    });
-    
-    // Toggle sidebar
-    document.getElementById('toggleSidebarBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.querySelector('.editor-sidebar').style.display = 
-            document.querySelector('.editor-sidebar').style.display === 'none' ? 'flex' : 'none';
-        editor.layout();
-    });
-    
-    // Format code
-    document.getElementById('formatCodeBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        editor.getAction('editor.action.formatDocument').run();
-    });
-    
-    // Find/Replace
-    document.getElementById('findReplaceBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        editor.getAction('actions.find').run();
-    });
-    
-    // Save file
-    document.getElementById('saveFileBtn').addEventListener('click', function() {
-        // In a real implementation, this would save to the server
-        document.querySelector('.editor-tab.active').classList.remove('modified');
-        document.querySelector('.editor-container').classList.remove('editor-modified');
+    // Initialize Monaco properly using require
+    require(['vs/editor/editor.main'], function() {
+        // Initialize editor after Monaco is properly loaded
+        const editor = monaco.editor.create(editorContainer, {
+            value: sampleCode,
+            language: 'python',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            minimap: {
+                enabled: true
+            },
+            fontSize: 14,
+            tabSize: 4,
+            insertSpaces: true,
+            lineNumbers: 'on',
+            roundedSelection: true,
+            scrollBeyondLastLine: false,
+            wordWrap: 'on',
+            renderLineHighlight: 'all',
+            folding: true,
+            suggestOnTriggerCharacters: true
+        });
         
-        // Show a toast notification
-        showToast('File saved successfully!');
-    });
-    
-    // Run file
-    document.getElementById('runFileBtn').addEventListener('click', function() {
-        // Open terminal if not already open
-        document.querySelector('.editor-terminal').classList.add('open');
-        editor.layout();
+        // Cursor position change event
+        editor.onDidChangeCursorPosition(e => {
+            document.querySelector('.editor-status div:first-child').textContent = `Ln ${e.position.lineNumber}, Col ${e.position.column}`;
+        });
         
-        // Get the active file name
-        const fileName = document.querySelector('.editor-tab.active .editor-tab-name').textContent;
+        // Content change event
+        editor.onDidChangeModelContent(e => {
+            document.querySelector('.editor-tab.active').classList.add('modified');
+            document.querySelector('.editor-container').classList.add('editor-modified');
+        });
         
-        // Add the run command to the terminal
-        const terminalContent = document.getElementById('terminalContent');
-        terminalContent.innerHTML += `<div>&gt;&gt;&gt; python ${fileName}</div>`;
-        terminalContent.innerHTML += `<div>Running ${fileName}...</div>`;
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            editor.layout();
+        });
         
-        // Simulate output
-        setTimeout(() => {
-            terminalContent.innerHTML += `<div>Execution completed successfully.</div>`;
-            terminalContent.innerHTML += `<div>&gt;&gt;&gt; _</div>`;
-            terminalContent.scrollTop = terminalContent.scrollHeight;
-        }, 1000);
+        // Toggle terminal
+        document.getElementById('toggleTerminalBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelector('.editor-terminal').classList.toggle('open');
+            editor.layout();
+        });
         
-        // Scroll to bottom
-        terminalContent.scrollTop = terminalContent.scrollHeight;
-    });
-    
-    // New file dialog
-    document.getElementById('newFileBtn').addEventListener('click', function() {
-        document.getElementById('newFileDialog').style.display = 'flex';
-        document.getElementById('newFileName').focus();
-    });
-    
-    // Cancel new file
-    document.getElementById('cancelNewFileBtn').addEventListener('click', function() {
-        document.getElementById('newFileDialog').style.display = 'none';
-    });
-    
-    // Create new file
-    document.getElementById('createNewFileBtn').addEventListener('click', function() {
-        const fileName = document.getElementById('newFileName').value.trim();
-        if (fileName) {
-            // In a real implementation, this would create a file on the server
-            
-            // Add to file explorer (simplified for demo)
-            const fileExplorer = document.querySelector('.folder-content');
-            
-            // Determine file icon
-            let iconClass = 'file';
-            let iconTag = 'fas fa-file';
-            
-            if (fileName.endsWith('.py')) {
-                iconClass = 'python';
-                iconTag = 'fab fa-python';
-            } else if (fileName.endsWith('.js')) {
-                iconClass = 'javascript';
-                iconTag = 'fab fa-js';
-            } else if (fileName.endsWith('.html')) {
-                iconClass = 'html';
-                iconTag = 'fab fa-html5';
-            } else if (fileName.endsWith('.css')) {
-                iconClass = 'css';
-                iconTag = 'fab fa-css3-alt';
-            } else if (fileName.endsWith('.json')) {
-                iconClass = 'json';
-                iconTag = 'fas fa-code';
-            } else if (fileName.endsWith('.md')) {
-                iconClass = 'markdown';
-                iconTag = 'fab fa-markdown';
-            }
-            
-            const fileItem = document.createElement('div');
-            fileItem.className = 'file-item';
-            fileItem.innerHTML = `
-                <div class="file-icon ${iconClass}">
-                    <i class="${iconTag}"></i>
-                </div>
-                <div class="file-name">${fileName}</div>
-            `;
-            
-            fileExplorer.appendChild(fileItem);
-            
-            // Create a new tab
-            createTab(fileName, iconClass, iconTag);
-            
-            // Close dialog
-            document.getElementById('newFileDialog').style.display = 'none';
-            document.getElementById('newFileName').value = '';
+        // Close terminal
+        document.getElementById('closeTerminalBtn').addEventListener('click', function() {
+            document.querySelector('.editor-terminal').classList.remove('open');
+            editor.layout();
+        });
+        
+        // Clear terminal
+        document.getElementById('clearTerminalBtn').addEventListener('click', function() {
+            document.getElementById('terminalContent').innerHTML = '';
+        });
+        
+        // Toggle sidebar
+        document.getElementById('toggleSidebarBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelector('.editor-sidebar').style.display = 
+                document.querySelector('.editor-sidebar').style.display === 'none' ? 'flex' : 'none';
+            editor.layout();
+        });
+        
+        // Format code
+        document.getElementById('formatCodeBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            editor.getAction('editor.action.formatDocument').run();
+        });
+        
+        // Find/Replace
+        document.getElementById('findReplaceBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            editor.getAction('actions.find').run();
+        });
+        
+        // Save file
+        document.getElementById('saveFileBtn').addEventListener('click', function() {
+            // In a real implementation, this would save to the server
+            document.querySelector('.editor-tab.active').classList.remove('modified');
+            document.querySelector('.editor-container').classList.remove('editor-modified');
             
             // Show a toast notification
-            showToast(`File "${fileName}" created successfully!`);
-        }
-    });
-    
-    // Create a new tab
-    function createTab(fileName, iconClass, iconTag) {
-        const tabsContainer = document.querySelector('.editor-tabs');
-        
-        // Remove active class from all tabs
-        document.querySelectorAll('.editor-tab').forEach(tab => {
-            tab.classList.remove('active');
+            showToast('File saved successfully!');
         });
         
-        // Create new tab
-        const newTab = document.createElement('div');
-        newTab.className = 'editor-tab active';
-        newTab.innerHTML = `
-            <div class="editor-tab-icon">
-                <i class="${iconTag}"></i>
-            </div>
-            <div class="editor-tab-name">${fileName}</div>
-            <div class="editor-tab-modified"></div>
-            <div class="editor-tab-close">
-                <i class="fas fa-times"></i>
-            </div>
-        `;
+        // Run file
+        document.getElementById('runFileBtn').addEventListener('click', function() {
+            // Open terminal if not already open
+            document.querySelector('.editor-terminal').classList.add('open');
+            editor.layout();
+            
+            // Get the active file name
+            const fileName = document.querySelector('.editor-tab.active .editor-tab-name').textContent;
+            
+            // Add the run command to the terminal
+            const terminalContent = document.getElementById('terminalContent');
+            terminalContent.innerHTML += `<div>&gt;&gt;&gt; python ${fileName}</div>`;
+            terminalContent.innerHTML += `<div>Running ${fileName}...</div>`;
+            
+            // Simulate output
+            setTimeout(() => {
+                terminalContent.innerHTML += `<div>Execution completed successfully.</div>`;
+                terminalContent.innerHTML += `<div>&gt;&gt;&gt; _</div>`;
+                terminalContent.scrollTop = terminalContent.scrollHeight;
+            }, 1000);
+            
+            // Scroll to bottom
+            terminalContent.scrollTop = terminalContent.scrollHeight;
+        });
         
-        tabsContainer.appendChild(newTab);
+        // New file dialog
+        document.getElementById('newFileBtn').addEventListener('click', function() {
+            document.getElementById('newFileDialog').style.display = 'flex';
+            document.getElementById('newFileName').focus();
+        });
         
-        // Clear editor content
-        editor.setValue('');
+        // Cancel new file
+        document.getElementById('cancelNewFileBtn').addEventListener('click', function() {
+            document.getElementById('newFileDialog').style.display = 'none';
+        });
         
-        // Add tab click handlers
-        addTabEventListeners(newTab);
-    }
-    
-    // Add event listeners to tabs
-    function addTabEventListeners(tab) {
-        // Tab click
-        tab.addEventListener('click', function(e) {
-            if (!e.target.closest('.editor-tab-close')) {
-                document.querySelectorAll('.editor-tab').forEach(t => {
-                    t.classList.remove('active');
-                });
-                tab.classList.add('active');
+        // Create new file
+        document.getElementById('createNewFileBtn').addEventListener('click', function() {
+            const fileName = document.getElementById('newFileName').value.trim();
+            if (fileName) {
+                // In a real implementation, this would create a file on the server
                 
-                // In a real implementation, this would load the file content
+                // Add to file explorer (simplified for demo)
+                const fileExplorer = document.querySelector('.folder-content');
+                
+                // Determine file icon
+                let iconClass = 'file';
+                let iconTag = 'fas fa-file';
+                
+                if (fileName.endsWith('.py')) {
+                    iconClass = 'python';
+                    iconTag = 'fab fa-python';
+                } else if (fileName.endsWith('.js')) {
+                    iconClass = 'javascript';
+                    iconTag = 'fab fa-js';
+                } else if (fileName.endsWith('.html')) {
+                    iconClass = 'html';
+                    iconTag = 'fab fa-html5';
+                } else if (fileName.endsWith('.css')) {
+                    iconClass = 'css';
+                    iconTag = 'fab fa-css3-alt';
+                } else if (fileName.endsWith('.json')) {
+                    iconClass = 'json';
+                    iconTag = 'fas fa-code';
+                } else if (fileName.endsWith('.md')) {
+                    iconClass = 'markdown';
+                    iconTag = 'fab fa-markdown';
+                }
+                
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div class="file-icon ${iconClass}">
+                        <i class="${iconTag}"></i>
+                    </div>
+                    <div class="file-name">${fileName}</div>
+                `;
+                
+                fileExplorer.appendChild(fileItem);
+                
+                // Create a new tab
+                createTab(fileName, iconClass, iconTag);
+                
+                // Close dialog
+                document.getElementById('newFileDialog').style.display = 'none';
+                document.getElementById('newFileName').value = '';
+                
+                // Show a toast notification
+                showToast(`File "${fileName}" created successfully!`);
             }
         });
         
-        // Close tab
-        const closeBtn = tab.querySelector('.editor-tab-close');
-        closeBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
+        // Create a new tab
+        function createTab(fileName, iconClass, iconTag) {
+            const tabsContainer = document.querySelector('.editor-tabs');
             
-            if (tab.classList.contains('modified')) {
-                if (!confirm('This file has unsaved changes. Are you sure you want to close it?')) {
-                    return;
-                }
-            }
-            
-            // If this is the active tab, activate another one
-            if (tab.classList.contains('active') && document.querySelectorAll('.editor-tab').length > 1) {
-                const nextTab = tab.nextElementSibling || tab.previousElementSibling;
-                if (nextTab) {
-                    nextTab.classList.add('active');
-                }
-            }
-            
-            // Remove the tab
-            tab.remove();
-        });
-    }
-    
-    // Add event listeners to existing tabs
-    document.querySelectorAll('.editor-tab').forEach(tab => {
-        addTabEventListeners(tab);
-    });
-    
-    // Toggle folder expansion
-    document.querySelectorAll('.folder-header').forEach(folderHeader => {
-        folderHeader.addEventListener('click', function() {
-            const folderItem = this.closest('.folder-item');
-            folderItem.classList.toggle('folder-expanded');
-            folderItem.classList.toggle('folder-collapsed');
-        });
-    });
-    
-    // File item click
-    document.querySelectorAll('.file-item').forEach(fileItem => {
-        fileItem.addEventListener('click', function() {
-            document.querySelectorAll('.file-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            this.classList.add('active');
-            
-            // Get file name and update tab
-            const fileName = this.querySelector('.file-name').textContent;
-            let iconClass = 'file';
-            let iconTag = 'fas fa-file';
-            
-            const fileIcon = this.querySelector('.file-icon');
-            if (fileIcon.classList.contains('python')) {
-                iconClass = 'python';
-                iconTag = 'fab fa-python';
-            } else if (fileIcon.classList.contains('javascript')) {
-                iconClass = 'javascript';
-                iconTag = 'fab fa-js';
-            } else if (fileIcon.classList.contains('html')) {
-                iconClass = 'html';
-                iconTag = 'fab fa-html5';
-            } else if (fileIcon.classList.contains('css')) {
-                iconClass = 'css';
-                iconTag = 'fab fa-css3-alt';
-            }
-            
-            // Check if tab already exists
-            let existingTab = null;
+            // Remove active class from all tabs
             document.querySelectorAll('.editor-tab').forEach(tab => {
-                if (tab.querySelector('.editor-tab-name').textContent === fileName) {
-                    existingTab = tab;
+                tab.classList.remove('active');
+            });
+            
+            // Create new tab
+            const newTab = document.createElement('div');
+            newTab.className = 'editor-tab active';
+            newTab.innerHTML = `
+                <div class="editor-tab-icon">
+                    <i class="${iconTag}"></i>
+                </div>
+                <div class="editor-tab-name">${fileName}</div>
+                <div class="editor-tab-modified"></div>
+                <div class="editor-tab-close">
+                    <i class="fas fa-times"></i>
+                </div>
+            `;
+            
+            tabsContainer.appendChild(newTab);
+            
+            // Clear editor content
+            editor.setValue('');
+            
+            // Add tab click handlers
+            addTabEventListeners(newTab);
+        }
+        
+        // Add event listeners to tabs
+        function addTabEventListeners(tab) {
+            // Tab click
+            tab.addEventListener('click', function(e) {
+                if (!e.target.closest('.editor-tab-close')) {
+                    document.querySelectorAll('.editor-tab').forEach(t => {
+                        t.classList.remove('active');
+                    });
+                    tab.classList.add('active');
+                    
+                    // In a real implementation, this would load the file content
                 }
             });
             
-            if (existingTab) {
-                // Activate existing tab
-                document.querySelectorAll('.editor-tab').forEach(tab => {
-                    tab.classList.remove('active');
+            // Close tab
+            const closeBtn = tab.querySelector('.editor-tab-close');
+            closeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                if (tab.classList.contains('modified')) {
+                    if (!confirm('This file has unsaved changes. Are you sure you want to close it?')) {
+                        return;
+                    }
+                }
+                
+                // If this is the active tab, activate another one
+                if (tab.classList.contains('active') && document.querySelectorAll('.editor-tab').length > 1) {
+                    const nextTab = tab.nextElementSibling || tab.previousElementSibling;
+                    if (nextTab) {
+                        nextTab.classList.add('active');
+                    }
+                }
+                
+                // Remove the tab
+                tab.remove();
+            });
+        }
+        
+        // Add event listeners to existing tabs
+        document.querySelectorAll('.editor-tab').forEach(tab => {
+            addTabEventListeners(tab);
+        });
+        
+        // Toggle folder expansion
+        document.querySelectorAll('.folder-header').forEach(folderHeader => {
+            folderHeader.addEventListener('click', function() {
+                const folderItem = this.closest('.folder-item');
+                folderItem.classList.toggle('folder-expanded');
+                folderItem.classList.toggle('folder-collapsed');
+            });
+        });
+        
+        // File item click
+        document.querySelectorAll('.file-item').forEach(fileItem => {
+            fileItem.addEventListener('click', function() {
+                document.querySelectorAll('.file-item').forEach(item => {
+                    item.classList.remove('active');
                 });
-                existingTab.classList.add('active');
-            } else {
-                // Create new tab
-                createTab(fileName, iconClass, iconTag);
-            }
+                this.classList.add('active');
+                
+                // Get file name and update tab
+                const fileName = this.querySelector('.file-name').textContent;
+                let iconClass = 'file';
+                let iconTag = 'fas fa-file';
+                
+                const fileIcon = this.querySelector('.file-icon');
+                if (fileIcon.classList.contains('python')) {
+                    iconClass = 'python';
+                    iconTag = 'fab fa-python';
+                } else if (fileIcon.classList.contains('javascript')) {
+                    iconClass = 'javascript';
+                    iconTag = 'fab fa-js';
+                } else if (fileIcon.classList.contains('html')) {
+                    iconClass = 'html';
+                    iconTag = 'fab fa-html5';
+                } else if (fileIcon.classList.contains('css')) {
+                    iconClass = 'css';
+                    iconTag = 'fab fa-css3-alt';
+                }
+            
+                // Check if tab already exists
+                let existingTab = null;
+                document.querySelectorAll('.editor-tab').forEach(tab => {
+                    if (tab.querySelector('.editor-tab-name').textContent === fileName) {
+                        existingTab = tab;
+                    }
+                });
+                
+                if (existingTab) {
+                    // Activate existing tab
+                    document.querySelectorAll('.editor-tab').forEach(tab => {
+                        tab.classList.remove('active');
+                    });
+                    existingTab.classList.add('active');
+                } else {
+                    // Create new tab
+                    createTab(fileName, iconClass, iconTag);
+                }
             
             // In a real implementation, this would load the file content
             if (fileName === 'main.py') {
