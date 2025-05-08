@@ -332,17 +332,27 @@ class AIController:
             # Create a new conversation in the memory system
             conversation_id = self.memory_system.create_conversation(platform, subject, goal)
             
-            # Store task context in memory
-            context_data = {
-                "platform": platform,
-                "task_type": task_type,
-                "is_optimal_platform": is_optimal,
-                "platform_ranking": platform_ranking,
-                "prompt_length": len(prompt),
-                "timestamp": time.time()
-            }
-            
-            self.memory_system.store_context(f"task_context_{conversation_id}", context_data)
+            # Store task context in memory if advanced memory system is available
+            try:
+                context_data = {
+                    "platform": platform,
+                    "task_type": task_type,
+                    "is_optimal_platform": is_optimal,
+                    "platform_ranking": platform_ranking,
+                    "prompt_length": len(prompt),
+                    "timestamp": time.time()
+                }
+                
+                # Check if we have access to an advanced memory system with store_context capability
+                if hasattr(self.memory_system, 'store_context'):
+                    self.memory_system.store_context(f"task_context_{conversation_id}", context_data)
+                else:
+                    # Fall back to storing as a standard memory entry/message if store_context is not available
+                    self.logger.info(f"Advanced memory system not available, storing context as standard memory")
+                    context_str = f"Task Context: platform={platform}, task_type={task_type}, optimal={is_optimal}"
+                    self.memory_system.add_memory(conversation_id, "system", context_str, "context")
+            except Exception as context_err:
+                self.logger.warning(f"Failed to store context data: {str(context_err)}")
             
             # Try to navigate to the platform; use fallback if it fails
             if not self.browser.navigate_to(platform_config["url"]):
@@ -610,8 +620,18 @@ class AIController:
             self.logger.error(f"Error extracting response from {platform}: {str(e)}")
             return f"Error extracting response: {str(e)}"
             
-    def _generate_fallback_response(self, platform, prompt):
-        """Generate a fallback response when browser automation fails"""
+    def _generate_fallback_response(self, platform, prompt, task_type=None):
+        """
+        Generate a fallback response when browser automation fails
+        
+        Args:
+            platform (str): The AI platform that failed
+            prompt (str): The original prompt
+            task_type (str, optional): Type of task (coding, reasoning, etc.)
+            
+        Returns:
+            dict: Fallback response data
+        """
         self.logger.info(f"Generating detailed fallback response for {platform}")
         
         # Take a screenshot to capture the current state
@@ -626,6 +646,14 @@ class AIController:
         
         # Store the user prompt
         self.memory_system.add_message(conversation_id, prompt, is_user=True)
+        
+        # Store task context if available
+        if task_type:
+            context_str = f"Task Type: {task_type}"
+            try:
+                self.memory_system.add_memory(conversation_id, "system", context_str, "task_context")
+            except Exception as context_err:
+                self.logger.warning(f"Failed to store task context: {str(context_err)}")
         
         # Create more detailed and context-specific fallback messages based on platform and failure type
         enhanced_fallbacks = {

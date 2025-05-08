@@ -11725,5 +11725,830 @@
     "goal": "Improve natural_language_processing capabilities to reach score of 0.7",
     "session_id": null,
     "status": "running"
+  },
+  {
+    "type": "capability_assessment",
+    "timestamp": 1746696375.8248243,
+    "scores": {
+      "natural_language_processing": 0.5,
+      "api_integration": 0.5,
+      "error_handling": 0.5,
+      "file_operations": 0.5,
+      "automation": 0.5,
+      "reasoning": 0.5,
+      "problem_solving": 0.5,
+      "self_improvement": 0.5
+    },
+    "summary": "Automated capability assessment completed"
+  },
+  {
+    "type": "gap_analysis",
+    "timestamp": 1746696375.8494031,
+    "gaps": [
+      {
+        "area": "natural_language_processing",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696375.8493545,
+        "priority": 2
+      },
+      {
+        "area": "api_integration",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696375.8493571,
+        "priority": 2
+      },
+      {
+        "area": "error_handling",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696375.8493583,
+        "priority": 2
+      },
+      {
+        "area": "file_operations",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696375.8493595,
+        "priority": 2
+      },
+      {
+        "area": "automation",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696375.8493607,
+        "priority": 2
+      },
+      {
+        "area": "reasoning",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696375.849362,
+        "priority": 2
+      },
+      {
+        "area": "problem_solving",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696375.8493629,
+        "priority": 2
+      },
+      {
+        "area": "self_improvement",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696375.849366,
+        "priority": 2
+      }
+    ]
+  },
+  {
+    "type": "goal_planning",
+    "timestamp": 1746696375.8904433,
+    "goals": [
+      {
+        "area": "natural_language_processing",
+        "topic": "natural_language",
+        "created_at": 1746696375.8900723,
+        "target_score": 0.7,
+        "status": "in_progress",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "api_integration",
+        "topic": "api_handling",
+        "created_at": 1746696375.890075,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "error_handling",
+        "topic": "error_handling",
+        "created_at": 1746696375.8900764,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "file_operations",
+        "topic": "file_handling",
+        "created_at": 1746696375.8900774,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "automation",
+        "topic": "automation",
+        "created_at": 1746696375.8900785,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "reasoning",
+        "topic": "natural_language",
+        "created_at": 1746696375.8900797,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "problem_solving",
+        "topic": "error_handling",
+        "created_at": 1746696375.890081,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "self_improvement",
+        "topic": "natural_language",
+        "created_at": 1746696375.8900845,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      }
+    ]
+  },
+  {
+    "type": "training_session",
+    "timestamp": 1746696375.9326167,
+    "topic": "natural_language",
+    "mode": "all_ais_train",
+    "platforms": null,
+    "goal": "Improve natural_language_processing capabilities to reach score of 0.7",
+    "session_id": null,
+    "status": "running"
+  },
+  {
+    "type": "capability_assessment",
+    "timestamp": 1746696395.6910994,
+    "scores": {
+      "natural_language_processing": 0.5,
+      "api_integration": 0.5,
+      "error_handling": 0.5,
+      "file_operations": 0.5,
+      "automation": 0.5,
+      "reasoning": 0.5,
+      "problem_solving": 0.5,
+      "self_improvement": 0.5
+    },
+    "summary": "Automated capability assessment completed"
+  },
+  {
+    "type": "gap_analysis",
+    "timestamp": 1746696395.7090797,
+    "gaps": [
+      {
+        "area": "natural_language_processing",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696395.709067,
+        "priority": 2
+      },
+      {
+        "area": "api_integration",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696395.7090693,
+        "priority": 2
+      },
+      {
+        "area": "error_handling",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696395.7090707,
+        "priority": 2
+      },
+      {
+        "area": "file_operations",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696395.7090716,
+        "priority": 2
+      },
+      {
+        "area": "automation",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696395.7090726,
+        "priority": 2
+      },
+      {
+        "area": "reasoning",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696395.709074,
+        "priority": 2
+      },
+      {
+        "area": "problem_solving",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696395.7090752,
+        "priority": 2
+      },
+      {
+        "area": "self_improvement",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696395.7090786,
+        "priority": 2
+      }
+    ]
+  },
+  {
+    "type": "goal_planning",
+    "timestamp": 1746696395.7295222,
+    "goals": [
+      {
+        "area": "natural_language_processing",
+        "topic": "natural_language",
+        "created_at": 1746696395.7292154,
+        "target_score": 0.7,
+        "status": "in_progress",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "api_integration",
+        "topic": "api_handling",
+        "created_at": 1746696395.7292175,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "error_handling",
+        "topic": "error_handling",
+        "created_at": 1746696395.7292182,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "file_operations",
+        "topic": "file_handling",
+        "created_at": 1746696395.729219,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "automation",
+        "topic": "automation",
+        "created_at": 1746696395.72922,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "reasoning",
+        "topic": "natural_language",
+        "created_at": 1746696395.7292206,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "problem_solving",
+        "topic": "error_handling",
+        "created_at": 1746696395.7292216,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "self_improvement",
+        "topic": "natural_language",
+        "created_at": 1746696395.7292254,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      }
+    ]
+  },
+  {
+    "type": "training_session",
+    "timestamp": 1746696395.7537816,
+    "topic": "natural_language",
+    "mode": "all_ais_train",
+    "platforms": null,
+    "goal": "Improve natural_language_processing capabilities to reach score of 0.7",
+    "session_id": null,
+    "status": "running"
+  },
+  {
+    "type": "capability_assessment",
+    "timestamp": 1746696421.316758,
+    "scores": {
+      "natural_language_processing": 0.5,
+      "api_integration": 0.5,
+      "error_handling": 0.5,
+      "file_operations": 0.5,
+      "automation": 0.5,
+      "reasoning": 0.5,
+      "problem_solving": 0.5,
+      "self_improvement": 0.5
+    },
+    "summary": "Automated capability assessment completed"
+  },
+  {
+    "type": "gap_analysis",
+    "timestamp": 1746696421.337218,
+    "gaps": [
+      {
+        "area": "natural_language_processing",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696421.3372064,
+        "priority": 2
+      },
+      {
+        "area": "api_integration",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696421.3372083,
+        "priority": 2
+      },
+      {
+        "area": "error_handling",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696421.3372095,
+        "priority": 2
+      },
+      {
+        "area": "file_operations",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696421.3372102,
+        "priority": 2
+      },
+      {
+        "area": "automation",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696421.3372111,
+        "priority": 2
+      },
+      {
+        "area": "reasoning",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696421.3372123,
+        "priority": 2
+      },
+      {
+        "area": "problem_solving",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696421.3372135,
+        "priority": 2
+      },
+      {
+        "area": "self_improvement",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696421.3372169,
+        "priority": 2
+      }
+    ]
+  },
+  {
+    "type": "goal_planning",
+    "timestamp": 1746696421.3694541,
+    "goals": [
+      {
+        "area": "natural_language_processing",
+        "topic": "natural_language",
+        "created_at": 1746696421.3690777,
+        "target_score": 0.7,
+        "status": "in_progress",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "api_integration",
+        "topic": "api_handling",
+        "created_at": 1746696421.3690805,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "error_handling",
+        "topic": "error_handling",
+        "created_at": 1746696421.3690825,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "file_operations",
+        "topic": "file_handling",
+        "created_at": 1746696421.3690836,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "automation",
+        "topic": "automation",
+        "created_at": 1746696421.369085,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "reasoning",
+        "topic": "natural_language",
+        "created_at": 1746696421.3690865,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "problem_solving",
+        "topic": "error_handling",
+        "created_at": 1746696421.369088,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "self_improvement",
+        "topic": "natural_language",
+        "created_at": 1746696421.369092,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      }
+    ]
+  },
+  {
+    "type": "training_session",
+    "timestamp": 1746696421.4114532,
+    "topic": "natural_language",
+    "mode": "all_ais_train",
+    "platforms": null,
+    "goal": "Improve natural_language_processing capabilities to reach score of 0.7",
+    "session_id": null,
+    "status": "running"
+  },
+  {
+    "type": "capability_assessment",
+    "timestamp": 1746696439.9117467,
+    "scores": {
+      "natural_language_processing": 0.5,
+      "api_integration": 0.5,
+      "error_handling": 0.5,
+      "file_operations": 0.5,
+      "automation": 0.5,
+      "reasoning": 0.5,
+      "problem_solving": 0.5,
+      "self_improvement": 0.5
+    },
+    "summary": "Automated capability assessment completed"
+  },
+  {
+    "type": "gap_analysis",
+    "timestamp": 1746696439.9336178,
+    "gaps": [
+      {
+        "area": "natural_language_processing",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696439.9336057,
+        "priority": 2
+      },
+      {
+        "area": "api_integration",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696439.933608,
+        "priority": 2
+      },
+      {
+        "area": "error_handling",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696439.933609,
+        "priority": 2
+      },
+      {
+        "area": "file_operations",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696439.93361,
+        "priority": 2
+      },
+      {
+        "area": "automation",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696439.9336112,
+        "priority": 2
+      },
+      {
+        "area": "reasoning",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696439.9336123,
+        "priority": 2
+      },
+      {
+        "area": "problem_solving",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696439.9336135,
+        "priority": 2
+      },
+      {
+        "area": "self_improvement",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696439.9336169,
+        "priority": 2
+      }
+    ]
+  },
+  {
+    "type": "goal_planning",
+    "timestamp": 1746696439.9578872,
+    "goals": [
+      {
+        "area": "natural_language_processing",
+        "topic": "natural_language",
+        "created_at": 1746696439.9575312,
+        "target_score": 0.7,
+        "status": "in_progress",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "api_integration",
+        "topic": "api_handling",
+        "created_at": 1746696439.9575348,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "error_handling",
+        "topic": "error_handling",
+        "created_at": 1746696439.9575362,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "file_operations",
+        "topic": "file_handling",
+        "created_at": 1746696439.957538,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "automation",
+        "topic": "automation",
+        "created_at": 1746696439.957539,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "reasoning",
+        "topic": "natural_language",
+        "created_at": 1746696439.9575405,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "problem_solving",
+        "topic": "error_handling",
+        "created_at": 1746696439.9575424,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "self_improvement",
+        "topic": "natural_language",
+        "created_at": 1746696439.957547,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      }
+    ]
+  },
+  {
+    "type": "training_session",
+    "timestamp": 1746696439.9837148,
+    "topic": "natural_language",
+    "mode": "all_ais_train",
+    "platforms": null,
+    "goal": "Improve natural_language_processing capabilities to reach score of 0.7",
+    "session_id": null,
+    "status": "running"
+  },
+  {
+    "type": "capability_assessment",
+    "timestamp": 1746696447.6849105,
+    "scores": {
+      "natural_language_processing": 0.5,
+      "api_integration": 0.5,
+      "error_handling": 0.5,
+      "file_operations": 0.5,
+      "automation": 0.5,
+      "reasoning": 0.5,
+      "problem_solving": 0.5,
+      "self_improvement": 0.5
+    },
+    "summary": "Automated capability assessment completed"
+  },
+  {
+    "type": "gap_analysis",
+    "timestamp": 1746696447.7007363,
+    "gaps": [
+      {
+        "area": "natural_language_processing",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696447.700724,
+        "priority": 2
+      },
+      {
+        "area": "api_integration",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696447.7007265,
+        "priority": 2
+      },
+      {
+        "area": "error_handling",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696447.7007277,
+        "priority": 2
+      },
+      {
+        "area": "file_operations",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696447.7007291,
+        "priority": 2
+      },
+      {
+        "area": "automation",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696447.70073,
+        "priority": 2
+      },
+      {
+        "area": "reasoning",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696447.7007318,
+        "priority": 2
+      },
+      {
+        "area": "problem_solving",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696447.7007327,
+        "priority": 2
+      },
+      {
+        "area": "self_improvement",
+        "current_score": 0.5,
+        "target_score": 0.7,
+        "identified_at": 1746696447.7007356,
+        "priority": 2
+      }
+    ]
+  },
+  {
+    "type": "goal_planning",
+    "timestamp": 1746696447.7242672,
+    "goals": [
+      {
+        "area": "natural_language_processing",
+        "topic": "natural_language",
+        "created_at": 1746696447.7239544,
+        "target_score": 0.7,
+        "status": "in_progress",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "api_integration",
+        "topic": "api_handling",
+        "created_at": 1746696447.7239568,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "error_handling",
+        "topic": "error_handling",
+        "created_at": 1746696447.7239585,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "file_operations",
+        "topic": "file_handling",
+        "created_at": 1746696447.72396,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "automation",
+        "topic": "automation",
+        "created_at": 1746696447.7239614,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "reasoning",
+        "topic": "natural_language",
+        "created_at": 1746696447.7239628,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "problem_solving",
+        "topic": "error_handling",
+        "created_at": 1746696447.7239642,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      },
+      {
+        "area": "self_improvement",
+        "topic": "natural_language",
+        "created_at": 1746696447.7239683,
+        "target_score": 0.7,
+        "status": "planned",
+        "priority": 2,
+        "training_sessions": []
+      }
+    ]
+  },
+  {
+    "type": "training_session",
+    "timestamp": 1746696447.7726247,
+    "topic": "natural_language",
+    "mode": "all_ais_train",
+    "platforms": null,
+    "goal": "Improve natural_language_processing capabilities to reach score of 0.7",
+    "session_id": null,
+    "status": "running"
   }
 ]

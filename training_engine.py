@@ -183,12 +183,24 @@ class TrainingSessionManager:
                         # Log that we're sending a prompt
                         self._add_status_update(f"Sending prompt to {platform}: {prompt[:50]}...")
                         
+                        # Determine task type from topic
+                        task_type = self._get_task_type_from_topic(topic_info)
+                        
+                        # Check if we should get platform recommendations
+                        if mode == 'auto_select' and task_type:
+                            # Get platform recommendations
+                            recommended_platforms = self.ai_controller.recommend_platform(prompt, task_type)
+                            if recommended_platforms:
+                                platform = recommended_platforms[0]  # Use the top recommendation
+                                self._add_status_update(f"Selected {platform} as optimal platform for {task_type} task")
+                        
                         # Interact with the AI platform
                         result = self.ai_controller.interact_with_ai(
                             platform=platform,
                             prompt=prompt,
                             subject=topic_info['name'],
-                            goal=interaction_goal
+                            goal=interaction_goal,
+                            task_type=task_type
                         )
                         
                         if result.get("status") == "success":

@@ -106,6 +106,30 @@ class MemorySystem:
             self.logger.error(traceback.format_exc())
             return None
     
+    def add_memory(self, conversation_id, source, content, memory_type="general"):
+        """
+        Add a memory entry that's not necessarily a message
+        
+        Args:
+            conversation_id (int): ID of the conversation
+            source (str): Source of the memory (user, system, platform name)
+            content (str): Content of the memory
+            memory_type (str): Type of memory (general, context, metadata)
+            
+        Returns:
+            bool: Success status
+        """
+        try:
+            # We'll use the existing message table but mark it as system type
+            return self.add_message(
+                conversation_id=conversation_id, 
+                content=f"[{memory_type}] {source}: {content}", 
+                is_user=False
+            )
+        except Exception as e:
+            self.logger.error(f"Error adding memory: {str(e)}")
+            return False
+    
     def add_message(self, conversation_id, content, is_user=True, screenshot_path=None):
         """
         Add a message to a conversation
