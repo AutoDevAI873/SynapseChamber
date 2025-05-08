@@ -147,13 +147,40 @@ class TrainingSessionManager:
     def _run_training_session(self):
         """Run the current training session"""
         try:
-            topic = self.current_session["topic"]
-            mode = self.current_session["mode"]
-            platforms = self.current_session["platforms"]
-            thread_id = self.current_session["id"]
+            # Check if we have an active session
+            if not self.current_session:
+                error_msg = "No active training session found"
+                self.logger.error(error_msg)
+                return {"error": error_msg}
+                
+            # Safe access to session parameters with default values
+            topic = self.current_session.get("topic", "general")
+            mode = self.current_session.get("mode", "standard")
+            platforms = self.current_session.get("platforms", [])
+            thread_id = self.current_session.get("id")
             
+            if not thread_id:
+                error_msg = "Invalid session ID"
+                self.logger.error(error_msg)
+                return {"error": error_msg}
+                
+            if not platforms:
+                error_msg = "No platforms specified for training"
+                self.logger.error(error_msg)
+                self._add_status_update(f"❌ {error_msg}")
+                self.current_session["status"] = "failed"
+                return {"error": error_msg}
+                
+            # Safe access to topic information
+            if topic not in self.training_topics:
+                error_msg = f"Topic '{topic}' not found in available topics"
+                self.logger.error(error_msg)
+                self._add_status_update(f"❌ {error_msg}")
+                self.current_session["status"] = "failed"
+                return {"error": error_msg}
+                
             topic_info = self.training_topics[topic]
-            prompts = topic_info["prompts"]
+            prompts = topic_info.get("prompts", [])
             
             # Determine which prompts to use based on mode
             if mode == "all_ais_train":
@@ -183,8 +210,30 @@ class TrainingSessionManager:
                         # Log that we're sending a prompt
                         self._add_status_update(f"Sending prompt to {platform}: {prompt[:50]}...")
                         
-                        # Determine task type from topic
-                        task_type = self._get_task_type_from_topic(topic_info)
+                        # Determine task type from topic and prompt
+                        task_type = None
+                        
+                        # Map topics to task types based on their content
+                        if 'code' in topic_info.get('name', '').lower() or 'programming' in topic_info.get('name', '').lower():
+                            task_type = 'coding'
+                        elif 'reasoning' in topic_info.get('name', '').lower() or 'logic' in topic_info.get('name', '').lower():
+                            task_type = 'reasoning'
+                        elif 'creative' in topic_info.get('name', '').lower() or 'writing' in topic_info.get('name', '').lower():
+                            task_type = 'creativity'
+                        elif 'math' in topic_info.get('name', '').lower() or 'calculation' in topic_info.get('name', '').lower():
+                            task_type = 'mathematics'
+                        else:
+                            # Fallback to a basic analysis of the prompt
+                            if 'code' in prompt.lower() or 'function' in prompt.lower() or 'algorithm' in prompt.lower():
+                                task_type = 'coding'
+                            elif 'explain' in prompt.lower() or 'analyze' in prompt.lower() or 'compare' in prompt.lower():
+                                task_type = 'reasoning'
+                            elif 'write' in prompt.lower() or 'create' in prompt.lower() or 'design' in prompt.lower():
+                                task_type = 'creativity'
+                        
+                        # Log the determined task type
+                        if task_type:
+                            self._add_status_update(f"Identified task type: {task_type}")
                         
                         # Check if we should get platform recommendations
                         if mode == 'auto_select' and task_type:
@@ -210,6 +259,9 @@ class TrainingSessionManager:
                             # Associate the conversation with the training thread
                             if conversation_id:
                                 self.memory_system.associate_conversation_with_thread(thread_id, conversation_id)
+                                # Ensure conversations list exists
+                                if "conversations" not in self.current_session:
+                                    self.current_session["conversations"] = []
                                 self.current_session["conversations"].append(conversation_id)
                             
                             # Log success
@@ -222,6 +274,10 @@ class TrainingSessionManager:
                         else:
                             error = result.get("message", "Unknown error")
                             self._add_status_update(f"❌ Error with {platform}: {error}")
+                            # Ensure errors list exists
+                            if "errors" not in self.current_session:
+                                self.current_session["errors"] = []
+                                
                             self.current_session["errors"].append({
                                 "platform": platform,
                                 "error": error,
@@ -237,6 +293,10 @@ class TrainingSessionManager:
                     self._add_status_update(f"❌ {error_msg}")
                     self.logger.error(error_msg)
                     self.logger.error(traceback.format_exc())
+                    # Ensure errors list exists
+                    if "errors" not in self.current_session:
+                        self.current_session["errors"] = []
+                        
                     self.current_session["errors"].append({
                         "platform": platform,
                         "error": str(e),
@@ -282,8 +342,22 @@ class TrainingSessionManager:
             self._add_status_update(f"❌ {error_msg}")
             self.logger.error(error_msg)
             self.logger.error(traceback.format_exc())
-            self.current_session["status"] = "failed"
-            self.current_session["end_time"] = datetime.datetime.now().isoformat()
+            
+            # Safe updates to current_session if it exists
+            if self.current_session:
+                self.current_session["status"] = "failed"
+                self.current_session["end_time"] = datetime.datetime.now().isoformat()
+                
+                # Ensure errors list exists
+                if "errors" not in self.current_session:
+                    self.current_session["errors"] = []
+                    
+                # Add the main error
+                self.current_session["errors"].append({
+                    "error": str(e),
+                    "timestamp": datetime.datetime.now().isoformat()
+                })
+                
             return {"error": error_msg}
     
     def _generate_recommendation(self, ai_contributions, topic_info):
