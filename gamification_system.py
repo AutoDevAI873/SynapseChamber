@@ -601,6 +601,109 @@ class GamificationSystem:
         
         return newly_earned
     
+    def get_user_data(self):
+        """
+        Get current user gamification data
+        
+        Returns:
+            dict: Complete user gamification data
+        """
+        return self.user_data.copy()
+    
+    def get_achievements(self):
+        """
+        Get available achievements with user progress
+        
+        Returns:
+            dict: Achievements data with user progress
+        """
+        try:
+            all_achievements = self._get_achievements()
+            user_achievements = self.user_data.get('achievements', [])
+            
+            # Add completion status to each achievement
+            for achievement in all_achievements:
+                achievement['completed'] = achievement['id'] in user_achievements
+                achievement['progress'] = self._get_achievement_progress(achievement)
+            
+            return {
+                'achievements': all_achievements,
+                'completed_count': len(user_achievements),
+                'total_count': len(all_achievements),
+                'completion_rate': len(user_achievements) / len(all_achievements) if all_achievements else 0
+            }
+        except Exception as e:
+            self.logger.error(f"Error getting achievements: {str(e)}")
+            return {
+                'achievements': [],
+                'completed_count': 0,
+                'total_count': 0,
+                'completion_rate': 0
+            }
+    
+    def _get_achievement_progress(self, achievement):
+        """
+        Get progress towards a specific achievement
+        
+        Args:
+            achievement (dict): Achievement definition
+            
+        Returns:
+            dict: Progress information
+        """
+        condition = achievement.get('condition', {})
+        condition_type = condition.get('type')
+        threshold = condition.get('threshold', 0)
+        
+        progress = {
+            'current': 0,
+            'target': threshold,
+            'percentage': 0,
+            'description': 'Not started'
+        }
+        
+        try:
+            if condition_type == 'sessions_completed':
+                current = self.user_data['progress']['sessions_completed']
+                progress['current'] = current
+                progress['percentage'] = min(100, (current / threshold) * 100) if threshold > 0 else 0
+                progress['description'] = f"{current}/{threshold} sessions completed"
+                
+            elif condition_type == 'unique_topics':
+                current = len(self.user_data['progress']['topics_trained'])
+                progress['current'] = current
+                progress['percentage'] = min(100, (current / threshold) * 100) if threshold > 0 else 0
+                progress['description'] = f"{current}/{threshold} unique topics"
+                
+            elif condition_type == 'all_platforms':
+                current = len(self.user_data['progress']['platforms_used'])
+                progress['current'] = current
+                progress['percentage'] = min(100, (current / threshold) * 100) if threshold > 0 else 0
+                progress['description'] = f"{current}/{threshold} platforms used"
+                
+            elif condition_type == 'streak':
+                current = max(self.user_data['streaks']['current'], self.user_data['streaks']['max'])
+                progress['current'] = current
+                progress['percentage'] = min(100, (current / threshold) * 100) if threshold > 0 else 0
+                progress['description'] = f"{current}/{threshold} day streak"
+                
+            elif condition_type == 'level':
+                current = self.user_data['level']
+                progress['current'] = current
+                progress['percentage'] = min(100, (current / threshold) * 100) if threshold > 0 else 0
+                progress['description'] = f"Level {current}/{threshold}"
+                
+            elif condition_type == 'achievements_count':
+                current = len(self.user_data['achievements'])
+                progress['current'] = current
+                progress['percentage'] = min(100, (current / threshold) * 100) if threshold > 0 else 0
+                progress['description'] = f"{current}/{threshold} achievements"
+                
+        except Exception as e:
+            self.logger.error(f"Error calculating achievement progress: {str(e)}")
+            
+        return progress
+    
     def _check_badge_condition(self, condition):
         """
         Check if a specific badge condition is met

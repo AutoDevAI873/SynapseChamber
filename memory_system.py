@@ -560,6 +560,104 @@ class MemorySystem:
             self.logger.error(f"Error getting threads: {str(e)}")
             return []
     
+    def get_memory_stats(self):
+        """
+        Get memory system statistics
+        
+        Returns:
+            dict: Memory statistics including counts and metrics
+        """
+        try:
+            stats = {
+                'total_conversations': 0,
+                'total_messages': 0,
+                'total_threads': 0,
+                'database_enabled': self.settings.get("use_database", True),
+                'backup_enabled': self.settings.get("backup_to_json", True)
+            }
+            
+            if self.settings.get("use_database", True):
+                try:
+                    from app import app
+                    with app.app_context():
+                        stats['total_conversations'] = db.session.query(AIConversation).count()
+                        stats['total_messages'] = db.session.query(Message).count()
+                        stats['total_threads'] = db.session.query(TrainingThread).count()
+                except Exception as context_error:
+                    self.logger.warning(f"Database context error in get_memory_stats: {str(context_error)}")
+                    # Fall back to JSON counting
+                    stats['total_conversations'] = len([f for f in os.listdir(self.data_dir) if f.startswith("conversation_") and f.endswith(".json")])
+                    stats['total_threads'] = len([f for f in os.listdir(self.data_dir) if f.startswith("thread_") and f.endswith(".json")])
+                    
+                    # Count messages in JSON files
+                    message_count = 0
+                    for file in os.listdir(self.data_dir):
+                        if file.startswith("conversation_") and file.endswith(".json"):
+                            file_path = os.path.join(self.data_dir, file)
+                            try:
+                                with open(file_path, 'r') as f:
+                                    conv_data = json.load(f)
+                                    message_count += len(conv_data.get("messages", []))
+                            except:
+                                pass
+                    stats['total_messages'] = message_count
+            else:
+                # Count JSON files
+                stats['total_conversations'] = len([f for f in os.listdir(self.data_dir) if f.startswith("conversation_") and f.endswith(".json")])
+                stats['total_threads'] = len([f for f in os.listdir(self.data_dir) if f.startswith("thread_") and f.endswith(".json")])
+                
+                # Count messages in JSON files
+                message_count = 0
+                for file in os.listdir(self.data_dir):
+                    if file.startswith("conversation_") and file.endswith(".json"):
+                        file_path = os.path.join(self.data_dir, file)
+                        try:
+                            with open(file_path, 'r') as f:
+                                conv_data = json.load(f)
+                                message_count += len(conv_data.get("messages", []))
+                        except:
+                            pass
+                stats['total_messages'] = message_count
+                
+            return stats
+        except Exception as e:
+            self.logger.error(f"Error getting memory stats: {str(e)}")
+            return {
+                'total_conversations': 0,
+                'total_messages': 0,
+                'total_threads': 0,
+                'database_enabled': False,
+                'backup_enabled': False
+            }
+    
+    def get_memory_count(self):
+        """
+        Get the total number of memory entries (messages + metadata)
+        
+        Returns:
+            int: Total number of memory entries
+        """
+        try:
+            stats = self.get_memory_stats()
+            return stats.get('total_messages', 0)
+        except Exception as e:
+            self.logger.error(f"Error getting memory count: {str(e)}")
+            return 0
+    
+    def get_conversation_count(self):
+        """
+        Get the total number of conversations
+        
+        Returns:
+            int: Total number of conversations
+        """
+        try:
+            stats = self.get_memory_stats()
+            return stats.get('total_conversations', 0)
+        except Exception as e:
+            self.logger.error(f"Error getting conversation count: {str(e)}")
+            return 0
+    
     def _backup_conversation(self, conversation_id):
         """Backup a conversation from the database to JSON"""
         try:
