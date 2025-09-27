@@ -770,7 +770,10 @@ def get_system_performance_data():
     try:
         # Get current metrics from the system performance monitor
         metrics = performance_monitor.get_current_metrics()
-        return jsonify({"status": "success", "metrics": metrics})
+        
+        # Convert any non-serializable objects to JSON-safe format
+        serializable_metrics = analytics_system._convert_to_serializable(metrics)
+        return jsonify({"status": "success", "metrics": serializable_metrics})
     except Exception as e:
         logger.error(f"Error getting system performance data: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -786,7 +789,10 @@ def get_system_performance_history():
         
         # Get historical data from the system performance monitor
         history = performance_monitor.get_performance_history(category, metric, time_range)
-        return jsonify({"status": "success", "history": history})
+        
+        # Convert any non-serializable objects to JSON-safe format
+        serializable_history = analytics_system._convert_to_serializable(history)
+        return jsonify({"status": "success", "history": serializable_history})
     except Exception as e:
         logger.error(f"Error getting system performance history: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -797,7 +803,10 @@ def get_system_performance_report():
     try:
         # Get performance report from the system performance monitor
         report = performance_monitor.get_performance_report()
-        return jsonify({"status": "success", "report": report})
+        
+        # Convert any non-serializable objects to JSON-safe format
+        serializable_report = analytics_system._convert_to_serializable(report)
+        return jsonify({"status": "success", "report": serializable_report})
     except Exception as e:
         logger.error(f"Error getting system performance report: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500

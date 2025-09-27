@@ -104,13 +104,47 @@ class AnalyticsSystem:
             # Update timestamp
             self.metrics['last_updated'] = datetime.datetime.now().isoformat()
             
+            # Convert deques and other non-serializable objects to serializable format
+            serializable_metrics = self._convert_to_serializable(self.metrics)
+            
             with open(metrics_path, 'w') as f:
-                json.dump(self.metrics, f, indent=2)
+                json.dump(serializable_metrics, f, indent=2)
                 
             return True
         except Exception as e:
             self.logger.error(f"Error saving analytics metrics: {str(e)}")
             return False
+    
+    def _convert_to_serializable(self, obj):
+        """
+        Convert objects to JSON-serializable format
+        
+        Args:
+            obj: Object to convert
+            
+        Returns:
+            JSON-serializable version of the object
+        """
+        from collections import deque
+        import numpy as np
+        
+        if isinstance(obj, dict):
+            return {key: self._convert_to_serializable(value) for key, value in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [self._convert_to_serializable(item) for item in obj]
+        elif isinstance(obj, deque):
+            return list(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, (np.integer, np.floating)):
+            return obj.item()
+        elif isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        elif hasattr(obj, '__dict__'):
+            # Handle custom objects by converting to dict
+            return self._convert_to_serializable(obj.__dict__)
+        else:
+            return obj
     
     def update_metrics(self, force=False):
         """

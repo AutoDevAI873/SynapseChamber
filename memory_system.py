@@ -264,21 +264,27 @@ class MemorySystem:
         """
         try:
             if self.settings.get("use_database", True):
-                query = AIConversation.query
-                
-                if platform:
-                    query = query.filter(AIConversation.platform == platform)
-                
-                if subject:
-                    query = query.filter(AIConversation.subject == subject)
-                
-                # Order by most recent first
-                query = query.order_by(AIConversation.created_at.desc())
-                
-                # Apply pagination
-                conversations = query.limit(limit).offset(offset).all()
-                
-                return [conv.to_dict() for conv in conversations]
+                try:
+                    from app import app
+                    with app.app_context():
+                        query = AIConversation.query
+                        
+                        if platform:
+                            query = query.filter(AIConversation.platform == platform)
+                        
+                        if subject:
+                            query = query.filter(AIConversation.subject == subject)
+                        
+                        # Order by most recent first
+                        query = query.order_by(AIConversation.created_at.desc())
+                        
+                        # Apply pagination
+                        conversations = query.limit(limit).offset(offset).all()
+                        
+                        return [conv.to_dict() for conv in conversations]
+                except Exception as context_error:
+                    self.logger.warning(f"Flask app context error in get_conversations: {str(context_error)}. Using JSON fallback.")
+                    # Fall through to JSON handling below
             else:
                 # List JSON files in the data directory
                 conversations = []
@@ -316,16 +322,22 @@ class MemorySystem:
         """
         try:
             if self.settings.get("use_database", True):
-                thread = TrainingThread(
-                    subject=subject,
-                    goal=goal,
-                    ai_contributions={}  # Initialize empty JSON
-                )
-                db.session.add(thread)
-                db.session.commit()
-                
-                self.logger.info(f"Created new training thread in database, ID: {thread.id}")
-                return thread.id
+                try:
+                    from app import app
+                    with app.app_context():
+                        thread = TrainingThread(
+                            subject=subject,
+                            goal=goal,
+                            ai_contributions={}  # Initialize empty JSON
+                        )
+                        db.session.add(thread)
+                        db.session.commit()
+                        
+                        self.logger.info(f"Created new training thread in database, ID: {thread.id}")
+                        return thread.id
+                except Exception as context_error:
+                    self.logger.warning(f"Flask app context error in create_training_thread: {str(context_error)}. Using JSON fallback.")
+                    # Fall through to JSON handling below
             else:
                 # Generate a unique ID
                 thread_id = int(time.time())
@@ -503,31 +515,37 @@ class MemorySystem:
         """
         try:
             if self.settings.get("use_database", True):
-                query = TrainingThread.query
-                
-                if subject:
-                    query = query.filter(TrainingThread.subject == subject)
-                
-                # Order by most recent first
-                query = query.order_by(TrainingThread.created_at.desc())
-                
-                # Apply pagination
-                threads = query.limit(limit).offset(offset).all()
-                
-                result = []
-                for thread in threads:
-                    thread_data = {
-                        "id": thread.id,
-                        "subject": thread.subject,
-                        "goal": thread.goal,
-                        "created_at": thread.created_at.isoformat(),
-                        "final_plan": thread.final_plan,
-                        "ai_contributions": thread.ai_contributions,
-                        "conversation_count": len(thread.conversations)
-                    }
-                    result.append(thread_data)
-                
-                return result
+                try:
+                    from app import app
+                    with app.app_context():
+                        query = TrainingThread.query
+                        
+                        if subject:
+                            query = query.filter(TrainingThread.subject == subject)
+                        
+                        # Order by most recent first
+                        query = query.order_by(TrainingThread.created_at.desc())
+                        
+                        # Apply pagination
+                        threads = query.limit(limit).offset(offset).all()
+                        
+                        result = []
+                        for thread in threads:
+                            thread_data = {
+                                "id": thread.id,
+                                "subject": thread.subject,
+                                "goal": thread.goal,
+                                "created_at": thread.created_at.isoformat(),
+                                "final_plan": thread.final_plan,
+                                "ai_contributions": thread.ai_contributions,
+                                "conversation_count": len(thread.conversations)
+                            }
+                            result.append(thread_data)
+                        
+                        return result
+                except Exception as context_error:
+                    self.logger.warning(f"Flask app context error in get_threads: {str(context_error)}. Using JSON fallback.")
+                    # Fall through to JSON handling below
             else:
                 # List JSON files in the data directory
                 threads = []
