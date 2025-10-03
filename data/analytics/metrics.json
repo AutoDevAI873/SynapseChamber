@@ -140,6 +140,10 @@
       {
         "timestamp": "2025-10-03T08:01:51.055720",
         "value": 22.9
+      },
+      {
+        "timestamp": "2025-10-03T09:10:18.515002",
+        "value": 30.6
       }
     ],
     "response_times": [
@@ -198,6 +202,10 @@
       {
         "timestamp": "2025-10-03T08:01:51.055720",
         "value": 0.0
+      },
+      {
+        "timestamp": "2025-10-03T09:10:18.515002",
+        "value": 8.998096406629196
       }
     ],
     "api_latency": [
@@ -340,6 +348,10 @@
       {
         "timestamp": "2025-10-03T08:01:51.055720",
         "value": 84.35245939116484
+      },
+      {
+        "timestamp": "2025-10-03T09:10:18.515002",
+        "value": 312.64271774927096
       }
     ],
     "error_rates": [
@@ -482,6 +494,10 @@
       {
         "timestamp": "2025-10-03T08:01:51.055720",
         "value": 2.8232066712119464
+      },
+      {
+        "timestamp": "2025-10-03T09:10:18.515002",
+        "value": 2.961225552425157
       }
     ],
     "uptime": [],
@@ -545,6 +561,10 @@
       {
         "timestamp": "2025-10-03T08:01:51.055720",
         "value": 0.0
+      },
+      {
+        "timestamp": "2025-10-03T09:10:18.515002",
+        "value": 55.5
       }
     ],
     "disk_usage": [
@@ -607,15 +627,19 @@
       {
         "timestamp": "2025-10-03T08:01:51.055720",
         "value": 64.4
+      },
+      {
+        "timestamp": "2025-10-03T09:10:18.515002",
+        "value": 65.1
       }
     ]
   },
   "training_metrics": {
-    "sessions_total": 10,
+    "sessions_total": 11,
     "sessions_completed": 0,
     "sessions_failed": 0,
     "topics": {
-      "Natural Language Processing": 5,
+      "Natural Language Processing": 6,
       "Fallback interaction with grok": 1,
       "Fallback interaction with claude": 1,
       "Fallback interaction with deepseek": 1,
@@ -624,8 +648,16 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 231.9390507782236,
+    "avg_session_duration": 167.6167162167857,
     "session_history": [
+      {
+        "id": 11,
+        "timestamp": "2025-10-03T09:10:18.613496",
+        "topic": "Training: Natural Language Processing",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
       {
         "id": 10,
         "timestamp": "2025-10-03T08:01:51.154396",
@@ -726,7 +758,7 @@
     "feature_usage": {
       "training": 8,
       "recommendations": 9,
-      "logs": 6,
+      "logs": 7,
       "settings": 7,
       "dashboard": 5
     },
@@ -940,8 +972,14 @@
         "hour": 8,
         "day_of_week": 4,
         "feature": "recommendations"
+      },
+      {
+        "timestamp": "2025-10-03T09:10:22.058640",
+        "hour": 9,
+        "day_of_week": 4,
+        "feature": "logs"
       }
     ]
   },
-  "last_updated": "2025-10-03T08:01:54.411063"
+  "last_updated": "2025-10-03T09:10:22.058661"
 }
