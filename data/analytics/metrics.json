@@ -148,6 +148,14 @@
       {
         "timestamp": "2025-10-03T09:29:27.597392",
         "value": 29.2
+      },
+      {
+        "timestamp": "2025-10-03T10:46:02.117982",
+        "value": 34.6
+      },
+      {
+        "timestamp": "2025-10-03T10:46:19.877903",
+        "value": 34.6
       }
     ],
     "response_times": [
@@ -214,6 +222,14 @@
       {
         "timestamp": "2025-10-03T09:29:27.597392",
         "value": 0.26821944686601046
+      },
+      {
+        "timestamp": "2025-10-03T10:46:02.117982",
+        "value": 33.69806663924311
+      },
+      {
+        "timestamp": "2025-10-03T10:46:19.877903",
+        "value": 0.0
       }
     ],
     "api_latency": [
@@ -364,6 +380,14 @@
       {
         "timestamp": "2025-10-03T09:29:27.597392",
         "value": 492.4746398910272
+      },
+      {
+        "timestamp": "2025-10-03T10:46:02.117982",
+        "value": 445.92112191969085
+      },
+      {
+        "timestamp": "2025-10-03T10:46:19.877903",
+        "value": 479.9760662703811
       }
     ],
     "error_rates": [
@@ -514,6 +538,14 @@
       {
         "timestamp": "2025-10-03T09:29:27.597392",
         "value": 2.1166046093247752
+      },
+      {
+        "timestamp": "2025-10-03T10:46:02.117982",
+        "value": 2.9103344735882204
+      },
+      {
+        "timestamp": "2025-10-03T10:46:19.877903",
+        "value": 1.7398239077938082
       }
     ],
     "uptime": [],
@@ -585,6 +617,14 @@
       {
         "timestamp": "2025-10-03T09:29:27.597392",
         "value": 53.9
+      },
+      {
+        "timestamp": "2025-10-03T10:46:02.117982",
+        "value": 0.0
+      },
+      {
+        "timestamp": "2025-10-03T10:46:19.877903",
+        "value": 0.0
       }
     ],
     "disk_usage": [
@@ -655,108 +695,47 @@
       {
         "timestamp": "2025-10-03T09:29:27.597392",
         "value": 65.1
+      },
+      {
+        "timestamp": "2025-10-03T10:46:02.117982",
+        "value": 74.0
+      },
+      {
+        "timestamp": "2025-10-03T10:46:19.877903",
+        "value": 74.1
       }
     ]
   },
   "training_metrics": {
-    "sessions_total": 11,
+    "sessions_total": 3,
     "sessions_completed": 0,
     "sessions_failed": 0,
     "topics": {
-      "Natural Language Processing": 6,
-      "Fallback interaction with grok": 1,
-      "Fallback interaction with claude": 1,
-      "Fallback interaction with deepseek": 1,
-      "Fallback interaction with gemini": 1,
-      "Fallback interaction with gpt": 1
+      "Natural Language Processing": 3
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 211.35519515423104,
+    "avg_session_duration": 184.81365941765756,
     "session_history": [
       {
-        "id": 11,
-        "timestamp": "2025-10-03T09:10:18.613496",
-        "topic": "Training: Natural Language Processing",
-        "completed": false,
-        "platforms": 0,
-        "contributions": 0
-      },
-      {
-        "id": 10,
-        "timestamp": "2025-10-03T08:01:51.154396",
-        "topic": "Training: Natural Language Processing",
-        "completed": false,
-        "platforms": 0,
-        "contributions": 0
-      },
-      {
-        "id": 9,
-        "timestamp": "2025-10-02T13:38:15.041252",
-        "topic": "Training: Natural Language Processing",
-        "completed": false,
-        "platforms": 0,
-        "contributions": 0
-      },
-      {
-        "id": 8,
-        "timestamp": "2025-09-27T09:19:21.033212",
-        "topic": "Fallback interaction with grok",
-        "completed": false,
-        "platforms": 0,
-        "contributions": 0
-      },
-      {
-        "id": 7,
-        "timestamp": "2025-09-27T09:15:32.948847",
-        "topic": "Fallback interaction with claude",
-        "completed": false,
-        "platforms": 0,
-        "contributions": 0
-      },
-      {
-        "id": 6,
-        "timestamp": "2025-09-27T09:11:42.566351",
-        "topic": "Fallback interaction with deepseek",
-        "completed": false,
-        "platforms": 0,
-        "contributions": 0
-      },
-      {
-        "id": 5,
-        "timestamp": "2025-09-27T09:07:56.323904",
-        "topic": "Fallback interaction with gemini",
-        "completed": false,
-        "platforms": 0,
-        "contributions": 0
-      },
-      {
-        "id": 4,
-        "timestamp": "2025-09-27T09:04:39.012490",
-        "topic": "Fallback interaction with gpt",
-        "completed": false,
-        "platforms": 0,
-        "contributions": 0
-      },
-      {
         "id": 3,
-        "timestamp": "2025-09-27T09:00:55.723409",
-        "topic": "Natural Language Processing",
+        "timestamp": "2025-10-03T10:46:19.876892",
+        "topic": "Training: Natural Language Processing",
         "completed": false,
         "platforms": 0,
         "contributions": 0
       },
       {
         "id": 2,
-        "timestamp": "2025-09-27T09:00:43.198001",
-        "topic": "Training: Natural Language Processing",
+        "timestamp": "2025-10-03T10:46:10.645517",
+        "topic": "Natural Language Processing",
         "completed": false,
         "platforms": 0,
         "contributions": 0
       },
       {
         "id": 1,
-        "timestamp": "2025-09-27T09:00:34.394524",
+        "timestamp": "2025-10-03T10:46:02.115444",
         "topic": "Training: Natural Language Processing",
         "completed": false,
         "platforms": 0,
@@ -780,10 +759,10 @@
     ],
     "session_frequency": [],
     "feature_usage": {
-      "training": 9,
+      "training": 10,
       "recommendations": 9,
       "logs": 7,
-      "settings": 7,
+      "settings": 8,
       "dashboard": 5
     },
     "interaction_patterns": [
@@ -1008,8 +987,20 @@
         "hour": 9,
         "day_of_week": 4,
         "feature": "training"
+      },
+      {
+        "timestamp": "2025-10-03T10:46:02.157510",
+        "hour": 10,
+        "day_of_week": 4,
+        "feature": "settings"
+      },
+      {
+        "timestamp": "2025-10-03T10:46:19.904563",
+        "hour": 10,
+        "day_of_week": 4,
+        "feature": "training"
       }
     ]
   },
-  "last_updated": "2025-10-03T09:29:30.676526"
+  "last_updated": "2025-10-03T10:46:19.904579"
 }
