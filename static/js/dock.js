@@ -297,6 +297,11 @@ function openTool(toolId) {
     case 'terminal':
       window.location.href = '/terminal';
       break;
+    case 'version-control':
+      // Initialize Git interface or redirect to version control page
+      showNotification('info', 'Opening Version Control...');
+      // You can implement a Git interface page or integrate with Replit's native Git
+      break;
     case 'debug':
       window.location.href = '/debug';
       break;
