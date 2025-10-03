@@ -144,6 +144,10 @@
       {
         "timestamp": "2025-10-03T09:10:18.515002",
         "value": 30.6
+      },
+      {
+        "timestamp": "2025-10-03T09:29:27.597392",
+        "value": 29.2
       }
     ],
     "response_times": [
@@ -206,6 +210,10 @@
       {
         "timestamp": "2025-10-03T09:10:18.515002",
         "value": 8.998096406629196
+      },
+      {
+        "timestamp": "2025-10-03T09:29:27.597392",
+        "value": 0.26821944686601046
       }
     ],
     "api_latency": [
@@ -352,6 +360,10 @@
       {
         "timestamp": "2025-10-03T09:10:18.515002",
         "value": 312.64271774927096
+      },
+      {
+        "timestamp": "2025-10-03T09:29:27.597392",
+        "value": 492.4746398910272
       }
     ],
     "error_rates": [
@@ -498,6 +510,10 @@
       {
         "timestamp": "2025-10-03T09:10:18.515002",
         "value": 2.961225552425157
+      },
+      {
+        "timestamp": "2025-10-03T09:29:27.597392",
+        "value": 2.1166046093247752
       }
     ],
     "uptime": [],
@@ -565,6 +581,10 @@
       {
         "timestamp": "2025-10-03T09:10:18.515002",
         "value": 55.5
+      },
+      {
+        "timestamp": "2025-10-03T09:29:27.597392",
+        "value": 53.9
       }
     ],
     "disk_usage": [
@@ -631,6 +651,10 @@
       {
         "timestamp": "2025-10-03T09:10:18.515002",
         "value": 65.1
+      },
+      {
+        "timestamp": "2025-10-03T09:29:27.597392",
+        "value": 65.1
       }
     ]
   },
@@ -648,7 +672,7 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 167.6167162167857,
+    "avg_session_duration": 211.35519515423104,
     "session_history": [
       {
         "id": 11,
@@ -756,7 +780,7 @@
     ],
     "session_frequency": [],
     "feature_usage": {
-      "training": 8,
+      "training": 9,
       "recommendations": 9,
       "logs": 7,
       "settings": 7,
@@ -978,8 +1002,14 @@
         "hour": 9,
         "day_of_week": 4,
         "feature": "logs"
+      },
+      {
+        "timestamp": "2025-10-03T09:29:30.676506",
+        "hour": 9,
+        "day_of_week": 4,
+        "feature": "training"
       }
     ]
   },
-  "last_updated": "2025-10-03T09:10:22.058661"
+  "last_updated": "2025-10-03T09:29:30.676526"
 }
