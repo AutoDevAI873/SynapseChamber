@@ -128,6 +128,18 @@
       {
         "timestamp": "2025-09-27T09:00:43.098642",
         "value": 38.1
+      },
+      {
+        "timestamp": "2025-09-27T09:06:39.310778",
+        "value": 37.8
+      },
+      {
+        "timestamp": "2025-10-02T13:38:14.945513",
+        "value": 25.4
+      },
+      {
+        "timestamp": "2025-10-03T08:01:51.055720",
+        "value": 22.9
       }
     ],
     "response_times": [
@@ -173,6 +185,18 @@
       },
       {
         "timestamp": "2025-09-27T09:00:43.098642",
+        "value": 0.0
+      },
+      {
+        "timestamp": "2025-09-27T09:06:39.310778",
+        "value": 131.18227734157273
+      },
+      {
+        "timestamp": "2025-10-02T13:38:14.945513",
+        "value": 0.0
+      },
+      {
+        "timestamp": "2025-10-03T08:01:51.055720",
         "value": 0.0
       }
     ],
@@ -304,6 +328,18 @@
       {
         "timestamp": "2025-09-27T09:00:43.098642",
         "value": 99.93399948248431
+      },
+      {
+        "timestamp": "2025-09-27T09:06:39.310778",
+        "value": 89.02234309159752
+      },
+      {
+        "timestamp": "2025-10-02T13:38:14.945513",
+        "value": 468.12854939534014
+      },
+      {
+        "timestamp": "2025-10-03T08:01:51.055720",
+        "value": 84.35245939116484
       }
     ],
     "error_rates": [
@@ -434,6 +470,18 @@
       {
         "timestamp": "2025-09-27T09:00:43.098642",
         "value": 0.8790114870983395
+      },
+      {
+        "timestamp": "2025-09-27T09:06:39.310778",
+        "value": 4.583033020266088
+      },
+      {
+        "timestamp": "2025-10-02T13:38:14.945513",
+        "value": 2.3666116069385446
+      },
+      {
+        "timestamp": "2025-10-03T08:01:51.055720",
+        "value": 2.8232066712119464
       }
     ],
     "uptime": [],
@@ -485,6 +533,18 @@
       {
         "timestamp": "2025-09-27T09:00:43.098642",
         "value": 0.0
+      },
+      {
+        "timestamp": "2025-09-27T09:06:39.310778",
+        "value": 47.9
+      },
+      {
+        "timestamp": "2025-10-02T13:38:14.945513",
+        "value": 0.0
+      },
+      {
+        "timestamp": "2025-10-03T08:01:51.055720",
+        "value": 0.0
       }
     ],
     "disk_usage": [
@@ -535,20 +595,101 @@
       {
         "timestamp": "2025-09-27T09:00:43.098642",
         "value": 64.2
+      },
+      {
+        "timestamp": "2025-09-27T09:06:39.310778",
+        "value": 64.3
+      },
+      {
+        "timestamp": "2025-10-02T13:38:14.945513",
+        "value": 62.6
+      },
+      {
+        "timestamp": "2025-10-03T08:01:51.055720",
+        "value": 64.4
       }
     ]
   },
   "training_metrics": {
-    "sessions_total": 2,
+    "sessions_total": 10,
     "sessions_completed": 0,
     "sessions_failed": 0,
     "topics": {
-      "Natural Language Processing": 2
+      "Natural Language Processing": 5,
+      "Fallback interaction with grok": 1,
+      "Fallback interaction with claude": 1,
+      "Fallback interaction with deepseek": 1,
+      "Fallback interaction with gemini": 1,
+      "Fallback interaction with gpt": 1
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 275.75959136220615,
+    "avg_session_duration": 231.9390507782236,
     "session_history": [
+      {
+        "id": 10,
+        "timestamp": "2025-10-03T08:01:51.154396",
+        "topic": "Training: Natural Language Processing",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 9,
+        "timestamp": "2025-10-02T13:38:15.041252",
+        "topic": "Training: Natural Language Processing",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 8,
+        "timestamp": "2025-09-27T09:19:21.033212",
+        "topic": "Fallback interaction with grok",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 7,
+        "timestamp": "2025-09-27T09:15:32.948847",
+        "topic": "Fallback interaction with claude",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 6,
+        "timestamp": "2025-09-27T09:11:42.566351",
+        "topic": "Fallback interaction with deepseek",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 5,
+        "timestamp": "2025-09-27T09:07:56.323904",
+        "topic": "Fallback interaction with gemini",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 4,
+        "timestamp": "2025-09-27T09:04:39.012490",
+        "topic": "Fallback interaction with gpt",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 3,
+        "timestamp": "2025-09-27T09:00:55.723409",
+        "topic": "Natural Language Processing",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
       {
         "id": 2,
         "timestamp": "2025-09-27T09:00:43.198001",
@@ -577,14 +718,16 @@
     "active_days": [
       "2025-05-07",
       "2025-05-08",
-      "2025-09-27"
+      "2025-09-27",
+      "2025-10-02",
+      "2025-10-03"
     ],
     "session_frequency": [],
     "feature_usage": {
       "training": 8,
-      "recommendations": 7,
+      "recommendations": 9,
       "logs": 6,
-      "settings": 6,
+      "settings": 7,
       "dashboard": 5
     },
     "interaction_patterns": [
@@ -779,8 +922,26 @@
         "hour": 9,
         "day_of_week": 5,
         "feature": "training"
+      },
+      {
+        "timestamp": "2025-09-27T09:06:46.362567",
+        "hour": 9,
+        "day_of_week": 5,
+        "feature": "settings"
+      },
+      {
+        "timestamp": "2025-10-02T13:38:18.090248",
+        "hour": 13,
+        "day_of_week": 3,
+        "feature": "recommendations"
+      },
+      {
+        "timestamp": "2025-10-03T08:01:54.411040",
+        "hour": 8,
+        "day_of_week": 4,
+        "feature": "recommendations"
       }
     ]
   },
-  "last_updated": "2025-09-27T09:00:44.847673"
+  "last_updated": "2025-10-03T08:01:54.411063"
 }
