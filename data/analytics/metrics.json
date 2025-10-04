@@ -164,6 +164,14 @@
       {
         "timestamp": "2025-10-04T07:56:06.386755",
         "value": 36.3
+      },
+      {
+        "timestamp": "2025-10-04T08:12:28.110189",
+        "value": 37.2
+      },
+      {
+        "timestamp": "2025-10-04T08:17:02.902565",
+        "value": 32.7
       }
     ],
     "response_times": [
@@ -246,6 +254,14 @@
       {
         "timestamp": "2025-10-04T07:56:06.386755",
         "value": 18.825836499571025
+      },
+      {
+        "timestamp": "2025-10-04T08:12:28.110189",
+        "value": 143.3671991719091
+      },
+      {
+        "timestamp": "2025-10-04T08:17:02.902565",
+        "value": 145.07854055596945
       }
     ],
     "api_latency": [
@@ -412,6 +428,14 @@
       {
         "timestamp": "2025-10-04T07:56:06.386755",
         "value": 330.2364201267253
+      },
+      {
+        "timestamp": "2025-10-04T08:12:28.110189",
+        "value": 372.9216661319094
+      },
+      {
+        "timestamp": "2025-10-04T08:17:02.902565",
+        "value": 135.663356851407
       }
     ],
     "error_rates": [
@@ -578,6 +602,14 @@
       {
         "timestamp": "2025-10-04T07:56:06.386755",
         "value": 0.865511311229169
+      },
+      {
+        "timestamp": "2025-10-04T08:12:28.110189",
+        "value": 0.3136965533166902
+      },
+      {
+        "timestamp": "2025-10-04T08:17:02.902565",
+        "value": 2.0428450339812927
       }
     ],
     "uptime": [],
@@ -665,6 +697,14 @@
       {
         "timestamp": "2025-10-04T07:56:06.386755",
         "value": 0.0
+      },
+      {
+        "timestamp": "2025-10-04T08:12:28.110189",
+        "value": 41.3
+      },
+      {
+        "timestamp": "2025-10-04T08:17:02.902565",
+        "value": 42.1
       }
     ],
     "disk_usage": [
@@ -751,15 +791,23 @@
       {
         "timestamp": "2025-10-04T07:56:06.386755",
         "value": 80.0
+      },
+      {
+        "timestamp": "2025-10-04T08:12:28.110189",
+        "value": 79.9
+      },
+      {
+        "timestamp": "2025-10-04T08:17:02.902565",
+        "value": 79.9
       }
     ]
   },
   "training_metrics": {
-    "sessions_total": 10,
+    "sessions_total": 12,
     "sessions_completed": 0,
     "sessions_failed": 0,
     "topics": {
-      "Natural Language Processing": 5,
+      "Natural Language Processing": 7,
       "Fallback interaction with grok": 1,
       "Fallback interaction with claude": 1,
       "Fallback interaction with deepseek": 1,
@@ -768,8 +816,24 @@
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 95.04496531340826,
+    "avg_session_duration": 273.24174948129576,
     "session_history": [
+      {
+        "id": 12,
+        "timestamp": "2025-10-04T08:12:31.068365",
+        "topic": "Training: Natural Language Processing",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 11,
+        "timestamp": "2025-10-04T07:56:06.414575",
+        "topic": "Training: Natural Language Processing",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
       {
         "id": 10,
         "timestamp": "2025-10-04T07:55:55.508355",
@@ -869,9 +933,9 @@
     ],
     "session_frequency": [],
     "feature_usage": {
-      "training": 11,
+      "training": 12,
       "recommendations": 9,
-      "logs": 7,
+      "logs": 8,
       "settings": 8,
       "dashboard": 6
     },
@@ -1121,8 +1185,20 @@
         "hour": 7,
         "day_of_week": 5,
         "feature": "training"
+      },
+      {
+        "timestamp": "2025-10-04T08:12:28.132325",
+        "hour": 8,
+        "day_of_week": 5,
+        "feature": "training"
+      },
+      {
+        "timestamp": "2025-10-04T08:17:02.922536",
+        "hour": 8,
+        "day_of_week": 5,
+        "feature": "logs"
       }
     ]
   },
-  "last_updated": "2025-10-04T07:56:06.429595"
+  "last_updated": "2025-10-04T08:17:02.922551"
 }
