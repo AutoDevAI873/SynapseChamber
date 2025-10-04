@@ -156,6 +156,10 @@
       {
         "timestamp": "2025-10-03T10:46:19.877903",
         "value": 34.6
+      },
+      {
+        "timestamp": "2025-10-04T07:23:18.056764",
+        "value": 37.3
       }
     ],
     "response_times": [
@@ -229,6 +233,10 @@
       },
       {
         "timestamp": "2025-10-03T10:46:19.877903",
+        "value": 0.0
+      },
+      {
+        "timestamp": "2025-10-04T07:23:18.056764",
         "value": 0.0
       }
     ],
@@ -388,6 +396,10 @@
       {
         "timestamp": "2025-10-03T10:46:19.877903",
         "value": 479.9760662703811
+      },
+      {
+        "timestamp": "2025-10-04T07:23:18.056764",
+        "value": 269.85094584038654
       }
     ],
     "error_rates": [
@@ -546,6 +558,10 @@
       {
         "timestamp": "2025-10-03T10:46:19.877903",
         "value": 1.7398239077938082
+      },
+      {
+        "timestamp": "2025-10-04T07:23:18.056764",
+        "value": 3.4782586070418513
       }
     ],
     "uptime": [],
@@ -625,6 +641,10 @@
       {
         "timestamp": "2025-10-03T10:46:19.877903",
         "value": 0.0
+      },
+      {
+        "timestamp": "2025-10-04T07:23:18.056764",
+        "value": 0.0
       }
     ],
     "disk_usage": [
@@ -703,20 +723,77 @@
       {
         "timestamp": "2025-10-03T10:46:19.877903",
         "value": 74.1
+      },
+      {
+        "timestamp": "2025-10-04T07:23:18.056764",
+        "value": 79.6
       }
     ]
   },
   "training_metrics": {
-    "sessions_total": 3,
+    "sessions_total": 9,
     "sessions_completed": 0,
     "sessions_failed": 0,
     "topics": {
-      "Natural Language Processing": 3
+      "Natural Language Processing": 4,
+      "Fallback interaction with grok": 1,
+      "Fallback interaction with claude": 1,
+      "Fallback interaction with deepseek": 1,
+      "Fallback interaction with gemini": 1,
+      "Fallback interaction with gpt": 1
     },
     "platforms": {},
     "success_rate": 0.0,
-    "avg_session_duration": 184.81365941765756,
+    "avg_session_duration": 243.6853997856986,
     "session_history": [
+      {
+        "id": 9,
+        "timestamp": "2025-10-04T07:23:18.058280",
+        "topic": "Training: Natural Language Processing",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 8,
+        "timestamp": "2025-10-03T11:03:58.891931",
+        "topic": "Fallback interaction with grok",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 7,
+        "timestamp": "2025-10-03T11:00:20.717731",
+        "topic": "Fallback interaction with claude",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 6,
+        "timestamp": "2025-10-03T10:56:43.720784",
+        "topic": "Fallback interaction with deepseek",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 5,
+        "timestamp": "2025-10-03T10:53:06.167985",
+        "topic": "Fallback interaction with gemini",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
+      {
+        "id": 4,
+        "timestamp": "2025-10-03T10:49:57.888454",
+        "topic": "Fallback interaction with gpt",
+        "completed": false,
+        "platforms": 0,
+        "contributions": 0
+      },
       {
         "id": 3,
         "timestamp": "2025-10-03T10:46:19.876892",
@@ -755,7 +832,8 @@
       "2025-05-08",
       "2025-09-27",
       "2025-10-02",
-      "2025-10-03"
+      "2025-10-03",
+      "2025-10-04"
     ],
     "session_frequency": [],
     "feature_usage": {
@@ -763,7 +841,7 @@
       "recommendations": 9,
       "logs": 7,
       "settings": 8,
-      "dashboard": 5
+      "dashboard": 6
     },
     "interaction_patterns": [
       {
@@ -999,8 +1077,14 @@
         "hour": 10,
         "day_of_week": 4,
         "feature": "training"
+      },
+      {
+        "timestamp": "2025-10-04T07:23:18.091125",
+        "hour": 7,
+        "day_of_week": 5,
+        "feature": "dashboard"
       }
     ]
   },
-  "last_updated": "2025-10-03T10:46:19.904579"
+  "last_updated": "2025-10-04T07:23:18.091142"
 }
