@@ -7,6 +7,10 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import datetime
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+
+# Load environment variables from .env file (if it exists)
+load_dotenv()
 
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
