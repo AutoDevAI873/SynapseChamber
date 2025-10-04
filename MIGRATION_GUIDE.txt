@@ -1,0 +1,136 @@
+============================================
+SYNAPSE CHAMBER - AUTODEV MIGRATION GUIDE
+============================================
+
+This guide will help you transfer your AutoDev system from Replit to your laptop.
+
+📦 WHAT YOU NEED ON YOUR LAPTOP
+--------------------------------
+
+1. Python 3.11 or higher
+2. PostgreSQL database (optional - can use SQLite)
+3. Chromium/Chrome browser
+4. ChromeDriver matching your Chrome version
+
+🚀 MIGRATION STEPS
+------------------
+
+STEP 1: Download the Project
+-----------------------------
+Option A: Download as ZIP from Replit
+Option B: Clone via Git (if you have a repo)
+
+STEP 2: Install Python Dependencies
+------------------------------------
+Navigate to the project directory and run:
+
+    pip install -r requirements.txt
+
+Or if using uv (faster):
+
+    pip install uv
+    uv sync
+
+STEP 3: Set Up Environment Variables
+-------------------------------------
+Copy the example environment file:
+
+    cp .env.example .env
+
+Then edit .env and fill in your values:
+
+    SESSION_SECRET=<generate a random secure string>
+    DATABASE_URL=<your PostgreSQL connection string>
+
+To generate a random SESSION_SECRET:
+    python -c "import secrets; print(secrets.token_hex(32))"
+
+STEP 4: Set Up Database (Optional)
+-----------------------------------
+If you want to use PostgreSQL:
+
+    # Install PostgreSQL on your system
+    # Create a database
+    createdb synapse_chamber
+    
+    # Update DATABASE_URL in .env:
+    DATABASE_URL=postgresql://username:password@localhost/synapse_chamber
+
+If you want to use the existing data:
+    # Export from Replit (if DATABASE_URL is set)
+    pg_dump $DATABASE_URL > backup.sql
+    
+    # Import on your laptop
+    psql -d synapse_chamber -f backup.sql
+
+STEP 5: Install Chrome/ChromeDriver
+------------------------------------
+The browser automation requires Chrome and ChromeDriver.
+
+Linux:
+    sudo apt-get install chromium-browser chromium-chromedriver
+
+Mac:
+    brew install --cask google-chrome
+    brew install chromedriver
+
+Windows:
+    Download Chrome from https://www.google.com/chrome/
+    Download ChromeDriver from https://chromedriver.chromium.org/
+
+STEP 6: Run the Application
+----------------------------
+Start the server:
+
+    gunicorn --bind 0.0.0.0:5000 --reload main:app
+
+Or for development:
+
+    python -c "from app import app; app.run(debug=True, port=5000)"
+
+Access the application at: http://localhost:5000
+
+🔧 TROUBLESHOOTING
+------------------
+
+Issue: "Module not found" errors
+Solution: Make sure all dependencies are installed:
+    pip install -r requirements.txt
+
+Issue: Database connection errors
+Solution: Check your DATABASE_URL in .env and ensure PostgreSQL is running
+
+Issue: ChromeDriver not found
+Solution: Install ChromeDriver and ensure it's in your PATH
+
+Issue: Permission denied errors
+Solution: Make sure the data/ directory is writable:
+    chmod -R 755 data/
+
+📁 IMPORTANT FILES
+------------------
+
+.env              - Your environment variables (DO NOT COMMIT)
+.env.example      - Template for environment variables
+pyproject.toml    - Python dependencies
+main.py           - Application entry point
+app.py            - Main Flask application
+data/             - All training data, conversations, analytics
+
+🎯 VERIFICATION
+---------------
+
+After migration, verify everything works:
+
+1. Open http://localhost:5000
+2. Check the dashboard loads
+3. Try starting a training session
+4. Verify browser automation initializes
+5. Check that conversations are saved to data/
+
+✅ YOU'RE DONE!
+---------------
+
+Your AutoDev system is now running on your laptop and ready to train!
+
+For questions or issues, refer to the code documentation or check the logs.
