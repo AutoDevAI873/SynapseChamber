@@ -487,7 +487,7 @@ def agent_run():
             return jsonify({"status": "error", "message": "Task is required"}), 400
         
         from react_agent import ReActAgent
-        agent = ReActAgent()
+        agent = ReActAgent(flask_app_context=app.app_context)
         
         result = agent.run_task(
             task=task,

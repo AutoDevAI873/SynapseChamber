@@ -28,13 +28,14 @@ class ReActAgent:
     
     APPROVAL_REQUIRED_ACTIONS: Set[str] = {"create_pr", "run_code", "delete_resource"}
     
-    def __init__(self, max_steps: int = 6, audit_log_path: str = "data/audit.jsonl"):
+    def __init__(self, max_steps: int = 6, audit_log_path: str = "data/audit.jsonl", flask_app_context=None):
         """
         Initialize the ReAct agent.
         
         Args:
             max_steps: Maximum number of reasoning-action steps allowed
             audit_log_path: Path to the JSONL audit log file
+            flask_app_context: Optional Flask app context for database access
         """
         self.logger = logging.getLogger(__name__)
         self.max_steps = max_steps
@@ -44,7 +45,7 @@ class ReActAgent:
         self.logger.info(f"Initializing ReAct Agent (max_steps={max_steps})")
         
         try:
-            self.tools_registry = ToolsRegistry()
+            self.tools_registry = ToolsRegistry(flask_app_context=flask_app_context)
             self.TOOLS = self.tools_registry.tools
             self.TOOL_METADATA = self.tools_registry.tool_metadata
             

@@ -10,34 +10,41 @@ class ToolsRegistry:
     Provides a clean API for tool discovery, execution, and error handling.
     """
     
-    def __init__(self):
+    def __init__(self, flask_app_context=None):
         self.logger = logging.getLogger(__name__)
         self.logger.info("Initializing Tools Registry...")
+        self.flask_app_context = flask_app_context
         
         try:
             from browser_automation import BrowserAutomation
             from captcha_solver import CAPTCHASolver
-            from memory_system import MemorySystem
-            from ai_controller import AIController
-            from training_engine import TrainingSessionManager
             from file_ops import FileOperations
             
             self.browser_automation = BrowserAutomation()
             self.captcha_solver = CAPTCHASolver()
-            self.memory_system = MemorySystem()
-            
-            self.ai_controller = AIController(
-                browser_automation=self.browser_automation,
-                captcha_solver=self.captcha_solver,
-                memory_system=self.memory_system
-            )
-            
-            self.training_manager = TrainingSessionManager(
-                ai_controller=self.ai_controller,
-                memory_system=self.memory_system
-            )
-            
             self.file_ops = FileOperations()
+            
+            if flask_app_context:
+                with flask_app_context():
+                    from memory_system import MemorySystem
+                    from ai_controller import AIController
+                    from training_engine import TrainingSessionManager
+                    
+                    self.memory_system = MemorySystem()
+                    self.ai_controller = AIController(
+                        browser_automation=self.browser_automation,
+                        captcha_solver=self.captcha_solver,
+                        memory_system=self.memory_system
+                    )
+                    self.training_manager = TrainingSessionManager(
+                        ai_controller=self.ai_controller,
+                        memory_system=self.memory_system
+                    )
+            else:
+                self.memory_system = None
+                self.ai_controller = None
+                self.training_manager = None
+                self.logger.warning("Flask app context not provided - database-dependent modules will be unavailable")
             
             self.logger.info("All modules initialized successfully")
             
@@ -135,6 +142,12 @@ class ToolsRegistry:
         }
         """
         try:
+            if not self.ai_controller:
+                return {
+                    "success": False,
+                    "error": "AI controller not available (Flask app context required)"
+                }
+            
             platform = payload.get("platform")
             prompt = payload.get("prompt")
             task_type = payload.get("task_type")
@@ -188,6 +201,12 @@ class ToolsRegistry:
         }
         """
         try:
+            if not self.ai_controller:
+                return {
+                    "success": False,
+                    "error": "AI controller not available (Flask app context required)"
+                }
+            
             prompt = payload.get("prompt", "")
             task_type = payload.get("task_type")
             
