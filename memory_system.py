@@ -726,3 +726,102 @@ class MemorySystem:
         except Exception as e:
             self.logger.error(f"Error associating with thread: {str(e)}")
             return None
+    
+    def retrieve(self, query, top_k=5):
+        """
+        Retrieve top-k most relevant conversation snippets for RAG
+        
+        Args:
+            query (str): The query to search for
+            top_k (int): Number of top results to return (default 5)
+            
+        Returns:
+            list: List of relevant conversation summaries with relevance scores
+        """
+        try:
+            query_lower = query.lower()
+            query_keywords = set(query_lower.split())
+            
+            conversations = self.get_conversations(limit=100)
+            
+            scored_conversations = []
+            for conv in conversations:
+                subject = (conv.get('subject') or '').lower()
+                goal = (conv.get('goal') or '').lower()
+                
+                subject_keywords = set(subject.split())
+                goal_keywords = set(goal.split())
+                
+                subject_matches = len(query_keywords & subject_keywords)
+                goal_matches = len(query_keywords & goal_keywords)
+                
+                total_matches = subject_matches + goal_matches
+                max_possible = len(query_keywords) * 2
+                
+                relevance_score = total_matches / max_possible if max_possible > 0 else 0.0
+                
+                if relevance_score > 0:
+                    scored_conversations.append({
+                        "id": conv.get('id'),
+                        "platform": conv.get('platform'),
+                        "subject": conv.get('subject'),
+                        "goal": conv.get('goal'),
+                        "relevance_score": relevance_score
+                    })
+            
+            scored_conversations.sort(key=lambda x: x['relevance_score'], reverse=True)
+            
+            return scored_conversations[:top_k]
+            
+        except Exception as e:
+            self.logger.error(f"Error retrieving conversations: {str(e)}")
+            self.logger.error(traceback.format_exc())
+            return []
+    
+    def store(self, record):
+        """
+        Store arbitrary records for agent memory
+        
+        Args:
+            record (dict): Record to store with keys like task, eval, history, etc.
+            
+        Returns:
+            dict: {"success": bool, "record_id": str}
+        """
+        try:
+            import hashlib
+            
+            timestamp = int(time.time())
+            record_str = json.dumps(record, sort_keys=True)
+            record_hash = hashlib.md5(record_str.encode()).hexdigest()[:8]
+            
+            record_id = f"{timestamp}_{record_hash}"
+            
+            agent_memory_dir = os.path.join(self.data_dir, "agent_memory")
+            os.makedirs(agent_memory_dir, exist_ok=True)
+            
+            file_path = os.path.join(agent_memory_dir, f"{record_id}.json")
+            
+            record_with_meta = {
+                "record_id": record_id,
+                "timestamp": datetime.now().isoformat(),
+                "data": record
+            }
+            
+            with open(file_path, 'w') as f:
+                json.dump(record_with_meta, f, indent=2)
+            
+            self.logger.info(f"Stored agent memory record: {record_id}")
+            
+            return {
+                "success": True,
+                "record_id": record_id
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error storing agent memory record: {str(e)}")
+            self.logger.error(traceback.format_exc())
+            return {
+                "success": False,
+                "record_id": None
+            }

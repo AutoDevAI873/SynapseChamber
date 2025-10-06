@@ -743,3 +743,57 @@ class AIController:
             "timestamp": datetime.datetime.now().isoformat(),
             "message": "Using fallback response due to browser automation issues"
         }
+    
+    def call_reasoner(self, platform, prompt, temperature=0.0, max_tokens=800, system_instruction=None):
+        """
+        Call an AI platform with strict JSON-only system instruction for ReAct agent
+        
+        Args:
+            platform (str): The AI platform to use
+            prompt (str): The prompt to send to the AI
+            temperature (float): Temperature for generation (default 0.0)
+            max_tokens (int): Maximum tokens to generate (default 800)
+            system_instruction (str, optional): Custom system instruction
+            
+        Returns:
+            str: Text response from AI (JSON string expected)
+        """
+        if system_instruction is None:
+            system_instruction = (
+                'You are AION — an autonomous agent. You MUST return a single JSON object only. '
+                'Do NOT include chain-of-thought or explanations. The JSON keys are: '
+                "'action' (one of the allowed tool names or 'finish'), "
+                "'action_input' (an object with the tool parameters). "
+                "Optional: 'comment' (one-line summary). "
+                'If unable to proceed, return {"action":"finish","action_input":{"result":"unable"}}'
+            )
+        
+        full_prompt = f"{system_instruction}\n\n{prompt}"
+        
+        try:
+            result = self.interact_with_ai(
+                platform=platform,
+                prompt=full_prompt,
+                subject="ReAct Agent Reasoning",
+                goal="Generate structured JSON action for autonomous agent",
+                task_type="reasoning"
+            )
+            
+            if result.get("status") == "success" or result.get("status") == "fallback":
+                return result.get("response", "")
+            else:
+                self.logger.warning(f"Failed to get reasoner response from {platform}: {result.get('message')}")
+                return '{"action":"finish","action_input":{"result":"error"}}'
+                
+        except Exception as e:
+            self.logger.error(f"Error in call_reasoner with {platform}: {str(e)}")
+            return '{"action":"finish","action_input":{"result":"error"}}'
+    
+    def default_judge_model(self):
+        """
+        Return the best platform for evaluation/judging tasks
+        
+        Returns:
+            str: Platform name with highest reasoning score
+        """
+        return "claude"

@@ -1,0 +1,375 @@
+{% extends 'layout.html' %}
+
+{% block title %}Agent Control Center - Synapse Chamber{% endblock %}
+
+{% block extra_css %}
+<style>
+  .task-form-card {
+    transition: all 0.3s ease;
+  }
+  
+  .results-area {
+    background-color: #1a1d20;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+  }
+  
+  .audit-table {
+    font-size: 0.9rem;
+  }
+  
+  .audit-table td, .audit-table th {
+    padding: 0.5rem;
+    vertical-align: middle;
+  }
+  
+  .status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .auto-refresh-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #28a745;
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  .loading-spinner {
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top: 3px solid #0d6efd;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .json-result {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1><i class="fas fa-cogs text-primary"></i> Agent Control Center</h1>
+      <p class="lead">Execute autonomous tasks using the ReAct agent system</p>
+    </div>
+  </div>
+
+  <!-- Run Task Form Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 task-form-card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-play-circle"></i> Run Task</h5>
+        </div>
+        <div class="card-body">
+          <form id="taskForm">
+            <div class="mb-3">
+              <label for="taskDescription" class="form-label">Task Description</label>
+              <textarea 
+                class="form-control" 
+                id="taskDescription" 
+                rows="4" 
+                placeholder="Describe the task you want the agent to execute..."
+                required
+              ></textarea>
+              <div class="form-text">Be specific about what you want the agent to accomplish.</div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="contextQuery" class="form-label">Context Query (Optional)</label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  id="contextQuery" 
+                  placeholder="e.g., search for related documentation"
+                />
+                <div class="form-text">Provide context to help the agent understand the task better.</div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label d-block">Execution Mode</label>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="dryRunMode">
+                  <label class="form-check-label" for="dryRunMode">
+                    Dry Run Mode
+                  </label>
+                </div>
+                <div class="form-text">In dry run mode, the agent won't execute state-changing actions.</div>
+              </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <button type="button" class="btn btn-secondary" id="clearBtn">
+                <i class="fas fa-eraser"></i> Clear
+              </button>
+              <button type="submit" class="btn btn-primary px-4" id="runTaskBtn">
+                <i class="fas fa-rocket"></i> Execute Task
+              </button>
+            </div>
+          </form>
+
+          <!-- Results Display Area -->
+          <div class="mt-4" id="resultsContainer" style="display: none;">
+            <h6 class="mb-2">Results:</h6>
+            <div class="results-area" id="resultsArea">
+              <div class="text-center text-muted">Results will appear here...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audit Log Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-clipboard-list"></i> Audit Log</h5>
+          <div>
+            <span class="auto-refresh-indicator me-2"></span>
+            <small>Auto-refresh every 10s</small>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-dark table-hover audit-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Step</th>
+                  <th>Action</th>
+                  <th>Status</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody id="auditTableBody">
+                <tr>
+                  <td colspan="5" class="text-center text-muted">
+                    <div class="loading-spinner"></div>
+                    <div class="mt-2">Loading audit log...</div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Approval Queue Section -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0"><i class="fas fa-check-circle"></i> Approval Queue</h5>
+        </div>
+        <div class="card-body">
+          <div id="approvalQueue">
+            <div class="alert alert-info" role="alert">
+              <i class="fas fa-info-circle"></i> No pending approvals
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const taskForm = document.getElementById('taskForm');
+  const runTaskBtn = document.getElementById('runTaskBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const resultsContainer = document.getElementById('resultsContainer');
+  const resultsArea = document.getElementById('resultsArea');
+  const auditTableBody = document.getElementById('auditTableBody');
+  
+  // Submit task form
+  taskForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const task = document.getElementById('taskDescription').value.trim();
+    const contextQuery = document.getElementById('contextQuery').value.trim();
+    const dryRun = document.getElementById('dryRunMode').checked;
+    
+    if (!task) {
+      showNotification('warning', 'Please enter a task description');
+      return;
+    }
+    
+    // Show loading state
+    runTaskBtn.disabled = true;
+    runTaskBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Executing...';
+    
+    resultsContainer.style.display = 'block';
+    resultsArea.innerHTML = '<div class="text-center"><div class="loading-spinner"></div><div class="mt-2">Executing task...</div></div>';
+    
+    try {
+      const response = await fetch('/agent/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          task: task,
+          dry_run: dryRun,
+          context_query: contextQuery || null
+        })
+      });
+      
+      const data = await response.json();
+      
+      // Display results
+      displayResults(data);
+      
+      // Refresh audit log
+      loadAuditLog();
+      
+      if (data.status === 'error') {
+        showNotification('error', 'Task execution failed: ' + (data.message || data.error));
+      } else if (data.status === 'finished') {
+        showNotification('success', 'Task completed successfully');
+      } else if (data.status === 'awaiting_approval') {
+        showNotification('info', 'Task requires approval');
+      }
+      
+    } catch (error) {
+      console.error('Error executing task:', error);
+      resultsArea.innerHTML = `<div class="text-danger">Error: ${error.message}</div>`;
+      showNotification('error', 'Failed to execute task');
+    } finally {
+      runTaskBtn.disabled = false;
+      runTaskBtn.innerHTML = '<i class="fas fa-rocket"></i> Execute Task';
+    }
+  });
+  
+  // Clear form
+  clearBtn.addEventListener('click', function() {
+    document.getElementById('taskDescription').value = '';
+    document.getElementById('contextQuery').value = '';
+    document.getElementById('dryRunMode').checked = false;
+    resultsContainer.style.display = 'none';
+  });
+  
+  // Display results
+  function displayResults(data) {
+    const formatted = JSON.stringify(data, null, 2);
+    resultsArea.innerHTML = `<pre class="json-result mb-0">${escapeHtml(formatted)}</pre>`;
+  }
+  
+  // Load audit log
+  async function loadAuditLog() {
+    try {
+      const response = await fetch('/agent/audit');
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        renderAuditLog(data.entries);
+      } else {
+        auditTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error loading audit log</td></tr>`;
+      }
+    } catch (error) {
+      console.error('Error loading audit log:', error);
+      auditTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Failed to load audit log</td></tr>`;
+    }
+  }
+  
+  // Render audit log entries
+  function renderAuditLog(entries) {
+    if (!entries || entries.length === 0) {
+      auditTableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No audit entries yet</td></tr>`;
+      return;
+    }
+    
+    // Reverse to show newest first
+    const sortedEntries = entries.slice().reverse();
+    
+    auditTableBody.innerHTML = sortedEntries.map(entry => {
+      const timestamp = new Date(entry.timestamp).toLocaleString();
+      const step = entry.step !== undefined ? entry.step : '-';
+      const action = entry.action ? (entry.action.action || JSON.stringify(entry.action).substring(0, 50)) : '-';
+      const result = entry.result || {};
+      
+      let statusBadge = '';
+      if (result.success === true || result.status === 'finished') {
+        statusBadge = '<span class="badge bg-success status-badge">Success</span>';
+      } else if (result.success === false || result.error) {
+        statusBadge = '<span class="badge bg-danger status-badge">Error</span>';
+      } else if (result.status === 'awaiting_approval') {
+        statusBadge = '<span class="badge bg-warning text-dark status-badge">Approval</span>';
+      } else {
+        statusBadge = '<span class="badge bg-secondary status-badge">Unknown</span>';
+      }
+      
+      const details = JSON.stringify(result).substring(0, 100);
+      
+      return `
+        <tr>
+          <td><small>${timestamp}</small></td>
+          <td>${step}</td>
+          <td><code>${escapeHtml(action)}</code></td>
+          <td>${statusBadge}</td>
+          <td><small class="text-muted">${escapeHtml(details)}...</small></td>
+        </tr>
+      `;
+    }).join('');
+  }
+  
+  // Escape HTML
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  // Show notification
+  function showNotification(type, message) {
+    if (typeof window.showNotification === 'function') {
+      window.showNotification(type, message);
+      return;
+    }
+    
+    alert(message);
+  }
+  
+  // Initial load
+  loadAuditLog();
+  
+  // Auto-refresh audit log every 10 seconds
+  setInterval(loadAuditLog, 10000);
+});
+</script>
+{% endblock %}

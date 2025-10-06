@@ -469,6 +469,89 @@ def system_monitoring():
         logger.error(f"Error rendering system monitoring page: {str(e)}")
         return render_template('system_monitoring.html', error=str(e))
 
+@app.route('/agent')
+def agent_dashboard():
+    """ReAct Agent Control Center"""
+    return render_template('agent_dashboard.html')
+
+@app.route('/agent/run', methods=['POST'])
+def agent_run():
+    """Execute a task via ReAct agent"""
+    try:
+        data = request.json
+        task = data.get('task')
+        dry_run = data.get('dry_run', False)
+        context_query = data.get('context_query')
+        
+        if not task:
+            return jsonify({"status": "error", "message": "Task is required"}), 400
+        
+        from react_agent import ReActAgent
+        agent = ReActAgent()
+        
+        result = agent.run_task(
+            task=task,
+            initial_context_query=context_query,
+            dry_run=dry_run
+        )
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error running agent task: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/agent/status/<task_id>')
+def agent_status(task_id):
+    """Get status of a running task"""
+    return jsonify({
+        "status": "completed",
+        "message": "Task tracking not yet implemented",
+        "task_id": task_id
+    })
+
+@app.route('/agent/audit')
+def agent_audit():
+    """Get recent audit log entries"""
+    try:
+        audit_path = "data/audit.jsonl"
+        
+        if not os.path.exists(audit_path):
+            return jsonify({"status": "success", "entries": []})
+        
+        entries = []
+        with open(audit_path, 'r') as f:
+            lines = f.readlines()
+            for line in lines[-100:]:
+                try:
+                    entry = json.loads(line.strip())
+                    entries.append(entry)
+                except json.JSONDecodeError:
+                    continue
+        
+        return jsonify({"status": "success", "entries": entries})
+        
+    except Exception as e:
+        logger.error(f"Error reading audit log: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/agent/approve/<task_id>', methods=['POST'])
+def agent_approve(task_id):
+    """Approve a pending action"""
+    try:
+        data = request.json
+        approved = data.get('approved', False)
+        
+        return jsonify({
+            "status": "approval_tracking_not_implemented",
+            "task_id": task_id,
+            "approved": approved
+        })
+        
+    except Exception as e:
+        logger.error(f"Error approving task: {str(e)}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 # API Routes
 @app.route('/api/start_interaction', methods=['POST'])
 def start_interaction():

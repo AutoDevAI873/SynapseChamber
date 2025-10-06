@@ -87,3 +87,16 @@ thread_conversation_link = db.Table('thread_conversation_link',
     db.Column('thread_id', db.Integer, db.ForeignKey('training_thread.id'), primary_key=True),
     db.Column('conversation_id', db.Integer, db.ForeignKey('ai_conversation.id'), primary_key=True)
 )
+
+class PlatformPerformance(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    task_type = db.Column(db.String(64), nullable=False)
+    platform = db.Column(db.String(50), nullable=False)
+    success_rate = db.Column(db.Float, default=0.0)
+    total_attempts = db.Column(db.Integer, default=0)
+    last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (db.UniqueConstraint('task_type', 'platform', name='_task_platform_uc'),)
+    
+    def __repr__(self):
+        return f'<PlatformPerformance {self.platform} {self.task_type}: {self.success_rate:.2f}>'
