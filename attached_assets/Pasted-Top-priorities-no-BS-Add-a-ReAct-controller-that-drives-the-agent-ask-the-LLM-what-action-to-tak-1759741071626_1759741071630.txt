@@ -1,0 +1,275 @@
+Top priorities (no BS)
+
+Add a ReAct controller that drives the agent: ask the LLM what action to take (structured JSON) → validate → execute tool → observe → repeat
+
+Expose a small, strict tool API (tool registry). LLM only returns {"action": "...", "action_input": {...}} — no inner chain-of-thought.
+
+Hook memory retrieval into the prompt (RAG) and pass a small semantic context to the reasoning LLM.
+
+Auto-evaluation & reflection after each completed task: compute metrics, store them, and generate training goals.
+
+Circuit breakers & safety (approval-required actions, dry-run mode, max steps) so it can’t runaway.
+
+Migration readiness / secrets: .env.example + Dockerfile + requirements.txt so you can zip and run locally.
+
+Below I give runnable patterns and code you can drop into your project. These integrate with your existing modules (ai_controller, memory_system, training_engine, browser_automation, etc.).
+
+1) Tool registry — exact API (add to your project)
+
+Create a single place that lists callable tools and their signatures.
+
+# tools_registry.py
+from browser_automation import BrowserController
+from ai_controller import AiController
+from memory_system import MemorySystem
+from training_engine import TrainingEngine
+from file_ops import safe_run_code, git_create_pr
+
+ai = AiController()
+browser = BrowserController()
+memory = MemorySystem()
+training = TrainingEngine()
+
+TOOLS = {
+    "call_ai": lambda payload: ai.call_platform(payload["platform"], payload["prompt"], **payload.get("opts", {})),
+    "search_web": lambda payload: ai.web_search(payload["query"]),
+    "browse_page": lambda payload: browser.navigate_and_extract(payload["url"], payload.get("selectors")),
+    "fill_form": lambda payload: browser.fill_form(payload["url"], payload["data"]),
+    "solve_captcha": lambda payload: browser.solve_captcha(payload["screenshot_path"]),
+    "run_training_cycle": lambda payload: training.run_cycle(payload),
+    "memory_retrieve": lambda payload: memory.retrieve(payload["query"], top_k=payload.get("top_k",5)),
+    "memory_store": lambda payload: memory.store(payload["record"]),
+    "propose_code_patch": lambda payload: safe_run_code.generate_patch(payload["file"], payload["patch_hint"]),
+    "create_pr": lambda payload: git_create_pr(payload["branch"], payload["title"], payload["diff"]),
+}
+
+
+Keep TOOLS small and explicit; add authorization metadata (which tools require human approval).
+
+2) ReAct loop — robust implementation (drop-in)
+
+A compact, safe ReAct agent that enforces JSON-only actions and validates them.
+
+# react_agent.py
+import json, time
+from tools_registry import TOOLS
+from ai_controller import AiController
+from memory_system import MemorySystem
+from training_engine import TrainingEngine
+
+class ReActAgent:
+    def __init__(self, ai: AiController, memory: MemorySystem, max_steps=6):
+        self.ai = ai
+        self.memory = memory
+        self.max_steps = max_steps
+        self.approval_required = {"create_pr", "delete_resource", "transfer_funds"}  # example
+        self.audit_log = []
+
+    def _build_prompt(self, task, context_snippets, history):
+        # RAG: include concise context, do not include full chain-of-thought.
+        tools_list = ", ".join(TOOLS.keys())
+        return f"""
+You are AION, an agent. You must respond with VALID JSON ONLY. DO NOT provide chain-of-thought.
+Keys: action (one of: {tools_list} or 'finish'), action_input (object).
+Task: {task}
+Context snippets: {context_snippets}
+History (last steps): {history[-6:]}
+Respond only with JSON e.g. {{ "action": "call_ai", "action_input": {{ "platform":"gpt", "prompt":"..." }} }}
+        """
+
+    def _parse_json(self, text):
+        try:
+            # Some LLMs wrap JSON; we try to extract first JSON object.
+            start = text.find('{')
+            end = text.rfind('}') + 1
+            return json.loads(text[start:end])
+        except Exception as e:
+            raise ValueError("LLM did not return valid JSON") from e
+
+    def _validate_action(self, action_obj):
+        action = action_obj.get("action")
+        if action not in TOOLS and action != "finish":
+            raise ValueError(f"Unknown action: {action}")
+        return action
+
+    def _execute(self, action_obj):
+        action = action_obj["action"]
+        if action == "finish":
+            return {"done": True, "result": action_obj.get("action_input")}
+        if action in self.approval_required:
+            return {"need_approval": True, "action": action, "input": action_obj.get("action_input")}
+        tool_fn = TOOLS[action]
+        observation = tool_fn(action_obj.get("action_input", {}))
+        return {"done": False, "observation": observation}
+
+    def run_task(self, task, initial_context_query=None):
+        context = self.memory.retrieve(initial_context_query, top_k=5) if initial_context_query else []
+        history = []
+        prompt = self._build_prompt(task, context, history)
+        for step in range(self.max_steps):
+            model = self.ai.recommend_platform(task)  # choose best reasoning model
+            llm_resp = self.ai.call_reasoner(model, prompt, temperature=0.0, max_tokens=800)
+            action_obj = self._parse_json(llm_resp)
+            self._validate_action(action_obj)
+            exec_result = self._execute(action_obj)
+
+            # Log & store observation
+            entry = {"step": step, "action": action_obj, "result": exec_result}
+            self.audit_log.append(entry)
+            history.append(entry)
+
+            if exec_result.get("need_approval"):
+                # Pause and emit to UI / human for approval
+                return {"status": "awaiting_approval", "entry": entry}
+
+            if exec_result.get("done"):
+                # Post-task evaluation & memory store
+                self._post_task_reflection(task, history, exec_result["result"])
+                return {"status": "finished", "result": exec_result["result"], "history": history}
+
+            # update prompt with latest observation (concise)
+            obs_summary = str(exec_result.get("observation"))[:800]
+            prompt = self._build_prompt(task, context + [obs_summary], history)
+
+        return {"status": "failed_max_steps", "history": history}
+
+    def _post_task_reflection(self, task, history, result):
+        # Evaluate: call a short "judge" prompt to compare goals vs. result, store metrics
+        eval_prompt = f"Task: {task}\nHistory: {history}\nResult: {result}\nReturn JSON: {{'success':bool, 'metrics':{{}}, 'next_actions':[]}}"
+        eval_out = self.ai.call_reasoner(self.ai.default_judge_model(), eval_prompt, temperature=0.0)
+        try:
+            ev = self._parse_json(eval_out)
+        except Exception:
+            ev = {"success": False, "metrics": {}, "next_actions": []}
+        # Store in memory
+        self.memory.store({"task": task, "eval": ev, "history": history})
+        # Optionally generate training goals
+        if not ev.get("success"):
+            training_tasks = ev.get("next_actions", [])
+            for t in training_tasks:
+                TrainingEngine().enqueue_training_task(t)
+
+
+Key behaviors implemented:
+
+Model only emits JSON actions (prevents chain-of-thought leakage into logs).
+
+Actions validated against TOOLS.
+
+Approval gating for sensitive actions.
+
+Post-task evaluation that writes structured results to memory and can enqueue training tasks.
+
+3) Prompt + Output format (use this exactly)
+
+System instruction (important; put in ai_controller when calling reasoning model):
+
+SYSTEM: You are AION — an autonomous agent. You MUST return a single JSON object only. 
+Do NOT include chain-of-thought or explanations. The JSON keys are:
+- action: one of the allowed tool names or "finish"
+- action_input: an object with the tool parameters
+Optional: "comment" (one-line summary). Keep it short.
+If unable to proceed, return {"action":"finish","action_input":{"result":"unable"}}
+
+
+LLM output example:
+
+{"action":"call_ai","action_input":{"platform":"gpt","prompt":"Summarize the text below into 3 bullets: <text here>"},"comment":"compare gpt summary vs last run"}
+
+
+This strictness avoids chain-of-thought leaks and keeps the agent deterministic.
+
+4) Memory integration (practical improvements)
+
+Context window: retrieve top 3–5 relevant memory snippets + last 10 interactions. Embed the snippets as Context: in the prompt (concise).
+
+Consolidation: every N sessions, run a summarizer that condenses old events into a single short note and replace raw logs with summary (in advanced_memory_system).
+
+Salience score: when storing, compute score = recency*0.6 + importance*0.4 and evict lowest when DB grows.
+
+Use embeddings and nearest-neighbor search for retrieval (you already have semantic memory — keep it).
+
+5) Self-improvement loop (exact pattern)
+
+After task finishes, call judge LLM to produce structured evaluation: {'success':bool,'metric':x,'next_steps':[...]}
+
+If success==False, auto-create a training job with training_engine.enqueue_training_task(next_steps[0]) or create a parameter sweep.
+
+Log results and update model of which platform performs best for which task (use counts & score).
+
+Add a small table in DB: platform_performance(task_type, platform, success_rate, last_seen) to let the agent choose best platform automatically.
+
+6) Safety / Governance (must-have)
+
+Max steps per task (e.g., 6).
+
+Dry-run flag: tool wrappers accept dry_run=True to return simulated observation. Run risky actions in dry-run by default.
+
+Approval queue exposed to UI for humans. Any approval_required action must be shown in /terminal or /system-monitoring for sign-off.
+
+Audit logs: append jSON-lines to audit.log with timestamps for every action.
+
+7) Browser automation resilience (practical fixes)
+
+Selector cache: store working XPaths/CSS with page_hash and reuse.
+
+Adaptive repair: when selector fails, take full-page screenshot and run a tiny ML/heuristic to propose new selectors (store candidate selectors in DB).
+
+API-first fallback: always prefer API calls where possible (e.g., OpenAI API vs web chat UI). Add api_fallback metadata to task types.
+
+Session reuse: reuse browser sessions (cookie store) to reduce login friction.
+
+Retry with exponential backoff + jitter.
+
+8) Monitoring & metrics (what to log)
+
+Store per-task metrics as JSONL:
+
+task_id, timestamp, action_sequence, success(bool), latency, error_codes, score
+Track aggregated metrics:
+
+tasks/sec, success_rate (by task_type), avg_latency, top_fail_reasons, platform_success_by_task.
+
+Wire these to your dashboard /system-monitoring.
+
+9) Migration / CI / Secrets (concrete)
+
+Add .env.example with keys and expected format:
+
+OPENAI_API_KEY=
+GEMINI_API_KEY=
+DATABASE_URL=postgresql://user:pass@localhost:5432/synapse
+CHROMEDRIVER_PATH=/usr/bin/chromedriver
+
+
+Add Dockerfile + docker-compose.yml (app + postgres + redis + chromedriver). Example snippet:
+
+# Dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY pyproject.toml poetry.lock ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
+COPY . .
+ENV FLASK_ENV=production
+CMD ["gunicorn","-b","0.0.0.0:8080","app:app","--workers=2"]
+
+
+docker-compose.yml includes a Postgres service and a headless-chrome container (or use Playwright's Docker image).
+
+10) What to do in your $10 Replit session — surgical checklist
+
+(Exact items to finish while you have Replit’s runtime & assistant)
+
+Drop in react_agent.py and register it in your app (endpoint /agent/run or a CLI).
+
+Create tools_registry.py mapping to your existing modules.
+
+Add strict system prompt for reasoning LLM (JSON-only). Update ai_controller to call call_reasoner.
+
+Add .env.example and ensure os.environ.get() uses fallback error messages (not secrets).
+
+Run one full training cycle end-to-end: give a simple task (e.g., "optimize OCR Tesseract config"), let it run, observe audit log and memory entries.
+
+Export the project zip and run a local dry-run on your laptop to confirm migration. Zip should include .env.example, requirements.txt, Dockerfile.
+
+If all that works on Replit, you can move off and run heavier cycles locally or on very cheap cloud.
