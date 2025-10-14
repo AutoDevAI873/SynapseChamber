@@ -1,16 +1,15 @@
-# ===============================
-# Auto Git Push Script (SynapseChamber)
-# ===============================
+# auto_push.ps1
+# Simple Git automation script for AutoDev updates
 
-# Navigate to repo directory
-Set-Location -Path "C:\Users\USER\SynapseChamber"
+# Navigate to project folder
+Set-Location "C:\Users\USER\SynapseChamber"
 
-# Add all changed files
-git add -A
+# Stage all changes
+git add .
 
-# Create a timestamp for commit message
+# Create timestamped commit message
 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-$commitMessage = "AutoDev update — $timestamp"
+$commitMessage = "AutoDev update - $timestamp"
 
 # Commit changes (if any)
 git commit -m "$commitMessage"
@@ -18,4 +17,5 @@ git commit -m "$commitMessage"
 # Push to GitHub
 git push origin main
 
+# Done message
 Write-Host "✅ Auto-push complete at $timestamp"
