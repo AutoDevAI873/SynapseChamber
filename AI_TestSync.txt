@@ -1,0 +1,1 @@
+"Hello from the AutoSyncBridge test $(Get-Date)" | Out-File bridge_test.txt -Encoding utf8
