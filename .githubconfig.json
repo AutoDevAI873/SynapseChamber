@@ -1,0 +1,7 @@
+﻿{
+    "api_base":  "https://api.github.com",
+    "token_env":  "GITHUB_TOKEN",
+    "user":  "AutoDevAI873",
+    "repo":  "SynapseChamber",
+    "branch":  "sandbox"
+}
