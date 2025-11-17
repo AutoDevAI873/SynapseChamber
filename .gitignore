@@ -65,3 +65,4 @@ dist/
 # --- NOTE FILES ---
 notes/
 *.md~
+sync_log.txt
