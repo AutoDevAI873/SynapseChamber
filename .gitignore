@@ -1,10 +1,67 @@
+# =========================
+# 🧠 AUTO-DEV PROJECT IGNORE LIST
+# =========================
 
+# --- ENVIRONMENT & KEYS ---
 .env
+*.env
+.env.*
+
+# --- PYTHON STUFF ---
 __pycache__/
-*.pyc
-instance/
-.config/
-data/
-static/screenshots/
-.cache/
+*.py[cod]
+*$py.class
+
+# --- VIRTUAL ENVIRONMENTS ---
+venv/
+env/
+.venv/
+ENV/
+Pipfile.lock
+poetry.lock
+
+# --- OS JUNK ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- REPLIT / EDITOR FILES ---
+.replit
+*.code-workspace
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- LOGS ---
 *.log
+logs/
+*.bak
+*.tmp
+*.swp
+*~ 
+
+# --- AUTO-DEV FILES ---
+auto_push.ps1
+sync_log.txt
+autodev_cache/
+autodev_temp/
+
+# --- GIT META ---
+.gitignore.txt
+.gitconfig
+.gitmodules
+
+# --- BACKUPS ---
+*.old
+*.backup
+
+# --- BUILD / DIST ---
+build/
+dist/
+*.egg-info/
+*.spec
+
+# --- NOTE FILES ---
+notes/
+*.md~
