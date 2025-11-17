@@ -3,14 +3,14 @@
   "platform": "gpt",
   "subject": "Natural Language Processing",
   "goal": "Training AutoDev on Natural Language Processing",
-  "created_at": "2025-10-04T07:56:07.199749",
+  "created_at": "2025-10-06T09:31:38.999282",
   "messages": [
     {
-      "id": 43,
+      "id": 37,
       "is_user": false,
-      "content": "[context] system: Task Context: platform=gpt, task_type=creativity, optimal=False",
+      "content": "[context] system: Task Context: platform=gpt, task_type=coding, optimal=False",
       "screenshot_path": null,
-      "timestamp": "2025-10-04T07:56:07.222988"
+      "timestamp": "2025-10-06T09:31:39.024438"
     }
   ]
 }

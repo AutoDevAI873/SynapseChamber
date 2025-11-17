@@ -1,0 +1,16 @@
+{
+  "id": 65,
+  "platform": "gpt",
+  "subject": "Natural Language Processing",
+  "goal": "Training AutoDev on Natural Language Processing",
+  "created_at": "2025-10-29T12:56:28.971925",
+  "messages": [
+    {
+      "id": 87,
+      "is_user": false,
+      "content": "[context] system: Task Context: platform=gpt, task_type=creativity, optimal=False",
+      "screenshot_path": null,
+      "timestamp": "2025-10-29T12:56:29.049198"
+    }
+  ]
+}
